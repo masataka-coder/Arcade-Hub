@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>カラフルブロック崩し</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-layer">
+            <div class="score-board">
+                <div>
+                    <span id="score-display">SCORE: 0</span>
+                    <span id="level-display" style="margin-left: 20px; font-size: 0.8em; color: #aaa;">LV: 1</span>
+                </div>
+                <span id="lives-display">〇〇〇</span>
+            </div>
+            <div id="item-status"></div>
+        </div>
+
+        <div id="message-overlay">
+            <h1 id="title-text">BLOCK BREAKER</h1>
+            <p id="subtitle-text">Ready to Play?</p>
+
+            <div id="mode-buttons" class="button-group">
+                <button id="normal-btn">NORMAL</button>
+                <button id="chaos-btn">CHAOS!</button>
+            </div>
+            <button id="action-btn" class="hidden">START</button>
+
+            <div class="controls-hint">
+                Move: <span class="key">←</span> <span class="key">→</span> / Launch: <span class="key">↑</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
