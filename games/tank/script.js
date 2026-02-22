@@ -1,4 +1,665 @@
-﻿// --- Game Constants ---
+﻿// --- i18n ---
+const translations = {
+    ja: {
+        subtitle: "砲撃バトルゲーム",
+        money: "所持金",
+        move_to_lab: "研究所へ移動",
+        move_to_shop: "ショップへ移動",
+        back: "戻る",
+        lab_subtitle: "新兵器の発明",
+        shop_subtitle: "弾数容量(Cap)の拡張",
+        lab_desc: "要素を組み合わせて500Gで研究を実行します。<br>成功するとショップに新商品が並びます。",
+        lab_base: "基礎機構 (Base)",
+        lab_enhance: "強化要素 (Enhance)",
+        base_direct: "直射 (Direct)",
+        base_spread: "拡散 (Spread)",
+        base_heavy: "重量 (Heavy)",
+        base_ground: "地上 (Ground)",
+        base_air: "空中 (Air)",
+        base_trap: "設置 (Trap)",
+        base_bio: "生物 (Bio)",
+        base_energy: "エネルギー (Energy)",
+        base_chaos: "混沌 (Chaos)",
+        enh_kinetic: "物理 (Kinetic)",
+        enh_explosive: "爆発 (Explosive)",
+        enh_elemental: "属性 (Elemental)",
+        enh_tech: "科学 (Tech)",
+        enh_magic: "魔法 (Magic)",
+        enh_sonic: "音波 (Sonic)",
+        enh_time: "時間 (Time)",
+        enh_gravity: "重力 (Gravity)",
+        enh_plasma: "プラズマ (Plasma)",
+        prediction: "研究結果予想",
+        unknown: "？？？",
+        btn_research: "発明する (500 G)",
+        unlocked_list: "発明済みリスト",
+        angle: "角度",
+        power: "パワー",
+        weapon_label: "武器選択 (残弾/最大)",
+        your_turn: "あなたの番です",
+        total: "合計",
+        return_title: "タイトルへ",
+        cpu_firing: "CPUの攻撃中...",
+        research_fail: "失敗...",
+        funds_short: "資金不足 (500G)",
+        already_unlocked: "すでに発明済み: ",
+        research_success: "発明成功！: ",
+        max_upgraded: "✨ 最大強化済 ✨",
+        buy_upgrade: "強化",
+        owned_cap: "所有上限: ",
+        expand_cap: "拡張 (+1)",
+        predict_prefix: "予測: ",
+        predict_known: " (既知)",
+        copied: "コピーしました",
+        data_invalid: "データ無効",
+        save_success: "成功！",
+        victory: "VICTORY!",
+        gameover: "GAME OVER",
+        battle_report: "BATTLE REPORT",
+        reward_win: "勝利ボーナス",
+        reward_kill: "自力撃破",
+        reward_other: "他脱落ボーナス",
+        reward_none: "報酬なし",
+        achievements_title: "🏆 ACHIEVEMENTS",
+        victory_sub: "全{n}体のCPUを撃破！",
+        defeat_sub: "{n}体のCPUが脱落！",
+        kills_sub: "撃破数: {n}",
+        no_shop_items: "ショップに並ぶ商品がありません。<br>研究所で新しい武器を発明してください。",
+        win_bonus: "勝利ボーナス",
+        achievement: "実績解除",
+        STANDARD_NAME: "スタンダード",
+        STANDARD_DESC: "標準的な弾です。",
+        ACCEL_NAME: "アクセル",
+        ACCEL_DESC: "飛距離に応じて加速し、威力が増します。",
+        SMOKE_NAME: "スモーク弾",
+        SMOKE_DESC: "着弾地点に煙幕を張り、敵の精度を下げます。",
+        BOUNCER_NAME: "バウンサー",
+        BOUNCER_DESC: "地面を跳ねる弾です。",
+        SNIPER_NAME: "スナイパー",
+        SNIPER_DESC: "高速で直線的な弾です。",
+        SHOTGUN_NAME: "ショットガン",
+        SHOTGUN_DESC: "3方向へ同時に発射します。",
+        CLUSTER_NAME: "クラスター",
+        CLUSTER_DESC: "空中で分裂し、広範囲を爆撃。",
+        NUKE_NAME: "核弾頭",
+        NUKE_DESC: "超強力な爆発を起こします。",
+        DRILL_NAME: "ドリル弾",
+        DRILL_DESC: "地形を貫通して進みます。",
+        ROLLER_NAME: "ローラー",
+        ROLLER_DESC: "地形に沿って転がる爆弾です。",
+        LASER_NAME: "レーザー",
+        LASER_DESC: "一直線に瞬時に弾丸が飛びます。",
+        GATLING_NAME: "ガトリング",
+        GATLING_DESC: "小弾を高速で連射します。",
+        POISON_NAME: "ポイズン",
+        POISON_DESC: "毒霧を発生させます。",
+        FIREWORKS_NAME: "花火",
+        FIREWORKS_DESC: "空中で華やかに炸裂します。",
+        ACID_NAME: "アシッド",
+        ACID_DESC: "地形を大きく溶かす酸の弾です。",
+        SATELLITE_NAME: "サテライト",
+        SATELLITE_DESC: "上空から極太レーザーを照射。",
+        SENTRY_NAME: "セントリー",
+        SENTRY_DESC: "付近の敵を自動射撃します。",
+        VOLCANO_NAME: "ボルケーノ",
+        VOLCANO_DESC: "マグマを噴出します。",
+        C4_NAME: "C4",
+        C4_DESC: "3ターン後に大爆発します。",
+        THUNDER_NAME: "サンダー",
+        THUNDER_DESC: "真下に雷を落とします。",
+        PLASMA_NAME: "プラズマ",
+        PLASMA_DESC: "触れたものを破壊する高温球。",
+        METEOR_NAME: "メテオ",
+        METEOR_DESC: "巨大な隕石を落とします。",
+        HEAL_NAME: "ヒール弾",
+        HEAL_DESC: "自分のHPを回復します。",
+        PRISM_NAME: "プリズム",
+        PRISM_DESC: "7方向へ反射レーザーを放つ。",
+        GRAVITY_NAME: "グラビティ",
+        GRAVITY_DESC: "強固な重力場を作ります。",
+        INFERNO_NAME: "インフェルノ",
+        INFERNO_DESC: "最強級の火炎弾です。",
+        WARP_MINE_NAME: "ワープマイン",
+        WARP_MINE_DESC: "敵をランダムにワープさせる。",
+        SHIELD_NAME: "シールド弾",
+        SHIELD_DESC: "シールドを張ります。",
+        BLACKHOLE_NAME: "ブラックホール",
+        BLACKHOLE_DESC: "全てを呑み込む引力圏。",
+        ION_BEAM_NAME: "イオンビーム",
+        ION_BEAM_DESC: "高速貫通粒子。",
+        PULSE_WAVE_NAME: "パルスウェーブ",
+        PULSE_WAVE_DESC: "全方向に衝撃波。",
+        TESLA_NAME: "テスラコイル",
+        TESLA_DESC: "電気フィールドを展開。",
+        SOLAR_FLARE_NAME: "ソーラーフレア",
+        SOLAR_FLARE_DESC: "太陽の炎で焼き尽くす。",
+        VORTEX_NAME: "ボーテックス",
+        VORTEX_DESC: "敵を引き込む渦。",
+        RIFT_NAME: "リフト",
+        RIFT_DESC: "地形を消滅させる裂け目。",
+        DARK_MATTER_NAME: "ダークマター",
+        DARK_MATTER_DESC: "未知の力で押し潰す。",
+        ANTIMATTER_NAME: "アンチマター",
+        ANTIMATTER_DESC: "究極の対消滅ダメージ。",
+        SKYROCKET_NAME: "打ち上げ花火",
+        SKYROCKET_DESC: "上空で炸裂します。",
+        SCREECH_NAME: "スクリーチ",
+        SCREECH_DESC: "強力な音波でダメージを与えます。",
+        GLACIER_NAME: "グレイシア",
+        GLACIER_DESC: "周囲を凍りつかせる氷弾。",
+        HOMING_NAME: "ホーミング",
+        HOMING_DESC: "敵を自動で追尾します。",
+        ECHO_NAME: "エコー弾",
+        ECHO_DESC: "反響する衝撃波を放ちます。",
+        IMPACT_NAME: "インパクト",
+        IMPACT_DESC: "着弾時の衝撃で敵を弾き飛ばす。",
+        EARTH_NAME: "アースクエイク",
+        EARTH_DESC: "地響きで敵を揺さぶります。",
+        BOOMERANG_NAME: "ブーメラン",
+        BOOMERANG_DESC: "弧を描いて戻ってくる弾です。",
+        SHRAPNEL_NAME: "シュラプネル",
+        SHRAPNEL_DESC: "散らばる破片で広範囲にダメージ。",
+        SHOWER_NAME: "シャワー",
+        SHOWER_DESC: "空から降り注ぐ無数の弾丸。",
+        NAPALM_NAME: "ナパーム",
+        NAPALM_DESC: "広範囲を焼き払う焼夷弾。",
+        MAGNET_NAME: "マグネット",
+        MAGNET_DESC: "強力な磁力で敵を引き寄せます。",
+        TELEPORT_NAME: "テレポート弾",
+        TELEPORT_DESC: "着弾地点に自分を転送します。",
+        LANDMINE_NAME: "地雷",
+        LANDMINE_DESC: "設置された場所に触れると爆発。",
+        CHAIN_NAME: "チェインライトニング",
+        CHAIN_DESC: "敵から敵へ連鎖する電撃。",
+        LEECH_NAME: "リーチ",
+        LEECH_DESC: "敵のHPを吸収し自分を回復。",
+        VIRUS_NAME: "ウイルス",
+        VIRUS_DESC: "持続的なダメージを与える病原体。",
+        FIRST_HIT_NAME: "ファーストヒット",
+        FIRST_KILL_NAME: "ファーストキル",
+        MULTI_KILL_NAME: "マルチキル",
+        SNIPER_SHOT_NAME: "スナイパー",
+        UNTOUCHABLE_NAME: "アンタッチャブル",
+        DOMINATION_NAME: "ドミネーション",
+        SURVIVOR_NAME: "サバイバー",
+        DOUBLE_KILL_NAME: "ダブルキル",
+        OVERKILL_NAME: "オーバーキル",
+        CELEBRATION_NAME: "祝宴",
+        HEADSHOT_NAME: "ヘッドショット",
+        TRIPLE_KILL_NAME: "トリプルキル",
+        COMEBACK_NAME: "カムバック",
+        PACIFIST_NAME: "パシフィスト",
+        PERFECTIONIST_NAME: "パーフェクショニスト",
+        DEMOLISHER_NAME: "デモリッシャー",
+        SPEED_RUN_NAME: "スピードラン",
+        WEAPON_MASTER_NAME: "ウェポンマスター",
+        ACH_FIRST_HIT_DESC: "最初にダメージを与えた",
+        ACH_FIRST_KILL_DESC: "最初の撃破",
+        ACH_MULTI_KILL_DESC: "1発で2体以上撃破",
+        ACH_SNIPER_SHOT_DESC: "長距離ヒット (画面50%超)",
+        ACH_UNTOUCHABLE_DESC: "ノーダメージで勝利",
+        ACH_DOMINATION_DESC: "全CPUを撃破して勝利",
+        ACH_SURVIVOR_DESC: "HP10%以下で勝利",
+        ACH_DOUBLE_KILL_DESC: "1ターンで2体以上撃破",
+        ACH_OVERKILL_DESC: "50以上の大ダメージ",
+        ACH_CELEBRATION_DESC: "戦闘中に実績を達成",
+        ACH_HEADSHOT_DESC: "一撃で敵を撃破",
+        ACH_TRIPLE_KILL_DESC: "1ターンで3体以上撃破",
+        ACH_COMEBACK_DESC: "HP20%以下から勝利",
+        ACH_PACIFIST_DESC: "3ターン以上ダメなし勝利",
+        ACH_PERFECTIONIST_DESC: "全弾命中させて勝利",
+        ACH_DEMOLISHER_DESC: "累計200以上のダメージ",
+        ACH_SPEED_RUN_DESC: "5ターン以内に勝利",
+        ACH_WEAPON_MASTER_DESC: "1試合で3種類以上で撃破",
+        UPG_VOLCANO_T1_DESC: "拡散した弾が着弾時にもう一度拡散する",
+        UPG_VOLCANO_T1_EFF: "二段拡散",
+        UPG_VOLCANO_T2_DESC: "拡散回数が3段に。マグマの雨が降り注ぐ",
+        UPG_VOLCANO_T2_EFF: "三段拡散",
+        UPG_SHOTGUN_T1_DESC: "弾数が3発→5発に増加",
+        UPG_SHOTGUN_T1_EFF: "5発",
+        UPG_SHOTGUN_T2_DESC: "弾数が5発→7発に増加",
+        UPG_SHOTGUN_T2_EFF: "7発",
+        UPG_CLUSTER_T1_DESC: "子弾が6発→10発に増加",
+        UPG_CLUSTER_T1_EFF: "子弾10発",
+        UPG_CLUSTER_T2_DESC: "子弾が10発→16発に増加",
+        UPG_CLUSTER_T2_EFF: "子弾16発",
+        UPG_NUKE_T1_DESC: "爆発半径が大幅に拡大",
+        UPG_NUKE_T1_EFF: "爆発範囲UP",
+        UPG_NUKE_T2_DESC: "爆発半径がさらに拡大＋ダメージ120",
+        UPG_NUKE_T2_EFF: "超爆発",
+        UPG_SNIPER_T1_DESC: "ダメージが60→90に強化",
+        UPG_SNIPER_T1_EFF: "威力UP",
+        UPG_SNIPER_T2_DESC: "ダメージが90→130に強化",
+        UPG_SNIPER_T2_EFF: "超威力",
+        UPG_DRILL_T1_DESC: "貫通力が20→40に倍増",
+        UPG_DRILL_T1_EFF: "貫通力UP",
+        UPG_DRILL_T2_DESC: "貫通力が40→80に。地球を掘り抜く",
+        UPG_DRILL_T2_EFF: "超貫通",
+        UPG_GATLING_T1_DESC: "連射数が5→8に増加",
+        UPG_GATLING_T1_EFF: "8連射",
+        UPG_GATLING_T2_DESC: "連射数が8→12に増加",
+        UPG_GATLING_T2_EFF: "12連射",
+        UPG_NAPALM_T1_DESC: "燃焼エリアの持続ターンが3→6に",
+        UPG_NAPALM_T1_EFF: "持続UP",
+        UPG_NAPALM_T2_DESC: "持続ターンが6→10に＋範囲拡大",
+        UPG_NAPALM_T2_EFF: "超持続",
+        UPG_SHOWER_T1_DESC: "爆弾が8→14発に増加",
+        UPG_SHOWER_T1_EFF: "14発",
+        UPG_SHOWER_T2_DESC: "爆弾が14→22発に増加",
+        UPG_SHOWER_T2_EFF: "22発",
+        UPG_BOUNCER_T1_DESC: "バウンス回数が2→5回に増加",
+        UPG_BOUNCER_T1_EFF: "5回",
+        UPG_BOUNCER_T2_DESC: "バウンス回数が5→9回＋弾が大きく",
+        UPG_BOUNCER_T2_EFF: "9回",
+        UPG_SKYROCKET_T1_DESC: "散弾数が8→14に増加",
+        UPG_SKYROCKET_T1_EFF: "散弾14発",
+        UPG_SKYROCKET_T2_DESC: "散弾数が14→22に増加",
+        UPG_SKYROCKET_T2_EFF: "散弾22発",
+        UPG_LASER_T1_DESC: "レーザーが太くなり威力UP",
+        UPG_LASER_T1_EFF: "太レーザー",
+        UPG_LASER_T2_DESC: "レーザーが貫通し複数の敵を貫く",
+        UPG_LASER_T2_EFF: "貫通レーザー",
+        UPG_BLACKHOLE_T1_DESC: "引力範囲が拡大",
+        UPG_BLACKHOLE_T1_EFF: "範囲UP",
+        UPG_BLACKHOLE_T2_DESC: "引力が超強化。地形も大きく飲む",
+        UPG_BLACKHOLE_T2_EFF: "超引力",
+        UPG_HOMING_T1_DESC: "追尾性能が強化される",
+        UPG_HOMING_T1_EFF: "追尾UP",
+        UPG_HOMING_T2_DESC: "着弾時に再追尾弾を発射",
+        UPG_HOMING_T2_EFF: "再追尾",
+        UPG_METEOR_T1_DESC: "隕石が3個に増加",
+        UPG_METEOR_T1_EFF: "3連隕石",
+        UPG_METEOR_T2_DESC: "隕石が5個に。圧倒的殲滅力",
+        UPG_METEOR_T2_EFF: "5連隕石",
+        UPG_ION_BEAM_T1_DESC: "威力が45→65に強化",
+        UPG_ION_BEAM_T1_EFF: "高出力",
+        UPG_ION_BEAM_T2_DESC: "弾速が上がり、貫通時の減衰がなくなる",
+        UPG_ION_BEAM_T2_EFF: "超電磁",
+        UPG_PULSE_WAVE_T1_DESC: "衝撃波の弾数が8→16に増加",
+        UPG_PULSE_WAVE_T1_EFF: "高密度",
+        UPG_PULSE_WAVE_T2_DESC: "衝撃波の範囲と威力が大幅上昇",
+        UPG_PULSE_WAVE_T2_EFF: "メガパルス",
+        UPG_TESLA_T1_DESC: "フィールドの持続が4→7ターンに",
+        UPG_TESLA_T1_EFF: "持続UP",
+        UPG_TESLA_T2_DESC: "フィールドのダメージが倍増",
+        UPG_TESLA_T2_EFF: "高電圧",
+        UPG_SOLAR_FLARE_T1_DESC: "燃焼範囲がさらに拡大",
+        UPG_SOLAR_FLARE_T1_EFF: "広域焼却",
+        UPG_SOLAR_FLARE_T2_DESC: "着弾時に小型フレアを3つ放出",
+        UPG_SOLAR_FLARE_T2_EFF: "トリプルフレア",
+        UPG_VORTEX_T1_DESC: "吸引力が大幅に強化",
+        UPG_VORTEX_T1_EFF: "超重力吸引",
+        UPG_VORTEX_T2_DESC: "吸引範囲が1.5倍に拡大",
+        UPG_VORTEX_T2_EFF: "メガボーテックス",
+        UPG_RIFT_T1_DESC: "地形消滅範囲が拡大",
+        UPG_RIFT_T1_EFF: "広域崩壊",
+        UPG_RIFT_T2_DESC: "消滅時に重力ダメージを追加",
+        UPG_RIFT_T2_EFF: "崩壊現象",
+        UPG_DARK_MATTER_T1_DESC: "威力が60→90に強化",
+        UPG_DARK_MATTER_T1_EFF: "高密度化",
+        UPG_DARK_MATTER_T2_DESC: "影響範囲が画面の3分の1を覆う",
+        UPG_DARK_MATTER_T2_EFF: "ダークネス",
+        UPG_ANTIMATTER_T1_DESC: "威力が100→150に強化",
+        UPG_ANTIMATTER_T1_EFF: "対消滅UP",
+        UPG_ANTIMATTER_T2_DESC: "威力が150→250、範囲も最大に",
+        UPG_ANTIMATTER_T2_EFF: "万物の終焉",
+    },
+    en: {
+        subtitle: "Artillery Battle Game",
+        money: "Gold",
+        move_to_lab: "Move to Lab",
+        move_to_shop: "Move to Shop",
+        back: "Back",
+        lab_subtitle: "Invent New Weapons",
+        shop_subtitle: "Expand Ammo Capacity",
+        lab_desc: "Combine elements and research for 500G.<br>Successful inventions appear in the shop.",
+        lab_base: "Base Mechanism",
+        lab_enhance: "Enhancement Element",
+        base_direct: "Direct",
+        base_spread: "Spread",
+        base_heavy: "Heavy",
+        base_ground: "Ground",
+        base_air: "Air",
+        base_trap: "Trap",
+        base_bio: "Bio",
+        base_energy: "Energy",
+        base_chaos: "Chaos",
+        enh_kinetic: "Kinetic",
+        enh_explosive: "Explosive",
+        enh_elemental: "Elemental",
+        enh_tech: "Tech",
+        enh_magic: "Magic",
+        enh_sonic: "Sonic",
+        enh_time: "Time",
+        enh_gravity: "Gravity",
+        enh_plasma: "Plasma",
+        prediction: "Research Prediction",
+        unknown: "???",
+        btn_research: "Research (500 G)",
+        unlocked_list: "Unlocked Weapons",
+        angle: "Angle",
+        power: "Power",
+        weapon_label: "Select Weapon (Ammo/Cap)",
+        your_turn: "Your Turn",
+        total: "Total",
+        return_title: "Return to Title",
+        cpu_firing: "CPU is Firing...",
+        research_fail: "Research Failed...",
+        funds_short: "Insufficient Funds (500G)",
+        already_unlocked: "Already Unlocked: ",
+        research_success: "Success!: ",
+        max_upgraded: "✨ Max Upgraded ✨",
+        buy_upgrade: "Upgrade",
+        owned_cap: "Capacity: ",
+        expand_cap: "Expand (+1)",
+        predict_prefix: "Prediction: ",
+        predict_known: " (Known)",
+        copied: "Copied to clipboard",
+        data_invalid: "Invalid data",
+        save_success: "Success!",
+        victory: "VICTORY!",
+        gameover: "GAME OVER",
+        battle_report: "BATTLE REPORT",
+        reward_win: "Victory Bonus",
+        reward_kill: "Kills",
+        reward_other: "Other Casualties",
+        reward_none: "No Rewards",
+        achievements_title: "🏆 ACHIEVEMENTS",
+        victory_sub: "Defeated all {n} CPUs!",
+        defeat_sub: "{n} CPUs were eliminated!",
+        kills_sub: "Kills: {n}",
+        no_shop_items: "No items available in the shop.<br>Please invent new weapons in the Lab.",
+        win_bonus: "Victory Bonus",
+        achievement: "Achievement",
+        STANDARD_NAME: "Standard",
+        STANDARD_DESC: "Standard artillery shell.",
+        ACCEL_NAME: "Accel",
+        ACCEL_DESC: "Accelerates in flight, increasing impact power.",
+        SMOKE_NAME: "Smoke Screen",
+        SMOKE_DESC: "Creates a smoke screen to reduce enemy accuracy.",
+        BOUNCER_NAME: "Bouncer",
+        BOUNCER_DESC: "Shell that bounces off the ground.",
+        SNIPER_NAME: "Sniper",
+        SNIPER_DESC: "High-speed, linear projectile.",
+        SHOTGUN_NAME: "Shotgun",
+        SHOTGUN_DESC: "Fires 3 shells simultaneously.",
+        CLUSTER_NAME: "Cluster",
+        CLUSTER_DESC: "Splits in mid-air for wide-area bombardment.",
+        NUKE_NAME: "Nuke",
+        NUKE_DESC: "Creates a massive explosion.",
+        DRILL_NAME: "Drill",
+        DRILL_DESC: "Penetrates through terrain.",
+        ROLLER_NAME: "Roller",
+        ROLLER_DESC: "Bomb that rolls along the terrain.",
+        LASER_NAME: "Laser",
+        LASER_DESC: "Instantaneous beam that travels in a straight line.",
+        GATLING_NAME: "Gatling",
+        GATLING_DESC: "Rapidly fires small projectiles.",
+        POISON_NAME: "Poison",
+        POISON_DESC: "Generates a toxic cloud.",
+        FIREWORKS_NAME: "Fireworks",
+        FIREWORKS_DESC: "Explodes beautifully in the air.",
+        ACID_NAME: "Acid",
+        ACID_DESC: "Acid shell that dissolves terrain.",
+        SATELLITE_NAME: "Satellite",
+        SATELLITE_DESC: "Fires a massive laser from orbit.",
+        SENTRY_NAME: "Sentry",
+        SENTRY_DESC: "Automatically fires at nearby enemies.",
+        VOLCANO_NAME: "Volcano",
+        VOLCANO_DESC: "Erupts magma on impact.",
+        C4_NAME: "C4",
+        C4_DESC: "Explodes after 3 turns.",
+        THUNDER_NAME: "Thunder",
+        THUNDER_DESC: "Strikes lightning directly below.",
+        PLASMA_NAME: "Plasma",
+        PLASMA_DESC: "High-temperature sphere that destroys anything it touches.",
+        METEOR_NAME: "Meteor",
+        METEOR_DESC: "Summons a giant meteorite.",
+        HEAL_NAME: "Heal",
+        HEAL_DESC: "Heals your own HP.",
+        PRISM_NAME: "Prism",
+        PRISM_DESC: "Fires reflecting lasers in 7 directions.",
+        GRAVITY_NAME: "Gravity",
+        GRAVITY_DESC: "Creates a strong gravitational field.",
+        INFERNO_NAME: "Inferno",
+        INFERNO_DESC: "Extremely powerful fire shell.",
+        WARP_MINE_NAME: "Warp Mine",
+        WARP_MINE_DESC: "Randomly teleports enemies.",
+        SHIELD_NAME: "Shield",
+        SHIELD_DESC: "Deploys a protective shield.",
+        BLACKHOLE_NAME: "Black Hole",
+        BLACKHOLE_DESC: "Gravitational field that devours everything.",
+        ION_BEAM_NAME: "Ion Beam",
+        ION_BEAM_DESC: "High-speed penetrating particles.",
+        PULSE_WAVE_NAME: "Pulse Wave",
+        PULSE_WAVE_DESC: "Shockwave in all directions.",
+        TESLA_NAME: "Tesla Coil",
+        TESLA_DESC: "Deploys an electrical field.",
+        SOLAR_FLARE_NAME: "Solar Flare",
+        SOLAR_FLARE_DESC: "Burns everything with solar fire.",
+        VORTEX_NAME: "Vortex",
+        VORTEX_DESC: "Whirlpool that pulls in enemies.",
+        RIFT_NAME: "Rift",
+        RIFT_DESC: "Fissure that annihilates terrain.",
+        DARK_MATTER_NAME: "Dark Matter",
+        DARK_MATTER_DESC: "Crushes everything with unknown force.",
+        ANTIMATTER_NAME: "Antimatter",
+        ANTIMATTER_DESC: "Ultimate annihilation damage.",
+        SKYROCKET_NAME: "Skyrocket",
+        SKYROCKET_DESC: "Explodes high in the air.",
+        SCREECH_NAME: "Screech",
+        SCREECH_DESC: "Deals damage with powerful sound waves.",
+        GLACIER_NAME: "Glacier",
+        GLACIER_DESC: "Ice shell that freezes the surroundings.",
+        HOMING_NAME: "Homing",
+        HOMING_DESC: "Automatically tracks enemies.",
+        ECHO_NAME: "Echo",
+        ECHO_DESC: "Fires echoing shockwaves.",
+        IMPACT_NAME: "Impact",
+        IMPACT_DESC: "Knocks back enemies on impact.",
+        EARTH_NAME: "Earthquake",
+        EARTH_DESC: "Shakes enemies with ground tremors.",
+        BOOMERANG_NAME: "Boomerang",
+        BOOMERANG_DESC: "Shell that returns in an arc.",
+        SHRAPNEL_NAME: "Shrapnel",
+        SHRAPNEL_DESC: "Wide-area damage with scattered fragments.",
+        SHOWER_NAME: "Shower",
+        SHOWER_DESC: "Countless shells falling from the sky.",
+        NAPALM_NAME: "Napalm",
+        NAPALM_DESC: "Incendiary shell that burns a wide area.",
+        MAGNET_NAME: "Magnet",
+        MAGNET_DESC: "Pulls in enemies with strong magnetism.",
+        TELEPORT_NAME: "Teleport",
+        TELEPORT_DESC: "Teleports you to the impact point.",
+        LANDMINE_NAME: "Landmine",
+        LANDMINE_DESC: "Explodes when touched.",
+        CHAIN_NAME: "Chain Lightning",
+        CHAIN_DESC: "Electrical discharge that chains between enemies.",
+        LEECH_NAME: "Leech",
+        LEECH_DESC: "Absorbs enemy HP to heal yourself.",
+        VIRUS_NAME: "Virus",
+        VIRUS_DESC: "Pathogen that dealt persistent damage.",
+        FIRST_HIT_NAME: "First Hit",
+        FIRST_KILL_NAME: "First Kill",
+        MULTI_KILL_NAME: "Multi Kill",
+        SNIPER_SHOT_NAME: "Sniper",
+        UNTOUCHABLE_NAME: "Untouchable",
+        DOMINATION_NAME: "Domination",
+        SURVIVOR_NAME: "Survivor",
+        DOUBLE_KILL_NAME: "Double Kill",
+        OVERKILL_NAME: "Overkill",
+        CELEBRATION_NAME: "Celebration",
+        HEADSHOT_NAME: "Headshot",
+        TRIPLE_KILL_NAME: "Triple Kill",
+        COMEBACK_NAME: "Comeback",
+        PACIFIST_NAME: "Pacifist",
+        PERFECTIONIST_NAME: "Perfectionist",
+        DEMOLISHER_NAME: "Demolisher",
+        SPEED_RUN_NAME: "Speed Run",
+        WEAPON_MASTER_NAME: "Weapon Master",
+        ACH_FIRST_HIT_DESC: "First damage dealt",
+        ACH_FIRST_KILL_DESC: "First kill confirmed",
+        ACH_MULTI_KILL_DESC: "2+ kills with one shell",
+        ACH_SNIPER_SHOT_DESC: "Hit from 50%+ distance",
+        ACH_UNTOUCHABLE_DESC: "Victory with zero damage",
+        ACH_DOMINATION_DESC: "Kill all CPUs and win",
+        ACH_SURVIVOR_DESC: "Win with <10% HP",
+        ACH_DOUBLE_KILL_DESC: "2+ kills in one turn",
+        ACH_OVERKILL_DESC: "50+ huge damage hit",
+        ACH_CELEBRATION_DESC: "Earn achievements in battle",
+        ACH_HEADSHOT_DESC: "Kill enemy with one hit",
+        ACH_TRIPLE_KILL_DESC: "3+ kills in one turn",
+        ACH_COMEBACK_DESC: "Win from <20% HP",
+        ACH_PACIFIST_DESC: "Win with 3+ turns no dmg",
+        ACH_PERFECTIONIST_DESC: "Hit all shots and win",
+        ACH_DEMOLISHER_DESC: "200+ total damage dealt",
+        ACH_SPEED_RUN_DESC: "Win within 5 turns",
+        ACH_WEAPON_MASTER_DESC: "3+ weapons used for kills",
+        UPG_VOLCANO_T1_DESC: "Spread bullets spread once more on impact.",
+        UPG_VOLCANO_T1_EFF: "Double Spread",
+        UPG_VOLCANO_T2_DESC: "Spreads into 3 stages, raining magma.",
+        UPG_VOLCANO_T2_EFF: "Triple Spread",
+        UPG_SHOTGUN_T1_DESC: "Increases number of shots from 3 to 5.",
+        UPG_SHOTGUN_T1_EFF: "5 Shots",
+        UPG_SHOTGUN_T2_DESC: "Increases number of shots from 5 to 7.",
+        UPG_SHOTGUN_T2_EFF: "7 Shots",
+        UPG_CLUSTER_T1_DESC: "Increases mini-shells from 6 to 10.",
+        UPG_CLUSTER_T1_EFF: "10 Mini-shells",
+        UPG_CLUSTER_T2_DESC: "Increases mini-shells from 10 to 16.",
+        UPG_CLUSTER_T2_EFF: "16 Mini-shells",
+        UPG_NUKE_T1_DESC: "Greatly increases explosion radius.",
+        UPG_NUKE_T1_EFF: "Radius UP",
+        UPG_NUKE_T2_DESC: "Further increases radius and damage to 120.",
+        UPG_NUKE_T2_EFF: "Super Nuke",
+        UPG_SNIPER_T1_DESC: "Increases damage from 60 to 90.",
+        UPG_SNIPER_T1_EFF: "Dmg UP",
+        UPG_SNIPER_T2_DESC: "Increases damage from 90 to 130.",
+        UPG_SNIPER_T2_EFF: "Super Sniper",
+        UPG_DRILL_T1_DESC: "Doubles penetration power from 20 to 40.",
+        UPG_DRILL_T1_EFF: "Penetration UP",
+        UPG_DRILL_T2_DESC: "Increases penetration to 80, drills through Earth.",
+        UPG_DRILL_T2_EFF: "Mega Drill",
+        UPG_GATLING_T1_DESC: "Increases rapid fire count from 5 to 8.",
+        UPG_GATLING_T1_EFF: "8 Rounds",
+        UPG_GATLING_T2_DESC: "Increases rapid fire count from 8 to 12.",
+        UPG_GATLING_T2_EFF: "12 Rounds",
+        UPG_NAPALM_T1_DESC: "Increases burn duration from 3 to 6 turns.",
+        UPG_NAPALM_T1_EFF: "Duration UP",
+        UPG_NAPALM_T2_DESC: "Increases duration to 10 turns and expands radius.",
+        UPG_NAPALM_T2_EFF: "Super Napalm",
+        UPG_SHOWER_T1_DESC: "Increases bomb count from 8 to 14.",
+        UPG_SHOWER_T1_EFF: "14 Bombs",
+        UPG_SHOWER_T2_DESC: "Increases bomb count from 14 to 22.",
+        UPG_SHOWER_T2_EFF: "22 Bombs",
+        UPG_BOUNCER_T1_DESC: "Increases bounce count from 2 to 5.",
+        UPG_BOUNCER_T1_EFF: "5 Bounces",
+        UPG_BOUNCER_T2_DESC: "Increases bounces to 9 and expands shell size.",
+        UPG_BOUNCER_T2_EFF: "9 Bounces",
+        UPG_SKYROCKET_T1_DESC: "Increases cluster count from 8 to 14.",
+        UPG_SKYROCKET_T1_EFF: "14 Clusters",
+        UPG_SKYROCKET_T2_DESC: "Increases cluster count from 14 to 22.",
+        UPG_SKYROCKET_T2_EFF: "22 Clusters",
+        UPG_LASER_T1_DESC: "Thickens the laser and increases damage.",
+        UPG_LASER_T1_EFF: "Thick Laser",
+        UPG_LASER_T2_DESC: "Laser penetrates through multiple enemies.",
+        UPG_LASER_T2_EFF: "Penetrating",
+        UPG_BLACKHOLE_T1_DESC: "Expands gravitational pull radius.",
+        UPG_BLACKHOLE_T1_EFF: "Radius UP",
+        UPG_BLACKHOLE_T2_DESC: "Greatly increases pull and terrain consumption.",
+        UPG_BLACKHOLE_T2_EFF: "Super Pull",
+        UPG_HOMING_T1_DESC: "Improves homing performance.",
+        UPG_HOMING_T1_EFF: "Homing UP",
+        UPG_HOMING_T2_DESC: "Fires secondary homing shells on impact.",
+        UPG_HOMING_T2_EFF: "Dual Homing",
+        UPG_METEOR_T1_DESC: "Increases meteor count to 3.",
+        UPG_METEOR_T1_EFF: "Triple Meteor",
+        UPG_METEOR_T2_DESC: "Increases count to 5 for massive destruction.",
+        UPG_METEOR_T2_EFF: "Mega Meteor",
+        UPG_ION_BEAM_T1_DESC: "Increases damage from 45 to 65.",
+        UPG_ION_BEAM_T1_EFF: "High Output",
+        UPG_ION_BEAM_T2_DESC: "Increases speed and removes penetration decay.",
+        UPG_ION_BEAM_T2_EFF: "Superconducting",
+        UPG_PULSE_WAVE_T1_DESC: "Increases pulse bullets from 8 to 16.",
+        UPG_PULSE_WAVE_T1_EFF: "High Density",
+        UPG_PULSE_WAVE_T2_DESC: "Greatly increases radius and damage.",
+        UPG_PULSE_WAVE_T2_EFF: "Mega Pulse",
+        UPG_TESLA_T1_DESC: "Increases field duration from 4 to 7 turns.",
+        UPG_TESLA_T1_EFF: "Duration UP",
+        UPG_TESLA_T2_DESC: "Doubles the field damage.",
+        UPG_TESLA_T2_EFF: "High Voltage",
+        UPG_SOLAR_FLARE_T1_DESC: "Expands the burning area.",
+        UPG_SOLAR_FLARE_T1_EFF: "Wide Flare",
+        UPG_SOLAR_FLARE_T2_DESC: "Fires 3 small secondary flares on impact.",
+        UPG_SOLAR_FLARE_T2_EFF: "Triple Flare",
+        UPG_VORTEX_T1_DESC: "Greatly increases suction power.",
+        UPG_VORTEX_T1_EFF: "Super Suction",
+        UPG_VORTEX_T2_DESC: "Increases suction radius by 1.5x.",
+        UPG_VORTEX_T2_EFF: "Mega Vortex",
+        UPG_RIFT_T1_DESC: "Expands terrain annihilation radius.",
+        UPG_RIFT_T1_EFF: "Radius UP",
+        UPG_RIFT_T2_DESC: "Adds gravitational damage on annihilation.",
+        UPG_RIFT_T2_EFF: "Collapse Event",
+        UPG_DARK_MATTER_T1_DESC: "Increases damage from 60 to 90.",
+        UPG_DARK_MATTER_T1_EFF: "High Density",
+        UPG_DARK_MATTER_T2_DESC: "Radius covers 1/3 of the screen.",
+        UPG_DARK_MATTER_T2_EFF: "Darkness",
+        UPG_ANTIMATTER_T1_DESC: "Increases damage from 100 to 150.",
+        UPG_ANTIMATTER_T1_EFF: "Annihilation UP",
+        UPG_ANTIMATTER_T2_DESC: "Increases damage to 250 and maxes radius.",
+        UPG_ANTIMATTER_T2_EFF: "End of All",
+    }
+};
+
+function getT(key) {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    return translations[lang][key] || key;
+}
+
+function getWeaponName(key) {
+    return getT(`${key}_NAME`);
+}
+
+function getWeaponDesc(key) {
+    return getT(`${key}_DESC`);
+}
+
+function getAchName(key) {
+    return getT(`${key}_NAME`);
+}
+
+function getAchDesc(key) {
+    return getT(`ACH_${key}_DESC`);
+}
+
+function applyTranslations() {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    const dict = translations[lang] || translations['ja'];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+            el.innerHTML = dict[key];
+        }
+    });
+
+    // Update active button
+    const btnJa = document.getElementById('lang-ja');
+    const btnEn = document.getElementById('lang-en');
+    if (btnJa) btnJa.classList.toggle('active', lang === 'ja');
+    if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+}
+
+function setLanguage(lang) {
+    localStorage.setItem('arcade_hub_lang', lang);
+    applyTranslations();
+    if (gameActive) {
+        updateHUDs();
+        updateWeaponSelect();
+    }
+    if (!ui.shopModal.classList.contains('hidden')) renderShopItems();
+    if (!ui.labModal.classList.contains('hidden')) renderUnlockedList();
+}
+
+// --- Game Constants ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -71,29 +732,29 @@ const WEAPONS = {
 // Weapon Upgrade Definitions
 // tier1 = first upgrade (1000G), tier2 = second upgrade (5000G)
 const WEAPON_UPGRADES = {
-    VOLCANO: { tier1: { desc: '拡散した弾が着弾時にもう一度拡散する', effect: '二段拡散' }, tier2: { desc: '拡散回数が3段に。マグマの雨が降り注ぐ', effect: '三段拡散' } },
-    SHOTGUN: { tier1: { desc: '弾数が3発→5発に増加', effect: '5発' }, tier2: { desc: '弾数が5発→7発に増加', effect: '7発' } },
-    CLUSTER: { tier1: { desc: '子弾が6発→10発に増加', effect: '子弾10発' }, tier2: { desc: '子弾が10発→16発に増加', effect: '子弾16発' } },
-    NUKE: { tier1: { desc: '爆発半径が大幅に拡大', effect: '爆発範囲UP' }, tier2: { desc: '爆発半径がさらに拡大＋ダメージ120', effect: '超爆発' } },
-    SNIPER: { tier1: { desc: 'ダメージが60→90に強化', effect: '威力UP' }, tier2: { desc: 'ダメージが90→130に強化', effect: '超威力' } },
-    DRILL: { tier1: { desc: '貫通力が20→40に倍増', effect: '貫通力UP' }, tier2: { desc: '貫通力が40→80に。地球を掘り抜く', effect: '超貫通' } },
-    GATLING: { tier1: { desc: '連射数が5→8に増加', effect: '8連射' }, tier2: { desc: '連射数が8→12に増加', effect: '12連射' } },
-    NAPALM: { tier1: { desc: '燃焼エリアの持続ターンが3→6に', effect: '持続UP' }, tier2: { desc: '持続ターンが6→10に＋範囲拡大', effect: '超持続' } },
-    SHOWER: { tier1: { desc: '爆弾が8→14発に増加', effect: '14発' }, tier2: { desc: '爆弾が14→22発に増加', effect: '22発' } },
-    BOUNCER: { tier1: { desc: 'バウンス回数が2→5回に増加', effect: '5回' }, tier2: { desc: 'バウンス回数が5→9回＋弾が大きく', effect: '9回' } },
-    SKYROCKET: { tier1: { desc: '散弾数が8→14に増加', effect: '散弾14発' }, tier2: { desc: '散弾数が14→22に増加', effect: '散弾22発' } },
-    LASER: { tier1: { desc: 'レーザーが太くなり威力UP', effect: '太レーザー' }, tier2: { desc: 'レーザーが貫通し複数の敵を貫く', effect: '貫通レーザー' } },
-    BLACKHOLE: { tier1: { desc: '引力範囲が拡大', effect: '範囲UP' }, tier2: { desc: '引力が超強化。地形も大きく飲む', effect: '超引力' } },
-    HOMING: { tier1: { desc: '追尾性能が強化される', effect: '追尾UP' }, tier2: { desc: '着弾時に再追尾弾を発射', effect: '再追尾' } },
-    METEOR: { tier1: { desc: '隕石が3個に増加', effect: '3連隕石' }, tier2: { desc: '隕石が5個に。圧倒的殲滅力', effect: '5連隕石' } },
-    ION_BEAM: { tier1: { desc: '威力が45→65に強化', effect: '高出力' }, tier2: { desc: '弾速が上がり、貫通時の減衰がなくなる', effect: '超電磁' } },
-    PULSE_WAVE: { tier1: { desc: '衝撃波の弾数が8→16に増加', effect: '高密度' }, tier2: { desc: '衝撃波の範囲と威力が大幅上昇', effect: 'メガパルス' } },
-    TESLA: { tier1: { desc: 'フィールドの持続が4→7ターンに', effect: '持続UP' }, tier2: { desc: 'フィールドのダメージが倍増', effect: '高電圧' } },
-    SOLAR_FLARE: { tier1: { desc: '燃焼範囲がさらに拡大', effect: '広域焼却' }, tier2: { desc: '着弾時に小型フレアを3つ放出', effect: 'トリプルフレア' } },
-    VORTEX: { tier1: { desc: '吸引力が大幅に強化', effect: '超重力吸引' }, tier2: { desc: '吸引範囲が1.5倍に拡大', effect: 'メガボーテックス' } },
-    RIFT: { tier1: { desc: '地形消滅範囲が拡大', effect: '広域崩壊' }, tier2: { desc: '消滅時に重力ダメージを追加', effect: '崩壊現象' } },
-    DARK_MATTER: { tier1: { desc: '威力が60→90に強化', effect: '高密度化' }, tier2: { desc: '影響範囲が画面の3分の1を覆う', effect: 'ダークネス' } },
-    ANTIMATTER: { tier1: { desc: '威力が100→150に強化', effect: '対消滅UP' }, tier2: { desc: '威力が150→250、範囲も最大に', effect: '万物の終焉' } },
+    VOLCANO: { tier1: { desc: 'UPG_VOLCANO_T1_DESC', effect: 'UPG_VOLCANO_T1_EFF' }, tier2: { desc: 'UPG_VOLCANO_T2_DESC', effect: 'UPG_VOLCANO_T2_EFF' } },
+    SHOTGUN: { tier1: { desc: 'UPG_SHOTGUN_T1_DESC', effect: 'UPG_SHOTGUN_T1_EFF' }, tier2: { desc: 'UPG_SHOTGUN_T2_DESC', effect: 'UPG_SHOTGUN_T2_EFF' } },
+    CLUSTER: { tier1: { desc: 'UPG_CLUSTER_T1_DESC', effect: 'UPG_CLUSTER_T1_EFF' }, tier2: { desc: 'UPG_CLUSTER_T2_DESC', effect: 'UPG_CLUSTER_T2_EFF' } },
+    NUKE: { tier1: { desc: 'UPG_NUKE_T1_DESC', effect: 'UPG_NUKE_T1_EFF' }, tier2: { desc: 'UPG_NUKE_T2_DESC', effect: 'UPG_NUKE_T2_EFF' } },
+    SNIPER: { tier1: { desc: 'UPG_SNIPER_T1_DESC', effect: 'UPG_SNIPER_T1_EFF' }, tier2: { desc: 'UPG_SNIPER_T2_DESC', effect: 'UPG_SNIPER_T2_EFF' } },
+    DRILL: { tier1: { desc: 'UPG_DRILL_T1_DESC', effect: 'UPG_DRILL_T1_EFF' }, tier2: { desc: 'UPG_DRILL_T2_DESC', effect: 'UPG_DRILL_T2_EFF' } },
+    GATLING: { tier1: { desc: 'UPG_GATLING_T1_DESC', effect: 'UPG_GATLING_T1_EFF' }, tier2: { desc: 'UPG_GATLING_T2_DESC', effect: 'UPG_GATLING_T2_EFF' } },
+    NAPALM: { tier1: { desc: 'UPG_NAPALM_T1_DESC', effect: 'UPG_NAPALM_T1_EFF' }, tier2: { desc: 'UPG_NAPALM_T2_DESC', effect: 'UPG_NAPALM_T2_EFF' } },
+    SHOWER: { tier1: { desc: 'UPG_SHOWER_T1_DESC', effect: 'UPG_SHOWER_T1_EFF' }, tier2: { desc: 'UPG_SHOWER_T2_DESC', effect: 'UPG_SHOWER_T2_EFF' } },
+    BOUNCER: { tier1: { desc: 'UPG_BOUNCER_T1_DESC', effect: 'UPG_BOUNCER_T1_EFF' }, tier2: { desc: 'UPG_BOUNCER_T2_DESC', effect: 'UPG_BOUNCER_T2_EFF' } },
+    SKYROCKET: { tier1: { desc: 'UPG_SKYROCKET_T1_DESC', effect: 'UPG_SKYROCKET_T1_EFF' }, tier2: { desc: 'UPG_SKYROCKET_T2_DESC', effect: 'UPG_SKYROCKET_T2_EFF' } },
+    LASER: { tier1: { desc: 'UPG_LASER_T1_DESC', effect: 'UPG_LASER_T1_EFF' }, tier2: { desc: 'UPG_LASER_T2_DESC', effect: 'UPG_LASER_T2_EFF' } },
+    BLACKHOLE: { tier1: { desc: 'UPG_BLACKHOLE_T1_DESC', effect: 'UPG_BLACKHOLE_T1_EFF' }, tier2: { desc: 'UPG_BLACKHOLE_T2_DESC', effect: 'UPG_BLACKHOLE_T2_EFF' } },
+    HOMING: { tier1: { desc: 'UPG_HOMING_T1_DESC', effect: 'UPG_HOMING_T1_EFF' }, tier2: { desc: 'UPG_HOMING_T2_DESC', effect: 'UPG_HOMING_T2_EFF' } },
+    METEOR: { tier1: { desc: 'UPG_METEOR_T1_DESC', effect: 'UPG_METEOR_T1_EFF' }, tier2: { desc: 'UPG_METEOR_T2_DESC', effect: 'UPG_METEOR_T2_EFF' } },
+    ION_BEAM: { tier1: { desc: 'UPG_ION_BEAM_T1_DESC', effect: 'UPG_ION_BEAM_T1_EFF' }, tier2: { desc: 'UPG_ION_BEAM_T2_DESC', effect: 'UPG_ION_BEAM_T2_EFF' } },
+    PULSE_WAVE: { tier1: { desc: 'UPG_PULSE_WAVE_T1_DESC', effect: 'UPG_PULSE_WAVE_T1_EFF' }, tier2: { desc: 'UPG_PULSE_WAVE_T2_DESC', effect: 'UPG_PULSE_WAVE_T2_EFF' } },
+    TESLA: { tier1: { desc: 'UPG_TESLA_T1_DESC', effect: 'UPG_TESLA_T1_EFF' }, tier2: { desc: 'UPG_TESLA_T2_DESC', effect: 'UPG_TESLA_T2_EFF' } },
+    SOLAR_FLARE: { tier1: { desc: 'UPG_SOLAR_FLARE_T1_DESC', effect: 'UPG_SOLAR_FLARE_T1_EFF' }, tier2: { desc: 'UPG_SOLAR_FLARE_T2_DESC', effect: 'UPG_SOLAR_FLARE_T2_EFF' } },
+    VORTEX: { tier1: { desc: 'UPG_VORTEX_T1_DESC', effect: 'UPG_VORTEX_T1_EFF' }, tier2: { desc: 'UPG_VORTEX_T2_DESC', effect: 'UPG_VORTEX_T2_EFF' } },
+    RIFT: { tier1: { desc: 'UPG_RIFT_T1_DESC', effect: 'UPG_RIFT_T1_EFF' }, tier2: { desc: 'UPG_RIFT_T2_DESC', effect: 'UPG_RIFT_T2_EFF' } },
+    DARK_MATTER: { tier1: { desc: 'UPG_DARK_MATTER_T1_DESC', effect: 'UPG_DARK_MATTER_T1_EFF' }, tier2: { desc: 'UPG_DARK_MATTER_T2_DESC', effect: 'UPG_DARK_MATTER_T2_EFF' } },
+    ANTIMATTER: { tier1: { desc: 'UPG_ANTIMATTER_T1_DESC', effect: 'UPG_ANTIMATTER_T1_EFF' }, tier2: { desc: 'UPG_ANTIMATTER_T2_DESC', effect: 'UPG_ANTIMATTER_T2_EFF' } },
 };
 let weaponUpgrades = {}; // { VOLCANO: 1, SHOTGUN: 2, ... } (0=none, 1=tier1, 2=tier2)
 
@@ -209,7 +870,7 @@ function importSaveData() {
         weaponUpgrades = data.upgrades || {};
         saveGameData(); updateDisplays(); document.getElementById('importMsg').textContent = "成功！";
         setTimeout(closeModals, 1000);
-    } catch (e) { document.getElementById('importMsg').textContent = "データ無効"; }
+    } catch (e) { document.getElementById('importMsg').textContent = getT('data_invalid'); }
 }
 
 // --- UI ---
@@ -236,14 +897,14 @@ function updateLabPrediction() {
 
     if (res && WEAPONS[res]) {
         if (unlockedWeapons[res]) {
-            ui.labPred.textContent = `予測: ${WEAPONS[res].name} (既知)`;
+            ui.labPred.textContent = `${getT('predict_prefix')}${getWeaponName(res)}${getT('predict_known')}`;
             ui.labPred.className = "font-bold text-lg text-yellow-400";
         } else {
-            ui.labPred.textContent = `予測: ${WEAPONS[res].name}`;
+            ui.labPred.textContent = `${getT('predict_prefix')}${getWeaponName(res)}`;
             ui.labPred.className = "font-bold text-lg text-purple-300 animate-pulse";
         }
     } else {
-        ui.labPred.textContent = "予測: 失敗または不明";
+        ui.labPred.textContent = `${getT('predict_prefix')}${getT('unknown')}`;
         ui.labPred.className = "font-bold text-lg text-gray-500";
     }
 }
@@ -344,29 +1005,29 @@ function checkWin() {
     let totalGold = 0;
 
     if (isVictory) {
-        ui.winnerText.textContent = "VICTORY!";
+        ui.winnerText.textContent = getT('victory');
         ui.winnerText.className = "game-font text-3xl mb-2 text-yellow-500 leading-normal";
-        document.getElementById('resultSubtext').textContent = `全${numOpponents}体のCPUを撃破！`;
+        document.getElementById('resultSubtext').textContent = getT('victory_sub').replace('{n}', numOpponents);
         const baseReward = 300 * numOpponents;
-        rewardLines.push({ label: `勝利ボーナス (×${numOpponents})`, amount: baseReward, icon: '🏆', color: '#FBBF24' });
+        rewardLines.push({ label: `${getT('win_bonus')} (×${numOpponents})`, amount: baseReward, icon: '🏆', color: '#FBBF24' });
         totalGold += baseReward;
     } else {
-        ui.winnerText.textContent = "GAME OVER";
+        ui.winnerText.textContent = getT('gameover');
         ui.winnerText.className = "game-font text-3xl mb-2 text-red-500 leading-normal";
         const playerKilled = matchStats.cpusKilled;
         // Count all dead CPUs (including those killed by other CPUs)
         let totalDead = 0;
         for (const id in tanks) { if (id != 1 && tanks[id].health <= 0) totalDead++; }
         const otherDead = totalDead - playerKilled;
-        document.getElementById('resultSubtext').textContent = totalDead > 0 ? `${totalDead}体のCPUが脱落！` : '撃破数: 0';
+        document.getElementById('resultSubtext').textContent = totalDead > 0 ? getT('defeat_sub').replace('{n}', totalDead) : getT('kills_sub').replace('{n}', '0');
         if (playerKilled > 0) {
             const killReward = 100 * playerKilled;
-            rewardLines.push({ label: `自力撃破 (×${playerKilled})`, amount: killReward, icon: '💀', color: '#EF4444' });
+            rewardLines.push({ label: `${getT('reward_kill')} (×${playerKilled})`, amount: killReward, icon: '💀', color: '#EF4444' });
             totalGold += killReward;
         }
         if (otherDead > 0) {
             const otherReward = 75 * otherDead;
-            rewardLines.push({ label: `他脱落ボーナス (×${otherDead})`, amount: otherReward, icon: '💫', color: '#9CA3AF' });
+            rewardLines.push({ label: `${getT('reward_other')} (×${otherDead})`, amount: otherReward, icon: '💫', color: '#9CA3AF' });
             totalGold += otherReward;
         }
     }
@@ -374,9 +1035,8 @@ function checkWin() {
     // Add achievement rewards
     for (const key in matchAchievements) {
         if (matchAchievements[key]) {
-            const a = ACHIEVEMENTS[key];
-            rewardLines.push({ label: `${a.icon} ${a.name}`, amount: a.gold, icon: a.icon, color: a.color, isAchievement: true });
-            totalGold += a.gold;
+            rewardLines.push({ label: `${ACHIEVEMENTS[key].icon} ${getAchName(key)}`, amount: ACHIEVEMENTS[key].gold, icon: ACHIEVEMENTS[key].icon, color: ACHIEVEMENTS[key].color, isAchievement: true });
+            totalGold += ACHIEVEMENTS[key].gold;
         }
     }
 
@@ -417,7 +1077,7 @@ function checkWin() {
             div.className = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border';
             div.style.borderColor = a.color + '66';
             div.style.backgroundColor = a.color + '1A';
-            div.innerHTML = `<span class="text-sm">${a.icon}</span><span class="text-xs font-bold" style="color:${a.color}">${a.name}</span>`;
+            div.innerHTML = `<span class="text-sm">${a.icon}</span><span class="text-xs font-bold" style="color:${a.color}">${getAchName(key)}</span>`;
             achLines.appendChild(div);
         });
     } else {
@@ -426,7 +1086,7 @@ function checkWin() {
 
     // Show no reward if nothing earned
     if (totalGold === 0) {
-        linesContainer.innerHTML = '<div class="text-center text-gray-500 text-sm py-2">報酬なし</div>';
+        linesContainer.innerHTML = `<div class="text-center text-gray-500 text-sm py-2">${getT('reward_none')}</div>`;
     }
 
     ui.gameOverModal.classList.remove('hidden');
@@ -455,9 +1115,9 @@ function showAchievementToast(key) {
     toast.innerHTML = `
                 <span class="text-2xl">${a.icon}</span>
                 <div class="flex-1">
-                    <div class="text-[10px] text-gray-400 uppercase tracking-widest">Achievement</div>
-                    <div class="font-bold text-sm" style="color:${a.color}">${a.name}</div>
-                    <div class="text-xs text-gray-400">${a.desc}</div>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-widest">${getT('achievement')}</div>
+                    <div class="font-bold text-sm" style="color:${a.color}">${getAchName(key)}</div>
+                    <div class="text-xs text-gray-400">${getAchDesc(key)}</div>
                 </div>
                 <div class="text-yellow-400 font-bold text-sm">+${a.gold}G</div>
             `;
@@ -536,7 +1196,7 @@ function afterPlayerShot() {
     if (anyCPUFired) {
         // Wait for CPU bullets to resolve, then return to player
         waitingForCPUBullets = true;
-        ui.turnIndicator.textContent = "CPUの攻撃中...";
+        ui.turnIndicator.textContent = getT('cpu_firing');
     } else {
         // No CPUs alive, return to player immediately
         returnToPlayer();
@@ -559,7 +1219,7 @@ function returnToPlayer() {
 
     const t = tanks[currentPlayer];
     if (t && t.health > 0) {
-        ui.turnIndicator.textContent = "あなたの番です";
+        ui.turnIndicator.textContent = getT('your_turn');
         ui.fireBtn.disabled = false; ui.weaponSelect.disabled = false;
         ui.angleInput.disabled = false; ui.powerInput.disabled = false;
         ui.angleInput.value = t.angle; ui.angleValue.textContent = t.angle + "°";
@@ -705,21 +1365,23 @@ function renderShopItems() {
             if (upgLevel === 0) {
                 const canAff1 = playerGold >= 1000;
                 upgradeHTML = `<div class="mt-2 pt-2 border-t border-gray-700 flex justify-between items-center">
-                            <div class="flex-1 text-[10px]"><span class="text-blue-400 font-bold">⬆ 強化Ⅰ: ${upg.tier1.effect}</span><br>${upg.tier1.desc}</div>
+                            <div class="flex-1 text-[10px]"><span class="text-blue-400 font-bold">⬆ ${getT('buy_upgrade')}Ⅰ: ${getT(upg.tier1.effect)}</span><br>${getT(upg.tier1.desc)}</div>
                             <button onclick="buyUpgrade('${key}')" class="ml-2 px-2 py-1 rounded text-[10px] font-bold ${canAff1 ? 'bg-blue-700 hover:bg-blue-600 text-white' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}">1000G</button>
                         </div>`;
             } else if (upgLevel === 1) {
                 const canAff2 = playerGold >= 5000;
                 upgradeHTML = `<div class="mt-2 pt-2 border-t border-gray-700 flex justify-between items-center">
-                            <div class="flex-1 text-[10px]"><span class="text-red-400 font-bold">⬆⬆ 強化Ⅱ: ${upg.tier2.effect}</span><br>${upg.tier2.desc}</div>
+                            <div class="flex-1 text-[10px]"><span class="text-red-400 font-bold">⬆⬆ ${getT('buy_upgrade')}Ⅱ: ${getT(upg.tier2.effect)}</span><br>${getT(upg.tier2.desc)}</div>
                             <button onclick="buyUpgrade('${key}')" class="ml-2 px-2 py-1 rounded text-[10px] font-bold ${canAff2 ? 'bg-red-700 hover:bg-red-600 text-white' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}">5000G</button>
                         </div>`;
             } else {
-                upgradeHTML = `<div class="mt-2 pt-2 border-t border-gray-700 text-center text-[10px] font-bold text-yellow-500">✨ 最大強化済 ✨</div>`;
+                upgradeHTML = `<div class="mt-2 pt-2 border-t border-gray-700 text-center text-[10px] font-bold text-yellow-500">${getT('max_upgraded')}</div>`;
             }
         }
 
-        const nameLabel = upgLevel >= 2 ? `${w.name} <span class="text-red-400 text-xs">⬆⬆</span>` : upgLevel >= 1 ? `${w.name} <span class="text-orange-400 text-xs">⬆</span>` : w.name;
+        const weaponName = getWeaponName(key);
+        const weaponDesc = getWeaponDesc(key);
+        const nameLabel = upgLevel >= 2 ? `${weaponName} <span class="text-red-400 text-xs">⬆⬆</span>` : upgLevel >= 1 ? `${weaponName} <span class="text-orange-400 text-xs">⬆</span>` : weaponName;
         const borderClass = upgLevel >= 2 ? 'border-red-500/40' : upgLevel >= 1 ? 'border-orange-500/40' : 'border-gray-600';
 
         const div = document.createElement('div');
@@ -735,16 +1397,16 @@ function renderShopItems() {
                         </div>
                         <span class="text-yellow-400 font-mono">${w.price} G</span>
                     </div>
-                    <p class="text-gray-300 text-xs mb-4 h-10 leading-tight">${w.desc}</p>
+                    <p class="text-gray-300 text-xs mb-4 h-10 leading-tight">${weaponDesc}</p>
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs text-gray-400">所有上限: <span class="text-white font-bold">${playerInventory[key] || 0}</span></span>
-                        <button onclick="buyItem('${key}')" class="px-4 py-2 rounded text-sm font-bold transition-all ${afford ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}">拡張 (+1)</button>
+                        <span class="text-xs text-gray-400">${getT('owned_cap')} <span class="text-white font-bold">${playerInventory[key] || 0}</span></span>
+                        <button onclick="buyItem('${key}')" class="px-4 py-2 rounded text-sm font-bold transition-all ${afford ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}">${getT('expand_cap')}</button>
                     </div>
                     ${upgradeHTML}
                 `;
         ui.shopItems.appendChild(div);
     }
-    if (!has) ui.shopItems.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">ショップに並ぶ商品がありません。<br>研究所で新しい武器を発明してください。</div>';
+    if (!has) ui.shopItems.innerHTML = `<div class="col-span-2 text-center text-gray-400 py-10">${getT('no_shop_items')}</div>`;
 }
 function buyUpgrade(key) {
     const currentLevel = weaponUpgrades[key] || 0;
@@ -758,7 +1420,7 @@ function buyUpgrade(key) {
 
 function openLab() { updateDisplays(); renderUnlockedList(); document.getElementById('researchResult').textContent = ''; updateLabPrediction(); ui.shopModal.classList.add('hidden'); ui.labModal.classList.remove('hidden'); }
 function conductResearch() {
-    if (playerGold < 500) { document.getElementById('researchResult').textContent = "資金不足 (500G)"; return; }
+    if (playerGold < 500) { document.getElementById('researchResult').textContent = getT('funds_short'); return; }
     const key = ui.labBase.value + '_' + ui.labEnhance.value;
     let res = RESEARCH_RECIPES[key];
     if (!res && RESEARCH_RECIPES_ALT[key]) res = RESEARCH_RECIPES_ALT[key][Math.floor(Math.random() * RESEARCH_RECIPES_ALT[key].length)];
@@ -766,19 +1428,19 @@ function conductResearch() {
     playerGold -= 500; updateDisplays(); saveGameData();
     const txt = document.getElementById('researchResult');
     if (res && WEAPONS[res]) {
-        if (unlockedWeapons[res]) { txt.textContent = `すでに発明済み: ${WEAPONS[res].name}`; txt.className = "mt-4 text-center font-bold text-yellow-400"; }
+        if (unlockedWeapons[res]) { txt.textContent = `${getT('already_unlocked')}${getWeaponName(res)}`; txt.className = "mt-4 text-center font-bold text-yellow-400"; }
         else {
             unlockedWeapons[res] = true; playerInventory[res] = 1; saveGameData();
-            txt.textContent = `発明成功！: ${WEAPONS[res].name}`; txt.className = "mt-4 text-center font-bold text-green-400 text-xl animate-bounce";
+            txt.textContent = `${getT('research_success')}${getWeaponName(res)}`; txt.className = "mt-4 text-center font-bold text-green-400 text-xl animate-bounce";
             renderUnlockedList(); updateLabPrediction();
         }
-    } else { txt.textContent = "失敗..."; txt.className = "mt-4 text-center font-bold text-gray-400"; }
+    } else { txt.textContent = getT('research_fail'); txt.className = "mt-4 text-center font-bold text-gray-400"; }
 }
 function renderUnlockedList() {
     ui.unlockedList.innerHTML = '';
     for (const k in unlockedWeapons) {
         if (unlockedWeapons[k] && WEAPONS[k]) {
-            ui.unlockedList.innerHTML += `<span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300 border border-gray-600">${WEAPONS[k].icon} ${WEAPONS[k].name}</span>`;
+            ui.unlockedList.innerHTML += `<span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300 border border-gray-600">${WEAPONS[k].icon} ${getWeaponName(k)}</span>`;
         }
     }
 }
@@ -789,7 +1451,8 @@ function updateWeaponSelect() {
         if (unlockedWeapons[key] && (playerInventory[key] > 0 || key === 'STANDARD')) {
             if (!WEAPONS[key]) continue;
             const upgMark = (weaponUpgrades[key] || 0) >= 2 ? '⬆⬆' : (weaponUpgrades[key] || 0) >= 1 ? '⬆' : '';
-            const txt = key === 'STANDARD' ? `${WEAPONS[key].icon} ${WEAPONS[key].name} (∞)` : `${WEAPONS[key].icon} ${WEAPONS[key].name}${upgMark} (${currentMatchAmmo[key]}/${playerInventory[key]})`;
+            const weaponName = getWeaponName(key);
+            const txt = key === 'STANDARD' ? `${WEAPONS[key].icon} ${weaponName} (∞)` : `${WEAPONS[key].icon} ${weaponName}${upgMark} (${currentMatchAmmo[key]}/${playerInventory[key]})`;
             const opt = document.createElement('option'); opt.value = key; opt.text = txt;
             if (key !== 'STANDARD' && currentMatchAmmo[key] <= 0) opt.disabled = true;
             ui.weaponSelect.appendChild(opt);
@@ -1429,4 +2092,11 @@ window.addEventListener('keydown', e => {
     }
 });
 
-loadGameData(); resize(); updateDisplays(); requestAnimationFrame(gameLoop);
+// --- Final Initialization ---
+window.addEventListener('load', () => {
+    applyTranslations();
+    loadGameData();
+    resize();
+    updateDisplays(); // Assuming updateDisplays is the existing function, not a new updateDisplay
+});
+requestAnimationFrame(gameLoop);

@@ -15,8 +15,12 @@
     </div>
 
     <header>
-        <h1>Arcade Hub</h1>
-        <p>A collection of premium arcade games developed for the ultimate fun experience.</p>
+        <div class="lang-toggle">
+            <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
+            <button onclick="setLanguage('en')" id="lang-en">EN</button>
+        </div>
+        <h1 data-i18n="portal_title">Arcade Hub</h1>
+        <p data-i18n="portal_desc">A collection of premium arcade games developed for the ultimate fun experience.</p>
     </header>
 
     <main class="game-grid">
@@ -25,12 +29,13 @@
                 <img src="assets/thumbnails/block.png" alt="Block Breaker">
             </div>
             <div class="card-content">
-                <h2>Block Breaker</h2>
-                <p>Classic arcade action with a modern twist. Break through layers of blocks and unlock powerful
+                <h2 data-i18n="game_block_title">Block Breaker</h2>
+                <p data-i18n="game_block_desc">Classic arcade action with a modern twist. Break through layers of blocks
+                    and unlock powerful
                     abilities.</p>
             </div>
             <div class="card-footer">
-                <span class="play-badge">Play Game</span>
+                <span class="play-badge" data-i18n="play_game">Play Game</span>
             </div>
         </a>
 
@@ -39,11 +44,12 @@
                 <img src="assets/thumbnails/tank.png" alt="Tank Wars">
             </div>
             <div class="card-content">
-                <h2>Tank Wars</h2>
-                <p>Strategic tank combat. Upgrade your arsenal, research new tech, and dominate the battlefield.</p>
+                <h2 data-i18n="game_tank_title">Tank Wars</h2>
+                <p data-i18n="game_tank_desc">Strategic tank combat. Upgrade your arsenal, research new tech, and
+                    dominate the battlefield.</p>
             </div>
             <div class="card-footer">
-                <span class="play-badge">Play Game</span>
+                <span class="play-badge" data-i18n="play_game">Play Game</span>
             </div>
         </a>
 
@@ -52,18 +58,19 @@
                 <img src="assets/thumbnails/tower.png" alt="Tower Defense">
             </div>
             <div class="card-content">
-                <h2>Tower Defense</h2>
-                <p>Protect your base in this multi-stage strategic challenge. Research advanced towers and survive
+                <h2 data-i18n="game_tower_title">Tower Defense</h2>
+                <p data-i18n="game_tower_desc">Protect your base in this multi-stage strategic challenge. Research
+                    advanced towers and survive
                     infinite waves.</p>
             </div>
             <div class="card-footer">
-                <span class="play-badge">Play Game</span>
+                <span class="play-badge" data-i18n="play_game">Play Game</span>
             </div>
         </a>
     </main>
 
     <footer>
-        <p>&copy; 2026 Takahide Kohata. All rights reserved.</p>
+        <p data-i18n="footer_copy">&copy; 2026 Takahide Kohata. All rights reserved.</p>
     </footer>
 
     <script src="script.js"></script>
