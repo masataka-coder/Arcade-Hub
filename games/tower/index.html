@@ -10,14 +10,24 @@
 
 <body>
 
-    <h1>Reverse S Tower Defense</h1>
+    <h1 data-i18n="game_title">Reverse S Tower Defense</h1>
+    <!-- Language Toggle (Always Visible) -->
+    <div class="lang-toggle fixed top-4 right-4 z-[1000] flex gap-2">
+        <button onclick="setLanguage('ja')" id="lang-ja"
+            class="active px-3 py-1 rounded font-bold text-sm transition-all">JP</button>
+        <button onclick="setLanguage('en')" id="lang-en"
+            class="px-3 py-1 rounded font-bold text-sm transition-all">EN</button>
+    </div>
 
     <!-- タイトル画面 -->
     <div id="title-screen" class="screen active">
-        <h2>SELECT STAGE</h2>
-        <button class="stage-btn" onclick="initGame(1)">Stage 1: Reverse S</button>
-        <button class="stage-btn" onclick="initGame(2)">Stage 2: Spiral</button>
-        <button class="stage-btn" onclick="initGame(3)">Stage 3: Zigzag</button>
+        <h2 data-i18n="select_stage">SELECT STAGE</h2>
+        <button class="stage-btn" onclick="initGame(1)"><span data-i18n="stage_prefix">Stage</span> 1: <span
+                data-i18n="stage_1_name">Reverse S</span></button>
+        <button class="stage-btn" onclick="initGame(2)"><span data-i18n="stage_prefix">Stage</span> 2: <span
+                data-i18n="stage_2_name">Spiral</span></button>
+        <button class="stage-btn" onclick="initGame(3)"><span data-i18n="stage_prefix">Stage</span> 3: <span
+                data-i18n="stage_3_name">Zigzag</span></button>
     </div>
 
     <!-- ゲームコンテナ -->
@@ -29,7 +39,7 @@
                 <span id="base-hp-display">🏰 HP: 20</span>
             </div>
             <div class="stat-group">
-                <span id="wave-display">🌊 Wave: 1</span>
+                <span id="wave-display"><span data-i18n="wave_label">Wave</span>: 1</span>
             </div>
         </div>
 
@@ -38,20 +48,22 @@
             <div id="message-area">BOSS WAVE!</div>
 
             <div id="game-over">
-                <h2 id="game-over-title">GAME OVER</h2>
-                <p id="final-score">Reached Wave: 5</p>
-                <button onclick="resetGame()">Retry</button>
-                <button onclick="returnToTitle()">Title</button>
+                <h2 id="game-over-title" data-i18n="msg_gameover">GAME OVER</h2>
+                <p id="final-score"><span data-i18n="final_wave">Reached Wave</span>: 5</p>
+                <button onclick="resetGame()" data-i18n="btn_retry">Retry</button>
+                <button onclick="returnToTitle()" data-i18n="btn_title">Title</button>
             </div>
         </div>
 
         <div id="controls">
             <!-- モード切替タブ -->
             <div class="tab-row">
-                <button id="tab-build" class="tab-btn active" onclick="switchMode('build')">🔨 Build</button>
-                <button id="tab-research" class="tab-btn" onclick="switchMode('research')">🧪 Research</button>
-                <button id="tab-inspect" class="tab-btn" style="display:none;" onclick="switchMode('inspect')">🔍
-                    Inspect</button>
+                <button id="tab-build" class="tab-btn active" onclick="switchMode('build')" data-i18n="tab_build">🔨
+                    Build</button>
+                <button id="tab-research" class="tab-btn" onclick="switchMode('research')" data-i18n="tab_research">🧪
+                    Research</button>
+                <button id="tab-inspect" class="tab-btn" style="display:none;" onclick="switchMode('inspect')"
+                    data-i18n="tab_inspect">🔍 Inspect</button>
             </div>
 
             <!-- パネルエリア (高さ固定) -->
@@ -59,35 +71,39 @@
 
                 <!-- 設置モード用パネル -->
                 <div id="build-panel" class="panel-content active">
-                    <button id="btn-standard" class="active tower-btn" onclick="selectTower('standard')">🔫 Standard
-                        ($50)</button>
-                    <button id="btn-sniper" class="tower-btn" onclick="selectTower('sniper')">🎯 Sniper ($120)</button>
-                    <button id="btn-missile" class="tower-btn" onclick="selectTower('missile')">🚀 Missile
-                        ($150)</button>
-                    <button id="btn-rapid" class="tower-btn" onclick="selectTower('rapid')">⚡ Rapid ($200)</button>
-                    <button id="btn-poison" class="tower-btn locked" onclick="selectTower('poison')">☠️ Poison
-                        ($350)</button>
-                    <button id="btn-heater" class="tower-btn locked" onclick="selectTower('heater')">🔥 Heater
-                        ($600)</button>
-                    <button id="btn-freeze" class="tower-btn locked" onclick="selectTower('freeze')">🥶 Freeze
-                        ($500)</button>
-                    <button id="btn-beam" class="tower-btn locked" onclick="selectTower('beam')">⚡ Beam ($1000)</button>
-                    <button id="btn-mine" class="tower-btn" onclick="selectTower('mine')">💣 Mine ($100)</button>
+                    <button id="btn-standard" class="active tower-btn" onclick="selectTower('standard')">🔫 <span
+                            data-i18n="tw_standard">Standard</span> (<span data-i18n="currency">$</span>50)</button>
+                    <button id="btn-sniper" class="tower-btn" onclick="selectTower('sniper')">🎯 <span
+                            data-i18n="tw_sniper">Sniper</span> (<span data-i18n="currency">$</span>120)</button>
+                    <button id="btn-missile" class="tower-btn" onclick="selectTower('missile')">🚀 <span
+                            data-i18n="tw_missile">Missile</span> (<span data-i18n="currency">$</span>150)</button>
+                    <button id="btn-rapid" class="tower-btn" onclick="selectTower('rapid')">⚡ <span
+                            data-i18n="tw_rapid">Rapid</span> (<span data-i18n="currency">$</span>200)</button>
+                    <button id="btn-poison" class="tower-btn locked" onclick="selectTower('poison')">☠️ <span
+                            data-i18n="tw_poison">Poison</span> (<span data-i18n="currency">$</span>350)</button>
+                    <button id="btn-heater" class="tower-btn locked" onclick="selectTower('heater')">🔥 <span
+                            data-i18n="tw_heater">Heater</span> (<span data-i18n="currency">$</span>600)</button>
+                    <button id="btn-freeze" class="tower-btn locked" onclick="selectTower('freeze')">🥶 <span
+                            data-i18n="tw_freeze">Freeze</span> (<span data-i18n="currency">$</span>500)</button>
+                    <button id="btn-beam" class="tower-btn locked" onclick="selectTower('beam')">⚡ <span
+                            data-i18n="tw_beam">Beam</span> (<span data-i18n="currency">$</span>1000)</button>
+                    <button id="btn-mine" class="tower-btn" onclick="selectTower('mine')">💣 <span
+                            data-i18n="tw_mine">Mine</span> (<span data-i18n="currency">$</span>100)</button>
                 </div>
 
                 <!-- 研究モード用パネル -->
                 <div id="research-panel" class="panel-content">
                     <button id="btn-res-damage" class="research-btn" onclick="doResearch('damage')">
-                        <span>⚔️ Power Up</span> <span id="cost-damage">$300</span>
+                        <span data-i18n="res_damage">⚔️ Power Up</span> <span id="cost-damage">$300</span>
                     </button>
                     <button id="btn-res-speed" class="research-btn" onclick="doResearch('speed')">
-                        <span>⚡ Haste</span> <span id="cost-speed">$300</span>
+                        <span data-i18n="res_speed">⚡ Haste</span> <span id="cost-speed">$300</span>
                     </button>
                     <button id="btn-res-range" class="research-btn" onclick="doResearch('range')">
-                        <span>🎯 Scope</span> <span id="cost-range">$300</span>
+                        <span data-i18n="res_range">🎯 Scope</span> <span id="cost-range">$300</span>
                     </button>
                     <button id="btn-res-defense" class="research-btn" onclick="doResearch('defense')">
-                        <span>🛡️ Shield</span> <span id="cost-defense">$300</span>
+                        <span data-i18n="res_defense">🛡️ Shield</span> <span id="cost-defense">$300</span>
                     </button>
                 </div>
 
@@ -103,14 +119,16 @@
 
             <!-- 共通コントロール -->
             <div class="common-controls">
-                <button id="btn-all-repair" class="all-repair-btn" onclick="repairAll()">🔧 All Repair</button>
-                <button id="start-wave" onclick="startGame()">Next Wave</button>
-                <button class="utility-btn" onclick="saveGame()">💾 SAVE</button>
-                <button class="utility-btn" onclick="loadGame()">📂 LOAD</button>
-                <button class="back-btn" onclick="returnToTitle()">↩ TOP</button>
+                <button id="btn-all-repair" class="all-repair-btn" onclick="repairAll()" data-i18n="btn_repair_all">🔧
+                    All Repair</button>
+                <button id="start-wave" onclick="startGame()" data-i18n="btn_next_wave">Next Wave</button>
+                <button class="utility-btn" onclick="saveGame()" data-i18n="btn_save">💾 SAVE</button>
+                <button class="utility-btn" onclick="loadGame()" data-i18n="btn_load">📂 LOAD</button>
+                <button class="back-btn" onclick="returnToTitle()" data-i18n="btn_top">↩ TOP</button>
             </div>
         </div>
     </div>
 
     <script src="script.js"></script>
+
 </html>

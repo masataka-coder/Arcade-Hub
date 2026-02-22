@@ -1,4 +1,133 @@
-﻿// --- 設定定数 ---
+﻿const translations = {
+    ja: {
+        game_title: "マルチステージ・タワーディフェンス",
+        select_stage: "ステージ選択",
+        stage_prefix: "ステージ",
+        stage_1_name: "リバースS",
+        stage_2_name: "スパイラル",
+        stage_3_name: "ジグザグ",
+        wave_label: "ウェーブ",
+        msg_boss_wave: "ボス襲来！",
+        msg_victory: "完全防衛！",
+        msg_gameover: "防衛失敗",
+        final_wave: "到達ウェーブ",
+        btn_retry: "リトライ",
+        btn_title: "タイトルへ",
+        tab_build: "🔨 設置",
+        tab_research: "🧪 研究",
+        tab_inspect: "🔍 詳細",
+        tw_standard: "スタンダード",
+        tw_sniper: "スナイパー",
+        tw_missile: "ミサイル",
+        tw_rapid: "ラピッド",
+        tw_poison: "ポイズン",
+        tw_heater: "ヒーター",
+        tw_freeze: "フリーズ",
+        tw_beam: "ビーム",
+        tw_mine: "地雷",
+        res_damage: "⚔️ 攻撃力アップ",
+        res_speed: "⚡ 攻撃速度アップ",
+        res_range: "🎯 射程アップ",
+        res_defense: "🛡️ 防衛力アップ",
+        btn_repair_all: "🔧 全修理",
+        btn_next_wave: "次のウェーブ",
+        btn_save: "💾 セーブ",
+        btn_load: "📂 ロード",
+        btn_top: "↩ トップへ",
+        currency: "¥",
+        status_selected: "選択中",
+        status_hp: "耐久",
+        inspect_sell: "売却",
+        inspect_repair: "修理",
+        msg_wave_start: "ウェーブ開始！",
+        msg_wave_clear: "ウェーブクリア！",
+    },
+    en: {
+        game_title: "Multi-Stage Tower Defense",
+        select_stage: "SELECT STAGE",
+        stage_prefix: "Stage",
+        stage_1_name: "Reverse S",
+        stage_2_name: "Spiral",
+        stage_3_name: "Zigzag",
+        wave_label: "Wave",
+        msg_boss_wave: "BOSS WAVE!",
+        msg_victory: "VICTORY!",
+        msg_gameover: "GAME OVER",
+        final_wave: "Reached Wave",
+        btn_retry: "Retry",
+        btn_title: "Title",
+        tab_build: "🔨 Build",
+        tab_research: "🧪 Research",
+        tab_inspect: "🔍 Inspect",
+        tw_standard: "Standard",
+        tw_sniper: "Sniper",
+        tw_missile: "Missile",
+        tw_rapid: "Rapid",
+        tw_poison: "Poison",
+        tw_heater: "Heater",
+        tw_freeze: "Freeze",
+        tw_beam: "Beam",
+        tw_mine: "Mine",
+        res_damage: "⚔️ Power Up",
+        res_speed: "⚡ Haste",
+        res_range: "🎯 Scope",
+        res_defense: "🛡️ Shield",
+        btn_repair_all: "🔧 All Repair",
+        btn_next_wave: "Next Wave",
+        btn_save: "💾 SAVE",
+        btn_load: "📂 LOAD",
+        btn_top: "↩ TOP",
+        currency: "$",
+        status_selected: "Selected",
+        status_hp: "HP",
+        inspect_sell: "Sell",
+        inspect_repair: "Repair",
+        msg_wave_start: "Wave Started!",
+        msg_wave_clear: "Wave Cleared!",
+    }
+};
+
+function getT(key) {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    return (translations[lang] && translations[lang][key]) ? translations[lang][key] : (translations['ja'][key] || key);
+}
+
+function applyTranslations() {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const text = getT(key);
+        if (text) {
+            // Preservation of original icons if wrapped in span or just text
+            if (el.children.length === 0) {
+                el.innerText = text;
+            } else {
+                // If it has children, we might be replacing a specific span or needs careful handle
+                // For this game, mostly we used spans for icons and text
+                const textNodes = Array.from(el.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+                if (textNodes.length > 0) {
+                    textNodes[0].textContent = text;
+                }
+            }
+        }
+    });
+
+    // Update buttons
+    const btnJa = document.getElementById('lang-ja');
+    const btnEn = document.getElementById('lang-en');
+    if (btnJa) btnJa.classList.toggle('active', lang === 'ja');
+    if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+
+    // Refresh UI if game is active
+    if (gameState.isRunning) updateUI();
+}
+
+function setLanguage(lang) {
+    localStorage.setItem('arcade_hub_lang', lang);
+    applyTranslations();
+}
+
+// --- 設定定数 ---
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 const TILE_SIZE = 40;
@@ -932,13 +1061,14 @@ function startGame() {
     } else if (isIceKaijuWave) {
         showMessage("ICE KAIJU WAVE!"); gameState.enemiesToSpawn = 1;
     } else if (isBossWave) {
-        showMessage("BOSS WAVE!"); gameState.enemiesToSpawn = 1;
+        showMessage(getT('msg_boss_wave')); gameState.enemiesToSpawn = 1;
     } else {
+        showMessage(getT('msg_wave_start'));
         gameState.enemiesToSpawn = 5 + Math.floor(gameState.wave * 1.5);
     }
     gameState.spawnTimer = 0;
     document.getElementById('start-wave').disabled = true;
-    document.getElementById('start-wave').innerText = "In Progress...";
+    document.getElementById('start-wave').innerText = "...";
 }
 
 function showMessage(msg) {
@@ -986,9 +1116,10 @@ function update() {
             }
         } else if (enemies.length === 0) {
             gameState.waveActive = false; gameState.wave++;
+            showMessage(getT('msg_wave_clear'));
             updateUI();
             document.getElementById('start-wave').disabled = false;
-            document.getElementById('start-wave').innerText = "Next Wave";
+            document.getElementById('start-wave').innerText = getT('btn_next_wave');
         }
     }
 
@@ -1108,7 +1239,7 @@ function saveGame() {
     };
     try {
         localStorage.setItem(`towerDefenseSave_stage${gameState.currentStage}`, JSON.stringify(saveObj));
-        alert(`Stage ${gameState.currentStage} Saved!`);
+        showMessage(getT('btn_save'));
     } catch (e) { alert('Save failed: ' + e); }
 }
 
@@ -1134,10 +1265,10 @@ function loadGame() {
         gameState.waveActive = false; gameState.isGameOver = false;
         document.getElementById('game-over').style.display = 'none';
         document.getElementById('start-wave').disabled = false;
-        document.getElementById('start-wave').innerText = "Next Wave";
+        document.getElementById('start-wave').innerText = getT('btn_next_wave');
         deselectTower();
         updateUI();
-        alert('Game Loaded!');
+        showMessage(getT('btn_load'));
     } catch (e) { alert('Load failed: ' + e); }
 }
 
@@ -1283,45 +1414,59 @@ function doResearch(type) {
 function updateUI() {
     document.getElementById('score-display').innerText = `💰 ${gameState.money}`;
     document.getElementById('base-hp-display').innerText = `🏰 HP: ${gameState.baseHealth}`;
-    document.getElementById('wave-display').innerText = `🌊 Wave: ${gameState.wave}`;
+    document.getElementById('wave-display').innerHTML = `<span data-i18n="wave_label">${getT('wave_label')}</span>: ${gameState.wave}`;
 
-    // タブの見た目
-    document.getElementById('tab-build').classList.toggle('active', gameState.mode === 'build');
-    document.getElementById('tab-research').classList.toggle('active', gameState.mode === 'research');
-    document.getElementById('tab-inspect').style.display = gameState.mode === 'inspect' ? 'flex' : 'none';
-    if (gameState.mode === 'inspect') document.getElementById('tab-inspect').classList.add('active');
-
-    // パネル表示制御 (Class switching)
-    document.querySelectorAll('.panel-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
     if (gameState.mode === 'inspect' && gameState.inspectedTower) {
         document.getElementById('inspect-panel').classList.add('active');
+        document.getElementById('tab-inspect').style.display = 'block';
+        document.getElementById('tab-inspect').classList.add('active');
 
         const t = gameState.inspectedTower;
-        document.getElementById('inspect-status').innerText = `${t.type.name} (HP: ${Math.floor(t.health)}/${Math.floor(t.maxHealth)})`;
-        const container = document.getElementById('inspect-buttons');
-        container.innerHTML = '';
+        const info = TOWER_TYPES[t.typeKey];
+        document.getElementById('inspect-status').innerText = `${getT('status_selected')}: ${getT('tw_' + t.typeKey)} (${getT('status_hp')}: ${Math.floor(t.health)}/${Math.floor(t.maxHealth)})`;
 
+        const btnArea = document.getElementById('inspect-buttons');
+        btnArea.innerHTML = '';
+
+        // Repair
+        const repairCost = t.getRepairCost();
+        const repBtn = document.createElement('button');
+        repBtn.className = 'repair-btn';
+        repBtn.innerText = `${getT('inspect_repair')} ($${repairCost})`;
+        repBtn.disabled = (t.health >= t.maxHealth || gameState.money < repairCost);
+        repBtn.onclick = doRepair;
+        btnArea.appendChild(repBtn);
+
+        // Sell
+        const sellBtn = document.createElement('button');
+        sellBtn.className = 'back-btn';
+        sellBtn.innerText = `${getT('inspect_sell')} ($${Math.floor(info.cost * 0.7)})`;
+        sellBtn.onclick = () => {
+            gameState.money += Math.floor(info.cost * 0.7);
+            towers = towers.filter(tw => tw !== t);
+            deselectTower();
+            updateUI();
+        };
+        btnArea.appendChild(sellBtn);
+
+        // Rotate (for beam tower)
         if (t.typeKey === 'beam') {
             const rotBtn = document.createElement('button');
-            rotBtn.className = 'rotate-btn'; rotBtn.innerText = '🔄 Rotate'; rotBtn.onclick = doRotate;
-            container.appendChild(rotBtn);
+            rotBtn.className = 'rotate-btn'; rotBtn.innerText = getT('inspect_rotate'); rotBtn.onclick = doRotate;
+            btnArea.appendChild(rotBtn);
         }
 
-        if (t.health < t.maxHealth) {
-            let cost = t.getRepairCost();
-            const btn = document.createElement('button');
-            btn.className = 'repair-btn'; btn.innerText = `Repair ($${cost})`;
-            btn.disabled = (gameState.money < cost); btn.onclick = doRepair;
-            container.appendChild(btn);
-        }
-
+        // Add Shield
         const shieldCost = 150;
         const shieldBtn = document.createElement('button');
-        shieldBtn.className = 'shield-btn'; shieldBtn.innerText = `🛡️ Shield ($${shieldCost})`;
-        shieldBtn.disabled = (gameState.money < shieldCost); shieldBtn.onclick = doAddShield;
-        container.appendChild(shieldBtn);
+        shieldBtn.className = 'shield-btn'; shieldBtn.innerText = `${getT('inspect_shield')} ($${shieldCost})`;
+        shieldBtn.disabled = (gameState.money < shieldCost || t.shield); shieldBtn.onclick = doAddShield;
+        btnArea.appendChild(shieldBtn);
 
+        // Upgrades (for standard tower)
         if (t.typeKey === 'standard') {
             const upgrades = [
                 { key: 'sniper', wave: 1 }, { key: 'missile', wave: 1 }, { key: 'rapid', wave: 1 },
@@ -1384,8 +1529,8 @@ function updateUI() {
 function endGame() {
     gameState.isGameOver = true;
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('game-over-title').innerText = "GAME OVER";
-    document.getElementById('final-score').innerText = `Reached Wave: ${gameState.wave}`;
+    document.getElementById('game-over-title').innerText = getT('msg_gameover');
+    document.getElementById('final-score').innerText = `${getT('final_wave')}: ${gameState.wave}`;
 }
 
 function resetGame() {
@@ -1405,10 +1550,15 @@ function resetGame() {
 
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('start-wave').disabled = false;
-    document.getElementById('start-wave').innerText = "Next Wave";
+    document.getElementById('start-wave').innerText = getT('btn_next_wave');
     selectTower('standard');
     updateUI();
 }
+
+// 起動時に翻訳を適用設定
+document.addEventListener('DOMContentLoaded', () => {
+    applyTranslations();
+});
 
 gameLoop();
 

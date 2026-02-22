@@ -2,6 +2,87 @@
  * ブロック崩しゲームロジック
  */
 
+const translations = {
+    ja: {
+        game_title: "BLOCK BREAKER",
+        subtitle_ready: "準備はいい？",
+        mode_normal: "ノーマル",
+        mode_chaos: "カオス！",
+        btn_start: "スタート",
+        hint_move: "移動",
+        hint_launch: "発射",
+        msg_victory: "完全制覇！",
+        msg_gameover: "ゲームオーバー",
+        msg_level_clear: "レベルクリア！",
+        msg_next_level: "NEXT LEVEL",
+        status_expand: "パドル拡大！",
+        status_rocket: "ロケットショット！",
+        status_stun: "スタン中！",
+        status_bubble: "バブルゾーン！",
+        status_1up: "1 UP!",
+        status_bonus: "スコアボーナス！",
+        status_shoot: "シュート装備！",
+        status_multi: "マルチボール！",
+        status_shoot_left: "シュート残り: ",
+        score_label: "SCORE: ",
+        level_label: "LV: "
+    },
+    en: {
+        game_title: "BLOCK BREAKER",
+        subtitle_ready: "Ready to Play?",
+        mode_normal: "NORMAL",
+        mode_chaos: "CHAOS!",
+        btn_start: "START",
+        hint_move: "Move",
+        hint_launch: "Launch",
+        msg_victory: "VICTORY!",
+        msg_gameover: "GAME OVER",
+        msg_level_clear: "LEVEL CLEAR!",
+        msg_next_level: "NEXT LEVEL",
+        status_expand: "PADDLE EXPAND!",
+        status_rocket: "ROCKET SHOT!",
+        status_stun: "STUNNED!",
+        status_bubble: "BUBBLE ZONE!",
+        status_1up: "1 UP!",
+        status_bonus: "SCORE BONUS!",
+        status_shoot: "SHOOT EQUIPPED!",
+        status_multi: "MULTI BALL!",
+        status_shoot_left: "SHOOT: ",
+        score_label: "SCORE: ",
+        level_label: "LV: "
+    }
+};
+
+function getT(key) {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    return translations[lang][key] || key;
+}
+
+function applyTranslations() {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+            el.innerHTML = translations[lang][key];
+        }
+    });
+
+    // Update displays that are dynamic
+    scoreDisplay.textContent = `${getT('score_label')}${score}`;
+    levelDisplay.textContent = `${getT('level_label')}${level}`;
+
+    // Update active button
+    const btnJa = document.getElementById('lang-ja');
+    const btnEn = document.getElementById('lang-en');
+    if (btnJa) btnJa.classList.toggle('active', lang === 'ja');
+    if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+}
+
+function setLanguage(lang) {
+    localStorage.setItem('arcade_hub_lang', lang);
+    applyTranslations();
+}
+
 // キャンバスとコンテキストの設定
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -385,7 +466,8 @@ function resetBall() {
         dy: 0,
         radius: 8,
         speed: 6,
-        explosiveCharges: 0
+        explosiveCharges: 0,
+        trail: [] // 追加: 軌跡用
     }];
 
     paddle.stunTimer = 0;
@@ -598,6 +680,12 @@ function update() {
         currentBall.x = nextX;
         currentBall.y = nextY;
 
+        // 軌跡を追加
+        currentBall.trail.push({ x: currentBall.x, y: currentBall.y });
+        if (currentBall.trail.length > 10) {
+            currentBall.trail.shift();
+        }
+
         // パドル衝突判定
         if (currentBall.y + currentBall.radius >= paddle.y &&
             currentBall.y - currentBall.radius <= paddle.y + paddle.height &&
@@ -629,7 +717,7 @@ function update() {
                 createParticles(paddle.x + paddle.width, paddle.y, COLORS.itemShoot);
 
                 if (paddle.shootCharges > 0) {
-                    showItemStatus(`SHOOT: ${paddle.shootCharges} LEFT`, COLORS.itemShoot);
+                    showItemStatus(`${getT('status_shoot_left')}${paddle.shootCharges}`, COLORS.itemShoot);
                 }
             }
 
@@ -708,29 +796,29 @@ function activateItem(type) {
         if (paddle.x + paddle.width > canvas.width) {
             paddle.x = canvas.width - paddle.width;
         }
-        showItemStatus("PADDLE EXPAND!", COLORS.itemPlus);
+        showItemStatus(getT('status_expand'), COLORS.itemPlus);
     } else if (type === 'rocket') {
         balls.forEach(b => b.explosiveCharges = 3); // 全てのボールにロケット付与
-        showItemStatus("ROCKET SHOT!", COLORS.itemRocket);
+        showItemStatus(getT('status_rocket'), COLORS.itemRocket);
     } else if (type === 'stun') {
         paddle.stunTimer = 180; // 約3秒 (60fps想定)
-        showItemStatus("STUNNED!", COLORS.itemStun);
+        showItemStatus(getT('status_stun'), COLORS.itemStun);
     } else if (type === 'bubble') {
         bubbles.push(new BubbleArea());
-        showItemStatus("BUBBLE ZONE!", COLORS.itemBubble);
+        showItemStatus(getT('status_bubble'), COLORS.itemBubble);
     } else if (type === 'life') {
         if (lives < 5) { // 上限5
             lives++;
             updateLivesDisplay();
-            showItemStatus("1 UP!", COLORS.itemLife);
+            showItemStatus(getT('status_1up'), COLORS.itemLife);
         } else {
             score += 50; // カンスト時はスコアボーナス
-            scoreDisplay.textContent = `SCORE: ${score}`;
-            showItemStatus("SCORE BONUS!", COLORS.itemLife);
+            scoreDisplay.textContent = `${getT('score_label')}${score}`;
+            showItemStatus(getT('status_bonus'), COLORS.itemLife);
         }
     } else if (type === 'shoot') {
         paddle.shootCharges += 5;
-        showItemStatus("SHOOT EQUIPPED! (5)", COLORS.itemShoot);
+        showItemStatus(`${getT('status_shoot')} (5)`, COLORS.itemShoot);
     } else if (type === 'multi') {
         let newBalls = [];
         balls.forEach(ball => {
@@ -742,11 +830,12 @@ function activateItem(type) {
                 let angle = Math.atan2(ball.dy, ball.dx) + (Math.random() * 0.5 - 0.25);
                 nb.dx = Math.cos(angle) * speed;
                 nb.dy = Math.sin(angle) * speed;
+                nb.trail = []; // 複製時も初期化
                 newBalls.push(nb);
             }
         });
         balls = balls.concat(newBalls); // ボールを追加
-        showItemStatus("MULTI BALL!", COLORS.itemMulti);
+        showItemStatus(getT('status_multi'), COLORS.itemMulti);
     }
 }
 
@@ -782,7 +871,7 @@ function hitBrick(c, r) {
     score += (b.type === 'tnt' ? 30 : 10);
     if (b.type === 'hard') score += 20;
 
-    scoreDisplay.textContent = `SCORE: ${score}`;
+    scoreDisplay.textContent = `${getT('score_label')}${score}`;
     createParticles(b.x + brickConfig.width / 2, b.y + brickConfig.height / 2, b.color);
 
     // アイテム生成 (ブロックが持っている場合)
@@ -949,6 +1038,25 @@ function draw() {
 
     // 複数ボールの描画
     balls.forEach(ball => {
+        // 軌跡の描画
+        if (ball.trail && ball.trail.length > 1) {
+            ctx.save();
+            const color = ball.explosiveCharges > 0 ? COLORS.itemRocket : "rgba(255, 255, 255, 0.5)";
+            for (let i = 0; i < ball.trail.length; i++) {
+                const pos = ball.trail[i];
+                const alpha = (i + 1) / ball.trail.length * 0.5;
+                const radius = ball.radius * (i + 1) / ball.trail.length;
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = alpha;
+                ctx.fill();
+                ctx.closePath();
+            }
+            ctx.restore();
+        }
+
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
 
@@ -985,6 +1093,16 @@ function gameLoop(timestamp) {
 
     animationId = requestAnimationFrame(gameLoop);
 }
+
+// 初期化処理の開始
+window.addEventListener('load', () => {
+    applyTranslations();
+    resize();
+    initBricks();
+    resetBall();
+    updateLivesDisplay();
+    requestAnimationFrame(gameLoop);
+});
 
 // ライフ表示更新用関数
 function updateLivesDisplay() {

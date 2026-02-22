@@ -6,6 +6,7 @@
     --card-bg: rgba(20, 20, 20, 0.7);
     --accent-blue: #00d2ff;
     --accent-purple: #9d50bb;
+    --primary-color: #00d2ff;
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
     --glass-border: rgba(255, 255, 255, 0.1);
@@ -85,6 +86,7 @@ header h1 {
     margin-bottom: 10px;
     background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     text-transform: uppercase;
 }
@@ -184,13 +186,45 @@ header p {
     color: #000;
 }
 
+/* Language Toggle */
+.lang-toggle {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 1000;
+}
+
+.lang-toggle button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.lang-toggle button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lang-toggle button.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
+}
+
 /* Footer */
 footer {
-    padding: 40px;
     text-align: center;
-    color: var(--text-secondary);
+    padding: 4rem 2rem;
+    color: var(--text-muted);
     font-size: 0.9rem;
-    border-top: 1px solid var(--glass-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Responsive */

@@ -13,6 +13,11 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
+        <div class="lang-toggle">
+            <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
+            <button onclick="setLanguage('en')" id="lang-en">EN</button>
+        </div>
+
         <div id="ui-layer">
             <div class="score-board">
                 <div>
@@ -25,17 +30,18 @@
         </div>
 
         <div id="message-overlay">
-            <h1 id="title-text">BLOCK BREAKER</h1>
-            <p id="subtitle-text">Ready to Play?</p>
+            <h1 id="title-text" data-i18n="game_title">BLOCK BREAKER</h1>
+            <p id="subtitle-text" data-i18n="subtitle_ready">Ready to Play?</p>
 
             <div id="mode-buttons" class="button-group">
-                <button id="normal-btn">NORMAL</button>
-                <button id="chaos-btn">CHAOS!</button>
+                <button id="normal-btn" data-i18n="mode_normal">NORMAL</button>
+                <button id="chaos-btn" data-i18n="mode_chaos">CHAOS!</button>
             </div>
-            <button id="action-btn" class="hidden">START</button>
+            <button id="action-btn" class="hidden" data-i18n="btn_start">START</button>
 
             <div class="controls-hint">
-                Move: <span class="key">←</span> <span class="key">→</span> / Launch: <span class="key">↑</span>
+                <span data-i18n="hint_move">Move</span>: <span class="key">←</span> <span class="key">→</span> / <span
+                    data-i18n="hint_launch">Launch</span>: <span class="key">↑</span>
             </div>
         </div>
     </div>
