@@ -49,7 +49,23 @@ const WEAPONS = {
     RIFT: { name: 'リフト', price: 650, desc: '地形を消滅させる裂け目。', color: '#C084FC', icon: '🕳️', baseType: 'CHAOS', enhanceType: 'EXPLOSIVE' },
     DARK_MATTER: { name: 'ダークマター', price: 850, desc: '未知の力で押し潰す。', color: '#374151', icon: '⬛', baseType: 'ENERGY', enhanceType: 'GRAVITY_E' },
     ANTIMATTER: { name: 'アンチマター', price: 950, desc: '究極の対消滅ダメージ。', color: '#F43F5E', icon: '⭕', baseType: 'ENERGY', enhanceType: 'PLASMA_E' },
-    SKYROCKET: { name: '打ち上げ花火', price: 500, desc: '上空で炸裂します。', color: '#FF69B4', icon: '🎆', baseType: 'SPREAD', enhanceType: 'TIME' }
+    SKYROCKET: { name: '打ち上げ花火', price: 500, desc: '上空で炸裂します。', color: '#FF69B4', icon: '🎆', baseType: 'SPREAD', enhanceType: 'TIME' },
+    SCREECH: { name: 'スクリーチ', price: 200, desc: '強力な音波でダメージを与えます。', color: '#94a3b8', icon: '🔊', baseType: 'DIRECT', enhanceType: 'SONIC' },
+    GLACIER: { name: 'グレイシア', price: 400, desc: '周囲を凍りつかせる氷弾。', color: '#22d3ee', icon: '❄️', baseType: 'DIRECT', enhanceType: 'ELEMENTAL' },
+    HOMING: { name: 'ホーミング', price: 500, desc: '敵を自動で追尾します。', color: '#f87171', icon: '🎯', baseType: 'DIRECT', enhanceType: 'MAGIC' },
+    ECHO: { name: 'エコー弾', price: 300, desc: '反響する衝撃波を放ちます。', color: '#a78bfa', icon: '📣', baseType: 'SPREAD', enhanceType: 'SONIC' },
+    IMPACT: { name: 'インパクト', price: 400, desc: '着弾時の衝撃で敵を弾き飛ばす。', color: '#6b7280', icon: '💥', baseType: 'HEAVY', enhanceType: 'KINETIC' },
+    EARTH: { name: 'アースクエイク', price: 450, desc: '地響きで敵を揺さぶります。', color: '#78350f', icon: '🌍', baseType: 'GROUND', enhanceType: 'ELEMENTAL' },
+    BOOMERANG: { name: 'ブーメラン', price: 350, desc: '弧を描いて戻ってくる弾です。', color: '#fbbf24', icon: '🪃', baseType: 'GROUND', enhanceType: 'MAGIC' },
+    SHRAPNEL: { name: 'シュラプネル', price: 400, desc: '散らばる破片で広範囲にダメージ。', color: '#4b5563', icon: '🎇', baseType: 'GROUND', enhanceType: 'SONIC' },
+    SHOWER: { name: 'シャワー', price: 500, desc: '空から降り注ぐ無数の弾丸。', color: '#60a5fa', icon: '🚿', baseType: 'AIR', enhanceType: 'EXPLOSIVE' },
+    NAPALM: { name: 'ナパーム', price: 600, desc: '広範囲を焼き払う焼夷弾。', color: '#ea580c', icon: '🔥', baseType: 'AIR', enhanceType: 'ELEMENTAL' },
+    MAGNET: { name: 'マグネット', price: 450, desc: '強力な磁力で敵を引き寄せます。', color: '#475569', icon: '🧲', baseType: 'AIR', enhanceType: 'TECH' },
+    TELEPORT: { name: 'テレポート弾', price: 550, desc: '着弾地点に自分を転送します。', color: '#818cf8', icon: '✨', baseType: 'AIR', enhanceType: 'MAGIC' },
+    LANDMINE: { name: '地雷', price: 300, desc: '設置された場所に触れると爆発。', color: '#1f2937', icon: '💣', baseType: 'TRAP', enhanceType: 'EXPLOSIVE' },
+    CHAIN: { name: 'チェインライトニング', price: 650, desc: '敵から敵へ連鎖する電撃。', color: '#fde047', icon: '⚡', baseType: 'TRAP', enhanceType: 'SONIC' },
+    LEECH: { name: 'リーチ', price: 500, desc: '敵のHPを吸収し自分を回復。', color: '#dc2626', icon: '💉', baseType: 'BIO', enhanceType: 'KINETIC' },
+    VIRUS: { name: 'ウイルス', price: 600, desc: '持続的なダメージを与える病原体。', color: '#16a34a', icon: '🦠', baseType: 'BIO', enhanceType: 'EXPLOSIVE' }
 };
 
 // Weapon Upgrade Definitions
@@ -214,14 +230,21 @@ const ui = {
 ui.cpuInput.addEventListener('input', e => ui.cpuDisplay.textContent = e.target.value);
 
 function updateLabPrediction() {
-    const comboKey = ui.labBase.value + '_' + ui.labEnhance.value;
-    let res = RESEARCH_RECIPES[comboKey] || (RESEARCH_RECIPES_ALT[comboKey] ? RESEARCH_RECIPES_ALT[comboKey][0] : null);
-    if (!res) {
-        ui.labPred.textContent = "実験失敗の可能性大..."; ui.labPred.className = "font-bold text-lg text-gray-500";
-    } else if (unlockedWeapons[res]) {
-        ui.labPred.textContent = `発明済み: ${WEAPONS[res].name}`; ui.labPred.className = "font-bold text-lg text-yellow-400";
+    const key = ui.labBase.value + '_' + ui.labEnhance.value;
+    let res = RESEARCH_RECIPES[key];
+    if (!res && RESEARCH_RECIPES_ALT[key]) res = RESEARCH_RECIPES_ALT[key][0]; // Predict first for now
+
+    if (res && WEAPONS[res]) {
+        if (unlockedWeapons[res]) {
+            ui.labPred.textContent = `予測: ${WEAPONS[res].name} (既知)`;
+            ui.labPred.className = "font-bold text-lg text-yellow-400";
+        } else {
+            ui.labPred.textContent = `予測: ${WEAPONS[res].name}`;
+            ui.labPred.className = "font-bold text-lg text-purple-300 animate-pulse";
+        }
     } else {
-        ui.labPred.textContent = `${WEAPONS[res].name} (未発明)`; ui.labPred.className = "font-bold text-lg text-purple-300 animate-pulse";
+        ui.labPred.textContent = "予測: 失敗または不明";
+        ui.labPred.className = "font-bold text-lg text-gray-500";
     }
 }
 ui.labBase.addEventListener('change', updateLabPrediction);
@@ -742,7 +765,7 @@ function conductResearch() {
 
     playerGold -= 500; updateDisplays(); saveGameData();
     const txt = document.getElementById('researchResult');
-    if (res) {
+    if (res && WEAPONS[res]) {
         if (unlockedWeapons[res]) { txt.textContent = `すでに発明済み: ${WEAPONS[res].name}`; txt.className = "mt-4 text-center font-bold text-yellow-400"; }
         else {
             unlockedWeapons[res] = true; playerInventory[res] = 1; saveGameData();
@@ -753,13 +776,18 @@ function conductResearch() {
 }
 function renderUnlockedList() {
     ui.unlockedList.innerHTML = '';
-    for (const k in unlockedWeapons) if (unlockedWeapons[k]) ui.unlockedList.innerHTML += `<span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300 border border-gray-600">${WEAPONS[k].icon} ${WEAPONS[k].name}</span>`;
+    for (const k in unlockedWeapons) {
+        if (unlockedWeapons[k] && WEAPONS[k]) {
+            ui.unlockedList.innerHTML += `<span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300 border border-gray-600">${WEAPONS[k].icon} ${WEAPONS[k].name}</span>`;
+        }
+    }
 }
 
 function updateWeaponSelect() {
     ui.weaponSelect.innerHTML = '';
     for (const key in WEAPONS) {
         if (unlockedWeapons[key] && (playerInventory[key] > 0 || key === 'STANDARD')) {
+            if (!WEAPONS[key]) continue;
             const upgMark = (weaponUpgrades[key] || 0) >= 2 ? '⬆⬆' : (weaponUpgrades[key] || 0) >= 1 ? '⬆' : '';
             const txt = key === 'STANDARD' ? `${WEAPONS[key].icon} ${WEAPONS[key].name} (∞)` : `${WEAPONS[key].icon} ${WEAPONS[key].name}${upgMark} (${currentMatchAmmo[key]}/${playerInventory[key]})`;
             const opt = document.createElement('option'); opt.value = key; opt.text = txt;
