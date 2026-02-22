@@ -107,6 +107,8 @@ let level = 1;
 let gameState = 'TITLE'; // TITLE, START, PLAYING, GAMEOVER, VICTORY, LEVEL_TRANSITION
 let isPaused = false;
 let isChaosMode = false;
+let bgm = new Audio('../../assets/musics/block/bgm.mp3');
+bgm.loop = true;
 
 // 色の設定 (マテリアルデザイン風)
 const COLORS = {
@@ -1123,6 +1125,7 @@ function showTitle() {
 
     // 背景クリア
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    bgm.pause();
 }
 
 // ゲーム制御関数
@@ -1151,6 +1154,8 @@ function initGame(chaos) {
     gameLoop(0);
 
     startGame(); // 準備が完了したら即プレイ状態（発射待機状態）へ移行
+    bgm.currentTime = 0;
+    bgm.play().catch(e => console.log("BGM play failed:", e));
 }
 
 function startGame() {

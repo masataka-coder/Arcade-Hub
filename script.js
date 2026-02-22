@@ -49,7 +49,6 @@ function setLanguage(lang) {
 document.addEventListener('DOMContentLoaded', () => {
     applyTranslations();
     const cards = document.querySelectorAll('.game-card');
-    // ... rest of the code
 
     // Smooth appearance on load
     cards.forEach((card, index) => {
@@ -63,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100 * (index + 1));
     });
 
-    // Tilt effect logic (optional but adds premium feel)
+    // Interaction logic
     cards.forEach(card => {
         card.addEventListener('mousemove', (e) => {
             const rect = card.getBoundingClientRect();
@@ -79,8 +78,18 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px)`;
         });
 
+        card.addEventListener('mouseenter', () => {
+            const video = card.querySelector('.preview-video');
+            if (video) video.play().catch(e => console.log("Video play failed:", e));
+        });
+
         card.addEventListener('mouseleave', () => {
             card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
+            const video = card.querySelector('.preview-video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
         });
     });
 });

@@ -808,6 +808,21 @@ let playerInventory = {};
 let unlockedWeapons = { 'STANDARD': true };
 let currentMatchAmmo = {};
 let waitingForCPUBullets = false;
+let bgm = new Audio('../../assets/musics/tank/bgm.mp3');
+bgm.loop = true;
+
+// Sound Effects
+const SE = {
+    shoot: new Audio('../../assets/musics/tank/effects/shoot.mp3'),
+    bomb1: new Audio('../../assets/musics/tank/effects/bomb1.mp3'),
+    bomb2: new Audio('../../assets/musics/tank/effects/bomb2.mp3'),
+    start: new Audio('../../assets/musics/tank/effects/start.mp3')
+};
+function playSE(key) {
+    const sound = SE[key].cloneNode();
+    sound.play().catch(e => console.log("SE play failed:", e));
+    return sound;
+}
 
 // --- Achievement System ---
 const ACHIEVEMENTS = {
@@ -1164,6 +1179,7 @@ function fireCPU(cpuId) {
     } else {
         bullets.push(new Bullet(t.x, t.y - 15, t.angle, t.power, cpuId, wType));
     }
+    playSE('shoot');
 }
 
 // After player's bullets resolve, all CPUs fire simultaneously
@@ -1322,7 +1338,12 @@ function processActiveZones() {
     }
 }
 
-function startGame() { initGame(parseInt(ui.cpuInput.value)); }
+function startGame() {
+    const sound = playSE('start');
+    sound.onended = () => {
+        initGame(parseInt(ui.cpuInput.value));
+    };
+}
 function initGame(n) {
     gameActive = true; gameOver = false; currentPlayer = 1; bullets = []; particles = []; activeZones = [];
     matchAchievements = {}; matchStats = { hits: 0, kills: 0, killsThisTurn: 0, damageTaken: 0, cpusKilled: 0, maxDamage: 0, totalDamageDealt: 0, turns: 0, shots: 0, shotsHit: 0, weaponKills: {} };
@@ -1331,11 +1352,14 @@ function initGame(n) {
     ui.titleScreen.classList.add('hidden'); ui.gameOverModal.classList.add('hidden'); ui.shopModal.classList.add('hidden'); ui.labModal.classList.add('hidden');
     ui.uiLayer.classList.remove('hidden'); ui.playerHud.classList.remove('hidden'); ui.cpuHudContainer.classList.remove('hidden'); ui.turnIndicator.classList.remove('hidden');
     generateTerrain(n); setWind(true); ui.fireBtn.disabled = false;
+    bgm.currentTime = 0;
+    bgm.play().catch(e => console.log("BGM play failed:", e));
 }
 function returnToTitle() {
     gameActive = false; ui.gameOverModal.classList.add('hidden'); ui.uiLayer.classList.add('hidden');
     ui.playerHud.classList.add('hidden'); ui.cpuHudContainer.classList.add('hidden'); ui.turnIndicator.classList.add('hidden');
     ui.titleScreen.classList.remove('hidden'); updateDisplays(); generateTerrain(0);
+    bgm.pause();
 }
 
 function closeModals() { ui.shopModal.classList.add('hidden'); ui.labModal.classList.add('hidden'); document.getElementById('dataModal').classList.add('hidden'); }
@@ -1692,6 +1716,8 @@ function launchCelebrationFireworks(px) {
 
 function explode(x, y, type, ownerId, booster) {
     if (ownerId === undefined) ownerId = currentPlayer;
+    // Play explosion sound
+    playSE(Math.random() < 0.5 ? 'bomb1' : 'bomb2');
     const wc = WEAPONS[type]; const color = wc ? wc.color : '#F59E0B';
     let pCount = 20; let rad = EXPLOSION_RADIUS;
     if (type === 'NUKE') { pCount = 60; rad = (weaponUpgrades['NUKE'] || 0) >= 2 ? 150 : (weaponUpgrades['NUKE'] || 0) >= 1 ? 120 : 80; }
@@ -1934,8 +1960,8 @@ function fire() {
         const halfSpread = Math.floor(sgCount / 2);
         for (let i = -halfSpread; i <= halfSpread; i++) bullets.push(new Bullet(t.x, t.y - 15, t.angle + i * 5, t.power, currentPlayer, wType));
     }
-    else if (wType === 'GATLING') { const gc = (weaponUpgrades['GATLING'] || 0) >= 2 ? 12 : (weaponUpgrades['GATLING'] || 0) >= 1 ? 8 : 5; for (let i = 0; i < gc; i++) setTimeout(() => bullets.push(new Bullet(t.x, t.y - 15, t.angle + (Math.random() - .5) * 2, t.power + (Math.random() - .5) * 2, currentPlayer, 'STANDARD')), i * 100); }
-    else { bullets.push(new Bullet(t.x, t.y - 15, t.angle, t.power, currentPlayer, wType)); }
+    else if (wType === 'GATLING') { const gc = (weaponUpgrades['GATLING'] || 0) >= 2 ? 12 : (weaponUpgrades['GATLING'] || 0) >= 1 ? 8 : 5; for (let i = 0; i < gc; i++) setTimeout(() => { bullets.push(new Bullet(t.x, t.y - 15, t.angle + (Math.random() - .5) * 2, t.power + (Math.random() - .5) * 2, currentPlayer, 'STANDARD')); playSE('shoot'); }, i * 100); }
+    else { bullets.push(new Bullet(t.x, t.y - 15, t.angle, t.power, currentPlayer, wType)); playSE('shoot'); }
     isInputLocked = true;
     waitingForCPUBullets = false; // Player shot phase
     matchStats.killsThisTurn = 0; // Reset per-turn kill counter
