@@ -12,6 +12,8 @@ const translations = {
         view_details: "詳細を見る",
         video_label_concept: "コンセプト映像",
         video_label_gameplay: "プレイ映像",
+        game_neon_title: "ネオンストライク",
+        game_neon_desc: "究極のネオン・シューティング体験。新技術を駆使して迫りくる敵と巨大なボスを撃破せよ。ショップで機体を強化し、ハイスコアを目指せ。",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
     },
     en: {
@@ -27,6 +29,8 @@ const translations = {
         view_details: "View Details",
         video_label_concept: "Concept",
         video_label_gameplay: "Gameplay",
+        game_neon_title: "Neon Strike",
+        game_neon_desc: "The ultimate neon shooting experience. Use advanced technology to defeat waves of enemies and giant bosses. Upgrade your ship in the shop and aim for the high score.",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
     }
 };
@@ -44,6 +48,11 @@ const gameData = {
     tower: {
         video: "assets/movies/tower.mp4",
         path: "games/tower/index.html"
+    },
+    neon: {
+        video: "assets/movies/neon-cg.mp4",
+        video2: "assets/movies/neon.mp4",
+        path: "games/neon/index.html"
     }
 };
 
@@ -145,19 +154,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.video) {
             modalVideo.src = data.video;
-            modalVideo.parentElement.classList.remove('hidden');
-            modalVideo.play().catch(e => console.log("Modal video play failed:", e));
+            document.getElementById('video-wrapper-1').classList.remove('hidden');
 
             if (data.video2) {
+                // Sequential playback
+                modalVideo.loop = false;
                 modalVideo2.src = data.video2;
-                videoWrapper2.classList.remove('hidden');
+                videoWrapper2.classList.add('hidden'); // Hide second initially
                 labelVideo1.classList.remove('hidden');
-                modalVideo2.play().catch(e => console.log("Modal video 2 play failed:", e));
+
+                modalVideo.onended = () => {
+                    document.getElementById('video-wrapper-1').classList.add('hidden');
+                    videoWrapper2.classList.remove('hidden');
+                    modalVideo2.play().catch(e => console.log("Modal video 2 play failed:", e));
+                };
             } else {
+                // Single video: Loop it
+                modalVideo.loop = true;
+                modalVideo.onended = null;
                 videoWrapper2.classList.add('hidden');
                 labelVideo1.classList.add('hidden');
             }
 
+            modalVideo.play().catch(e => console.log("Modal video play failed:", e));
             modalImagePlaceholder.classList.add('hidden');
         } else if (data.image) {
             modalVideo.src = "";
@@ -175,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.add('hidden');
         modalVideo.pause();
         modalVideo.src = "";
+        modalVideo.onended = null;
         modalVideo2.pause();
         modalVideo2.src = "";
         document.body.style.overflow = '';

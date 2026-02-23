@@ -1,0 +1,54 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #050510;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+canvas {
+    display: block;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-50px) scale(1.5);
+    }
+}
+
+.floating-text {
+    position: absolute;
+    color: #0ff;
+    font-weight: bold;
+    font-size: 1.5rem;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    text-shadow: 0 0 10px currentColor;
+    z-index: 50;
+}
+
+/* ボム発動時のフラッシュ */
+@keyframes bombFlash {
+    0% {
+        background-color: rgba(255, 255, 255, 0);
+    }
+
+    10% {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    100% {
+        background-color: rgba(255, 255, 255, 0);
+    }
+}
+
+.flash-active {
+    animation: bombFlash 0.5s ease-out;
+}
