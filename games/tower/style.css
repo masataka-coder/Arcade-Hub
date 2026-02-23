@@ -1,451 +1,488 @@
-﻿        :root {
-            --bg-color: #222;
-            --ui-bg: #333;
-            --text-color: #eee;
-            --accent: #4CAF50;
-            --danger: #ff5252;
-            --highlight: #2196F3;
-            --disabled: #555;
-        }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        h1 {
-            margin: 10px 0;
-            font-size: 24px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        /* スクリーン管理 */
-        .screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .screen.active {
-            display: flex;
-        }
-
-        /* タイトル画面 */
-        #title-screen {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 40px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        }
-
-        .stage-btn {
-            background-color: var(--highlight);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            margin: 10px;
-            font-size: 18px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 250px;
-            transition: transform 0.2s;
-        }
-
-        .stage-btn:hover {
-            transform: scale(1.05);
-            background-color: #1976D2;
-        }
-
-        /* ゲームコンテナ */
-        #game-container {
-            display: none;
-            /* 初期は非表示 */
-            flex-direction: column;
-            background-color: var(--ui-bg);
-            border: 4px solid var(--ui-bg);
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-        }
-
-        #game-container.active {
-            display: flex;
-        }
-
-        /* 上部 UI (ヘッダー) */
-        #ui-header {
-            background-color: #263238;
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 18px;
-            border-bottom: 2px solid #444;
-        }
-
-        .stat-group {
-            display: flex;
-            gap: 20px;
-        }
-
-        /* キャンバス */
-        canvas {
-            display: block;
-            background-color: #4da64d;
-            cursor: crosshair;
-        }
-
-        /* 下部 UI (コントロール) */
-        #controls {
-            background-color: #263238;
-            padding: 10px;
-            border-top: 2px solid #444;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            width: 800px;
-            /* Canvas幅に合わせる */
-            box-sizing: border-box;
-        }
-
-        /* パネルエリア (高さ固定でレイアウトシフト防止) */
-        .panel-area {
-            height: 120px;
-            /* 固定高さ */
-            width: 100%;
-            position: relative;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-            overflow-y: auto;
-            /* 内容が多い場合はスクロール */
-        }
-
-        .panel-content {
-            display: none;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            padding: 10px;
-            width: 100%;
-            box-sizing: border-box;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .panel-content.active {
-            display: flex;
-        }
-
-        /* 共通ボタン行 */
-        .common-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 5px;
-            border-top: 1px solid #555;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-
-        #inspect-status {
-            color: #fff;
-            width: 100%;
-            text-align: center;
-            margin-bottom: 5px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        button {
-            background-color: var(--ui-bg);
-            color: white;
-            border: 2px solid #555;
-            padding: 6px 10px;
-            font-size: 13px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            min-height: 32px;
-        }
-
-        button:hover:not(:disabled) {
-            background-color: #555;
-            border-color: #777;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background-color: var(--disabled);
-        }
-
-        button.active {
-            background-color: var(--highlight);
-            border-color: #64b5f6;
-        }
-
-        .tower-btn {
-            width: 140px;
-            /* ボタン幅を統一 */
-            justify-content: flex-start;
-        }
-
-        .tower-btn.locked {
-            display: none;
-        }
-
-        /* モード切替タブ */
-        .tab-row {
-            display: flex;
-            gap: 0;
-        }
-
-        .tab-btn {
-            flex: 1;
-            justify-content: center;
-            background-color: #455A64;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            margin-bottom: 0;
-            font-weight: bold;
-        }
-
-        .tab-btn.active {
-            background-color: rgba(0, 0, 0, 0.2);
-            /* Panel Areaと同じ色 */
-            border: 2px solid #555;
-            border-bottom: none;
-            color: var(--highlight);
-        }
-
-        /* アップグレードボタン等のスタイル */
-        .upgrade-btn {
-            background-color: #00897B;
-            border-color: #00695C;
-        }
-
-        .upgrade-btn:hover:not(:disabled) {
-            background-color: #00796B;
-        }
-
-        .research-btn {
-            background-color: #7B1FA2;
-            border-color: #4A148C;
-            width: 45%;
-            justify-content: space-between;
-        }
-
-        .research-btn:hover:not(:disabled) {
-            background-color: #6A1B9A;
-        }
-
-        .repair-btn,
-        .all-repair-btn {
-            background-color: #4CAF50;
-            border-color: #388E3C;
-        }
-
-        .all-repair-btn {
-            margin-right: auto;
-            /* 左寄せ気味に */
-        }
-
-        .rotate-btn {
-            background-color: #FF9800;
-            border-color: #F57C00;
-        }
-
-        .rotate-btn:hover:not(:disabled) {
-            background-color: #FB8C00;
-        }
-
-        .shield-btn {
-            background-color: #3F51B5;
-            border-color: #303F9F;
-        }
-
-        .shield-btn:hover:not(:disabled) {
-            background-color: #3949AB;
-        }
-
-        button#start-wave {
-            background-color: var(--accent);
-            border-color: #66bb6a;
-            font-weight: bold;
-            padding: 8px 20px;
-        }
-
-        button#start-wave:hover:not(:disabled) {
-            background-color: #43a047;
-        }
-
-        .utility-btn {
-            background-color: #607D8B;
-            border-color: #78909C;
-        }
-
-        .utility-btn:hover:not(:disabled) {
-            background-color: #546E7A;
-        }
-
-        .back-btn {
-            background-color: #FF5722;
-            border-color: #D84315;
-        }
-
-        .back-btn:hover:not(:disabled) {
-            background-color: #E64A19;
-        }
-
-        /* オーバーレイメッセージ */
-        #game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
-            text-align: center;
-            border-radius: 10px;
-            display: none;
-            z-index: 100;
-            border: 2px solid var(--danger);
-        }
-
-        #game-over h2 {
-            color: var(--danger);
-            font-size: 48px;
-            margin: 0 0 20px 0;
-        }
-
-        #game-over button {
-            background-color: var(--highlight);
-            font-size: 24px;
-            padding: 10px 30px;
-            margin: 10px;
-            display: inline-block;
-        }
-
-        #message-area {
-            position: absolute;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #ffeb3b;
-            font-size: 32px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px black;
-            opacity: 0;
-            transition: opacity 0.5s;
-            pointer-events: none;
-            z-index: 50;
-        }
-
-        /* Language Toggle Overlay */
-        .lang-toggle {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            display: flex;
-            gap: 0.5rem;
-            z-index: 2000;
-        }
-
-        .lang-toggle button {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 0.4rem 0.8rem;
-            border-radius: 0.4rem;
-            cursor: pointer;
-            font-size: 0.8rem !important;
-            font-weight: bold;
-            transition: all 0.2s;
-            backdrop-filter: blur(4px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            width: auto !important;
-            height: auto !important;
-            margin: 0 !important;
-        }
-
-        .lang-toggle button:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .lang-toggle button.active {
-            background: #2196F3 !important;
-            border-color: #2196F3 !important;
-            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5) !important;
-        }
-
-        .fixed {
-            position: fixed;
-        }
-
-        .top-4 {
-            top: 1rem;
-        }
-
-        .right-4 {
-            right: 1rem;
-        }
-
-        .z-\[1000\] {
-            z-index: 2000;
-        }
-
-        .flex {
-            display: flex;
-        }
-
-        .gap-2 {
-            gap: 0.5rem;
-        }
-
-        .px-3 {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        .py-1 {
-            padding-top: 0.25rem;
-            padding-bottom: 0.25rem;
-        }
-
-        .rounded {
-            border-radius: 0.25rem;
-        }
-
-        .font-bold {
-            font-weight: bold;
-        }
-
-        .text-sm {
-            font-size: 0.875rem;
-        }
-
-        .transition-all {
-            transition-property: all;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 150ms;
-        }
-
-        </style>
+﻿@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+
+:root {
+    --bg-dark: #0f172a;
+    --panel-bg: rgba(30, 41, 59, 0.7);
+    --accent: #10b981;
+    --highlight: #3b82f6;
+    --danger: #ef4444;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --tower-standard: #60a5fa;
+    --tower-sniper: #34d399;
+    --tower-missile: #fb923c;
+    --tower-rapid: #f472b6;
+    --research-purp: #a855f7;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    background: radial-gradient(circle at top right, #1e293b, #0f172a);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 2rem;
+    overflow-x: hidden;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+}
+
+/* Screen Management */
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1000px;
+    padding: 2rem;
+}
+
+.screen.active {
+    display: flex;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Title Screen / Stage Selection */
+#title-screen {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 3rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+#title-screen h2 {
+    font-family: 'Orbitron', sans-serif;
+    margin-bottom: 2rem;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    letter-spacing: 4px;
+}
+
+.stage-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 1.25rem 2rem;
+    margin: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 16px;
+    cursor: pointer;
+    width: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stage-btn:hover {
+    background: var(--highlight);
+    transform: translateX(10px);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+/* Game Container */
+#game-container {
+    display: none;
+    flex-direction: column;
+    width: 840px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    margin-bottom: 4rem;
+}
+
+#game-container.active {
+    display: flex;
+}
+
+/* Header UI */
+#ui-header {
+    background: rgba(15, 23, 42, 0.8);
+    color: white;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.stat-group {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+#score-display,
+#base-hp-display,
+#wave-display {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#score-display {
+    color: #fbbf24;
+}
+
+#base-hp-display {
+    color: #f87171;
+}
+
+#wave-display {
+    color: #60a5fa;
+}
+
+/* Canvas Area */
+#canvas-wrapper {
+    position: relative;
+    padding: 20px;
+    background: #000;
+    display: flex;
+    justify-content: center;
+}
+
+canvas {
+    display: block;
+    background-color: #064e3b;
+    border-radius: 8px;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Controls Area */
+#controls {
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Tabs */
+.tab-row {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.tab-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    background: var(--highlight);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Panel Area */
+.panel-area {
+    height: 140px;
+    position: relative;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+}
+
+.panel-content {
+    display: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.panel-content.active {
+    display: flex;
+}
+
+/* Tower Buttons */
+.tower-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    width: calc(33% - 14px);
+    justify-content: flex-start;
+}
+
+.tower-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--highlight);
+    transform: translateY(-2px);
+}
+
+.tower-btn.active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--highlight);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.tower-btn.locked {
+    display: none;
+}
+
+/* Special button colors */
+#btn-standard.active {
+    border-color: var(--tower-standard);
+}
+
+#btn-sniper.active {
+    border-color: var(--tower-sniper);
+}
+
+#btn-missile.active {
+    border-color: var(--tower-missile);
+}
+
+#btn-rapid.active {
+    border-color: var(--tower-rapid);
+}
+
+/* Research Buttons */
+.research-btn {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    color: #e9d5ff;
+    width: calc(50% - 10px);
+    padding: 12px;
+    border-radius: 12px;
+    justify-content: space-between;
+}
+
+.research-btn:hover:not(:disabled) {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: var(--research-purp);
+}
+
+.research-btn span:last-child {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    color: #f0abfc;
+}
+
+/* Common Controls */
+.common-controls {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 0.5rem;
+}
+
+.common-controls button {
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    border: none;
+}
+
+#start-wave {
+    grid-column: span 2;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+#start-wave:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+}
+
+.all-repair-btn {
+    background: #4b5563;
+    color: white;
+}
+
+.utility-btn {
+    background: #334155;
+    color: white;
+}
+
+.back-btn {
+    background: #475569;
+    color: #cbd5e1;
+}
+
+/* Inspect Panel */
+#inspect-status {
+    width: 100%;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: var(--highlight);
+}
+
+#inspect-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.inspect-action-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+/* Overlays */
+#game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(20px);
+    width: 400px;
+    padding: 3rem;
+    border-radius: 32px;
+    text-align: center;
+    border: 1px solid var(--danger);
+    box-shadow: 0 0 100px rgba(239, 68, 68, 0.2);
+}
+
+#game-over h2 {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--danger);
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+#final-score {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+#game-over button {
+    width: 100%;
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    border-radius: 16px;
+    font-weight: bold;
+}
+
+#message-area {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(251, 191, 36, 0.2);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    padding: 10px 30px;
+    border-radius: 100px;
+    color: #fbbf24;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 60;
+}
+
+/* Scrollbar */
+.panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+/* Language Toggle Customization */
+.lang-toggle {
+    top: 2rem;
+    right: 2rem;
+}
+
+.lang-toggle button {
+    background: var(--panel-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem 1rem !important;
+    border-radius: 12px !important;
+}
+
+.lang-toggle button.active {
+    background: var(--highlight) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}

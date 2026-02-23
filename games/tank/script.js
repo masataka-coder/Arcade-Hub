@@ -1339,6 +1339,11 @@ function processActiveZones() {
 }
 
 function startGame() {
+    const btn = document.getElementById('titleStartBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+    }
     const sound = playSE('start');
     sound.onended = () => {
         initGame(parseInt(ui.cpuInput.value));
@@ -1360,6 +1365,11 @@ function returnToTitle() {
     ui.playerHud.classList.add('hidden'); ui.cpuHudContainer.classList.add('hidden'); ui.turnIndicator.classList.add('hidden');
     ui.titleScreen.classList.remove('hidden'); updateDisplays(); generateTerrain(0);
     bgm.pause();
+    const btn = document.getElementById('titleStartBtn');
+    if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    }
 }
 
 function closeModals() { ui.shopModal.classList.add('hidden'); ui.labModal.classList.add('hidden'); document.getElementById('dataModal').classList.add('hidden'); }
@@ -1667,7 +1677,18 @@ class Bullet {
             ctx.moveTo(this.x, this.y); ctx.lineTo(this.x - this.vx * 3, this.y - this.vy * 3); ctx.strokeStyle = bColor; ctx.stroke();
             ctx.lineWidth = 1;
         }
-        if (this.history.length > 0) { ctx.beginPath(); ctx.moveTo(this.history[0].x, this.history[0].y); for (let i = 1; i < this.history.length; i++) if (Math.abs(this.history[i].x - this.history[i - 1].x) < 100) ctx.lineTo(this.history[i].x, this.history[i].y); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke(); }
+        if (this.history.length > 0) {
+            ctx.beginPath();
+            ctx.lineWidth = 3; // Thicker trail
+            ctx.moveTo(this.history[0].x, this.history[0].y);
+            for (let i = 1; i < this.history.length; i++) {
+                if (Math.abs(this.history[i].x - this.history[i - 1].x) < 100)
+                    ctx.lineTo(this.history[i].x, this.history[i].y);
+            }
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.stroke();
+            ctx.lineWidth = 1; // Reset
+        }
     }
 }
 
@@ -1755,8 +1776,18 @@ function explode(x, y, type, ownerId, booster) {
         const vType = (weaponUpgrades['VOLCANO'] || 0) >= 1 ? 'VOLCANO_SUB' : 'STANDARD';
         for (let i = 0; i < vCount; i++) { const b = new Bullet(x, y - 10, 0, 0, ownerId, vType); b.vx = (Math.random() - 0.5) * 10; b.vy = -10 - Math.random() * 15; bullets.push(b); }
     }
-    if (type === 'HOMING' && (weaponUpgrades['HOMING'] || 0) >= 2) {
-        for (let i = 0; i < 2; i++) { const b = new Bullet(x, y - 10, (i === 0 ? 45 : 135), 40, ownerId, 'HOMING'); bullets.push(b); }
+    if (type === 'HOMING' && (weaponUpgrades['HOMING'] || 0) >= 2 && !booster) {
+        // !booster checks if this is already a sub-bullet. Original Bullet passes 1 as booster.
+        // If booster is undefined or 0, it means it's a sub-bullet.
+        // Wait, standard explodes pass 'booster' as 1. 
+        // Let's refine: bullets fired from explode should not trigger more sub-bullets.
+        // Original Bullet.update() calls explode(..., 1).
+        // Let's use the booster parameter to prevent infinite loop.
+        for (let i = 0; i < 2; i++) {
+            const b = new Bullet(x, y - 10, (i === 0 ? 45 : 135), 40, ownerId, 'HOMING');
+            b.isSub = true; // Mark as sub-bullet
+            bullets.push(b);
+        }
     }
     if (type === 'ECHO') for (let i = 0; i < 5; i++) { const b = new Bullet(x, y - 5, 0, 0, ownerId, 'STANDARD'); const a = Math.PI + (i - 2) * 0.5; b.vx = Math.cos(a) * 5; b.vy = Math.sin(a) * 5; b.radius = 2; bullets.push(b); }
     if (type === 'SHRAPNEL') { for (let i = 0; i < 12; i++) { const b = new Bullet(x, y - 5, 0, 0, ownerId, 'STANDARD'); const a = (i / 12) * Math.PI * 2; b.vx = Math.cos(a) * 7; b.vy = Math.sin(a) * 7; b.radius = 2; bullets.push(b); } }

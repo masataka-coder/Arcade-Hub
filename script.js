@@ -8,7 +8,10 @@ const translations = {
         game_tank_desc: "戦略的な戦車戦。兵器をアップグレードし、新技術を研究して戦場を支配しよう。",
         game_tower_title: "タワーディフェンス",
         game_tower_desc: "マルチステージの戦略的チャレンジ。高度なタワーを研究し、無限のウェーブを生き残れ。",
-        play_game: "プレイする",
+        play_game: "ゲームをプレイ",
+        view_details: "詳細を見る",
+        video_label_concept: "コンセプト映像",
+        video_label_gameplay: "プレイ映像",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
     },
     en: {
@@ -21,7 +24,26 @@ const translations = {
         game_tower_title: "Tower Defense",
         game_tower_desc: "Protect your base in this multi-stage strategic challenge. Research advanced towers and survive infinite waves.",
         play_game: "Play Game",
+        view_details: "View Details",
+        video_label_concept: "Concept",
+        video_label_gameplay: "Gameplay",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
+    }
+};
+
+const gameData = {
+    block: {
+        video: "assets/movies/block.mp4",
+        path: "games/block/index.html"
+    },
+    tank: {
+        video: "assets/movies/tank-cg.mp4",
+        video2: "assets/movies/tank.mp4",
+        path: "games/tank/index.html"
+    },
+    tower: {
+        video: "assets/movies/tower.mp4",
+        path: "games/tower/index.html"
     }
 };
 
@@ -91,5 +113,75 @@ document.addEventListener('DOMContentLoaded', () => {
                 video.currentTime = 0;
             }
         });
+
+        card.addEventListener('click', () => {
+            const gameId = card.getAttribute('data-game');
+            openModal(gameId);
+        });
+    });
+
+    // Modal logic
+    const modal = document.getElementById('details-modal');
+    const closeBtn = modal.querySelector('.close-btn');
+    const modalVideo = document.getElementById('modal-video');
+    const modalVideo2 = document.getElementById('modal-video-2');
+    const videoWrapper2 = document.getElementById('video-wrapper-2');
+    const labelVideo1 = document.getElementById('label-video-1');
+    const labelVideo2 = document.getElementById('label-video-2');
+    const modalImagePlaceholder = document.getElementById('modal-image-placeholder');
+    const modalImage = document.getElementById('modal-image');
+
+    function openModal(id) {
+        const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+        const dict = translations[lang];
+        const data = gameData[id];
+
+        document.getElementById('modal-title').innerText = dict[`game_${id}_title`];
+        document.getElementById('modal-description').innerText = dict[`game_${id}_desc`];
+        document.getElementById('modal-play-link').href = data.path;
+
+        labelVideo1.innerText = dict.video_label_concept;
+        labelVideo2.innerText = dict.video_label_gameplay;
+
+        if (data.video) {
+            modalVideo.src = data.video;
+            modalVideo.parentElement.classList.remove('hidden');
+            modalVideo.play().catch(e => console.log("Modal video play failed:", e));
+
+            if (data.video2) {
+                modalVideo2.src = data.video2;
+                videoWrapper2.classList.remove('hidden');
+                labelVideo1.classList.remove('hidden');
+                modalVideo2.play().catch(e => console.log("Modal video 2 play failed:", e));
+            } else {
+                videoWrapper2.classList.add('hidden');
+                labelVideo1.classList.add('hidden');
+            }
+
+            modalImagePlaceholder.classList.add('hidden');
+        } else if (data.image) {
+            modalVideo.src = "";
+            modalVideo.parentElement.classList.add('hidden');
+            videoWrapper2.classList.add('hidden');
+            modalImage.src = data.image;
+            modalImagePlaceholder.classList.remove('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modalVideo.pause();
+        modalVideo.src = "";
+        modalVideo2.pause();
+        modalVideo2.src = "";
+        document.body.style.overflow = '';
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
     });
 });

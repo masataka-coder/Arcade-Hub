@@ -4,30 +4,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Stage Tower Defense</title>
+    <title>Reverse S Tower Defense - Premium Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <h1 data-i18n="game_title">Reverse S Tower Defense</h1>
-    <!-- Language Toggle (Always Visible) -->
-    <div class="lang-toggle fixed top-4 right-4 z-[1000] flex gap-2">
-        <button onclick="setLanguage('ja')" id="lang-ja"
-            class="active px-3 py-1 rounded font-bold text-sm transition-all">JP</button>
-        <button onclick="setLanguage('en')" id="lang-en"
-            class="px-3 py-1 rounded font-bold text-sm transition-all">EN</button>
+    <h1 data-i18n="game_title">Tower Defense</h1>
+
+    <!-- Language Toggle -->
+    <div class="lang-toggle fixed flex gap-2">
+        <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
+        <button onclick="setLanguage('en')" id="lang-en">EN</button>
     </div>
 
     <!-- タイトル画面 -->
     <div id="title-screen" class="screen active">
         <h2 data-i18n="select_stage">SELECT STAGE</h2>
-        <button class="stage-btn" onclick="initGame(1)"><span data-i18n="stage_prefix">Stage</span> 1: <span
-                data-i18n="stage_1_name">Reverse S</span></button>
-        <button class="stage-btn" onclick="initGame(2)"><span data-i18n="stage_prefix">Stage</span> 2: <span
-                data-i18n="stage_2_name">Spiral</span></button>
-        <button class="stage-btn" onclick="initGame(3)"><span data-i18n="stage_prefix">Stage</span> 3: <span
-                data-i18n="stage_3_name">Zigzag</span></button>
+        <div class="stage-list">
+            <button class="stage-btn" onclick="initGame(1)">
+                <span><span data-i18n="stage_prefix">Stage</span> 1: <span data-i18n="stage_1_name">Reverse
+                        S</span></span>
+                <span>→</span>
+            </button>
+            <button class="stage-btn" onclick="initGame(2)">
+                <span><span data-i18n="stage_prefix">Stage</span> 2: <span data-i18n="stage_2_name">Spiral</span></span>
+                <span>→</span>
+            </button>
+            <button class="stage-btn" onclick="initGame(3)">
+                <span><span data-i18n="stage_prefix">Stage</span> 3: <span data-i18n="stage_3_name">Zigzag</span></span>
+                <span>→</span>
+            </button>
+        </div>
     </div>
 
     <!-- ゲームコンテナ -->
@@ -43,30 +51,37 @@
             </div>
         </div>
 
-        <div style="position: relative;">
+        <div id="canvas-wrapper">
             <canvas id="gameCanvas" width="800" height="600"></canvas>
             <div id="message-area">BOSS WAVE!</div>
 
             <div id="game-over">
                 <h2 id="game-over-title" data-i18n="msg_gameover">GAME OVER</h2>
                 <p id="final-score"><span data-i18n="final_wave">Reached Wave</span>: 5</p>
-                <button onclick="resetGame()" data-i18n="btn_retry">Retry</button>
-                <button onclick="returnToTitle()" data-i18n="btn_title">Title</button>
+                <div class="flex flex-col gap-2">
+                    <button onclick="resetGame()" data-i18n="btn_retry" class="stage-btn"
+                        style="width: 100%; margin: 0 0 10px 0;">Retry</button>
+                    <button onclick="returnToTitle()" data-i18n="btn_title" class="back-btn"
+                        style="width: 100%; padding: 1rem; border-radius: 16px;">Title</button>
+                </div>
             </div>
         </div>
 
         <div id="controls">
             <!-- モード切替タブ -->
             <div class="tab-row">
-                <button id="tab-build" class="tab-btn active" onclick="switchMode('build')" data-i18n="tab_build">🔨
-                    Build</button>
-                <button id="tab-research" class="tab-btn" onclick="switchMode('research')" data-i18n="tab_research">🧪
-                    Research</button>
-                <button id="tab-inspect" class="tab-btn" style="display:none;" onclick="switchMode('inspect')"
-                    data-i18n="tab_inspect">🔍 Inspect</button>
+                <button id="tab-build" class="tab-btn active" onclick="switchMode('build')">
+                    <span>🔨</span> <span data-i18n="tab_build">Build</span>
+                </button>
+                <button id="tab-research" class="tab-btn" onclick="switchMode('research')">
+                    <span>🧪</span> <span data-i18n="tab_research">Research</span>
+                </button>
+                <button id="tab-inspect" class="tab-btn" style="display:none;" onclick="switchMode('inspect')">
+                    <span>🔍</span> <span data-i18n="tab_inspect">Inspect</span>
+                </button>
             </div>
 
-            <!-- パネルエリア (高さ固定) -->
+            <!-- パネルエリア -->
             <div class="panel-area">
 
                 <!-- 設置モード用パネル -->
@@ -110,8 +125,7 @@
                 <!-- 選択モード用パネル -->
                 <div id="inspect-panel" class="panel-content">
                     <div id="inspect-status">Selected: Standard (HP: 200/200)</div>
-                    <div id="inspect-buttons"
-                        style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; width:100%;">
+                    <div id="inspect-buttons">
                         <!-- JSで動的にボタン挿入 -->
                     </div>
                 </div>
@@ -119,16 +133,19 @@
 
             <!-- 共通コントロール -->
             <div class="common-controls">
-                <button id="btn-all-repair" class="all-repair-btn" onclick="repairAll()" data-i18n="btn_repair_all">🔧
-                    All Repair</button>
                 <button id="start-wave" onclick="startGame()" data-i18n="btn_next_wave">Next Wave</button>
-                <button class="utility-btn" onclick="saveGame()" data-i18n="btn_save">💾 SAVE</button>
-                <button class="utility-btn" onclick="loadGame()" data-i18n="btn_load">📂 LOAD</button>
-                <button class="back-btn" onclick="returnToTitle()" data-i18n="btn_top">↩ TOP</button>
+                <button id="btn-all-repair" class="all-repair-btn" onclick="repairAll()">🔧 <span
+                        data-i18n="btn_repair_all">Repair All</span></button>
+                <button class="utility-btn" onclick="saveGame()">💾 <span data-i18n="btn_save">SAVE</span></button>
+                <button class="utility-btn" onclick="loadGame()">📂 <span data-i18n="btn_load">LOAD</span></button>
+                <button class="back-btn" style="grid-column: span 4;" onclick="returnToTitle()">↩ <span
+                        data-i18n="btn_top">TOP</span></button>
             </div>
         </div>
     </div>
 
     <script src="script.js"></script>
+
+</body>
 
 </html>

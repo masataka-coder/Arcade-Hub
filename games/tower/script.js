@@ -1068,7 +1068,7 @@ function startGame() {
     }
     gameState.spawnTimer = 0;
     document.getElementById('start-wave').disabled = true;
-    document.getElementById('start-wave').innerText = "...";
+    document.getElementById('start-wave').innerHTML = "<span>...</span>";
 }
 
 function showMessage(msg) {
@@ -1119,7 +1119,7 @@ function update() {
             showMessage(getT('msg_wave_clear'));
             updateUI();
             document.getElementById('start-wave').disabled = false;
-            document.getElementById('start-wave').innerText = getT('btn_next_wave');
+            document.getElementById('start-wave').innerHTML = `<span>${getT('btn_next_wave')}</span>`;
         }
     }
 
@@ -1479,13 +1479,13 @@ function updateUI() {
                     const btn = document.createElement('button');
                     btn.className = 'upgrade-btn'; btn.innerText = `To ${targetType.name} ($${cost})`;
                     btn.disabled = (gameState.money < cost); btn.onclick = () => doUpgrade(up.key);
-                    container.appendChild(btn);
+                    btnArea.appendChild(btn);
                 }
             });
         }
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'back-btn'; cancelBtn.innerText = 'Back'; cancelBtn.onclick = deselectTower;
-        container.appendChild(cancelBtn);
+        btnArea.appendChild(cancelBtn);
 
     } else if (gameState.mode === 'research') {
         document.getElementById('research-panel').classList.add('active');
@@ -1550,7 +1550,7 @@ function resetGame() {
 
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('start-wave').disabled = false;
-    document.getElementById('start-wave').innerText = getT('btn_next_wave');
+    document.getElementById('start-wave').innerHTML = `<span>${getT('btn_next_wave')}</span>`;
     selectTower('standard');
     updateUI();
 }

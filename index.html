@@ -24,7 +24,7 @@
     </header>
 
     <main class="game-grid">
-        <a href="games/block/index.html" class="game-card">
+        <div class="game-card" data-game="block">
             <div class="card-img-container">
                 <img src="assets/thumbnails/block.png" alt="Block Breaker" class="preview-img">
                 <video src="assets/movies/block.mp4" muted loop class="preview-video"></video>
@@ -36,11 +36,11 @@
                     abilities.</p>
             </div>
             <div class="card-footer">
-                <span class="play-badge" data-i18n="play_game">Play Game</span>
+                <span class="play-badge" data-i18n="view_details">View Details</span>
             </div>
-        </a>
+        </div>
 
-        <a href="games/tank/index.html" class="game-card">
+        <div class="game-card" data-game="tank">
             <div class="card-img-container">
                 <img src="assets/thumbnails/tank.png" alt="Tank Wars" class="preview-img">
                 <video src="assets/movies/tank.mp4" muted loop class="preview-video"></video>
@@ -51,13 +51,14 @@
                     dominate the battlefield.</p>
             </div>
             <div class="card-footer">
-                <span class="play-badge" data-i18n="play_game">Play Game</span>
+                <span class="play-badge" data-i18n="view_details">View Details</span>
             </div>
-        </a>
+        </div>
 
-        <a href="games/tower/index.html" class="game-card">
+        <div class="game-card" data-game="tower">
             <div class="card-img-container">
-                <img src="assets/thumbnails/tower.png" alt="Tower Defense">
+                <img src="assets/thumbnails/tower.png" alt="Tower Defense" class="preview-img">
+                <video src="assets/movies/tower.mp4" muted loop class="preview-video"></video>
             </div>
             <div class="card-content">
                 <h2 data-i18n="game_tower_title">Tower Defense</h2>
@@ -66,10 +67,41 @@
                     infinite waves.</p>
             </div>
             <div class="card-footer">
-                <span class="play-badge" data-i18n="play_game">Play Game</span>
+                <span class="play-badge" data-i18n="view_details">View Details</span>
             </div>
-        </a>
+        </div>
     </main>
+
+    <!-- Details Modal -->
+    <div id="details-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-btn">&times;</button>
+            <div class="modal-body">
+                <div class="modal-video-container">
+                    <div id="video-wrapper-1" class="video-wrapper">
+                        <span id="label-video-1" class="video-label hidden">Concept</span>
+                        <video id="modal-video" src="" controls loop></video>
+                    </div>
+                    <div id="video-wrapper-2" class="video-wrapper hidden">
+                        <span id="label-video-2" class="video-label">Gameplay</span>
+                        <video id="modal-video-2" src="" controls loop></video>
+                    </div>
+                    <div id="modal-image-placeholder" class="hidden">
+                        <img id="modal-image" src="" alt="Game Preview">
+                    </div>
+                </div>
+                <div class="modal-info">
+                    <h2 id="modal-title">Game Title</h2>
+                    <p id="modal-description">Detailed description goes here...</p>
+                    <div class="modal-actions">
+                        <a href="#" id="modal-play-link" class="modal-play-btn">
+                            <span data-i18n="play_game">Play Game</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <footer>
         <p data-i18n="footer_copy">&copy; 2026 Takahide Kohata. All rights reserved.</p>
