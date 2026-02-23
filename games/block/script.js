@@ -25,7 +25,8 @@ const translations = {
         status_multi: "マルチボール！",
         status_shoot_left: "シュート残り: ",
         score_label: "SCORE: ",
-        level_label: "LV: "
+        level_label: "LV: ",
+        btn_top: "トップに戻る"
     },
     en: {
         game_title: "BLOCK BREAKER",
@@ -49,7 +50,8 @@ const translations = {
         status_multi: "MULTI BALL!",
         status_shoot_left: "SHOOT: ",
         score_label: "SCORE: ",
-        level_label: "LV: "
+        level_label: "LV: ",
+        btn_top: "Back to Top"
     }
 };
 

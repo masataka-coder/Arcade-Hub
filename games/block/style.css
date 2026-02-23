@@ -206,3 +206,22 @@ button:active {
     border-color: #448AFF;
     box-shadow: 0 0 10px rgba(68, 138, 255, 0.5);
 }
+
+.back-portal-btn {
+    margin-top: 30px;
+    background: transparent;
+    border: 1px solid #555;
+    color: #888;
+    padding: 8px 20px;
+    font-size: 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: auto !important;
+}
+
+.back-portal-btn:hover {
+    border-color: #aaa;
+    color: #eee;
+    background: rgba(255, 255, 255, 0.05);
+}
