@@ -14,6 +14,8 @@ const translations = {
         video_label_gameplay: "プレイ映像",
         game_neon_title: "ネオンストライク",
         game_neon_desc: "究極のネオン・シューティング体験。新技術を駆使して迫りくる敵と巨大なボスを撃破せよ。ショップで機体を強化し、ハイスコアを目指せ。",
+        pwa_install_btn: "インストール",
+        pwa_install_msg: "Arcade Hub をアプリとして追加しますか？",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
     },
     en: {
@@ -31,6 +33,8 @@ const translations = {
         video_label_gameplay: "Gameplay",
         game_neon_title: "Neon Strike",
         game_neon_desc: "The ultimate neon shooting experience. Use advanced technology to defeat waves of enemies and giant bosses. Upgrade your ship in the shop and aim for the high score.",
+        pwa_install_btn: "Install",
+        pwa_install_msg: "Do you want to add Arcade Hub as an app?",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
     }
 };
@@ -203,5 +207,39 @@ document.addEventListener('DOMContentLoaded', () => {
     closeBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
+    });
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installToast = document.getElementById('install-toast');
+    const installBtn = document.getElementById('install-confirm-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        deferredPrompt = e;
+        // Update UI notify the user they can add to home screen
+        installToast.classList.remove('hidden');
+    });
+
+    installBtn.addEventListener('click', (e) => {
+        // hide our install banner
+        installToast.classList.add('hidden');
+        // Show the prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the A2HS prompt');
+            } else {
+                console.log('User dismissed the A2HS prompt');
+            }
+            deferredPrompt = null;
+        });
+    });
+
+    document.getElementById('install-close-btn').addEventListener('click', () => {
+        installToast.classList.add('hidden');
     });
 });

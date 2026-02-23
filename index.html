@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arcade Hub</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00d2ff">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered', reg))
+                    .catch(err => console.error('Service Worker registration failed', err));
+            });
+        }
+    </script>
 </head>
 
 <body>
@@ -113,6 +124,17 @@
                         </a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Toast -->
+    <div id="install-toast" class="install-toast hidden">
+        <div class="toast-content">
+            <span data-i18n="pwa_install_msg">Do you want to add Arcade Hub as an app?</span>
+            <div class="toast-actions">
+                <button id="install-confirm-btn" class="install-btn" data-i18n="pwa_install_btn">Install</button>
+                <button id="install-close-btn" class="toast-close-btn">&times;</button>
             </div>
         </div>
     </div>

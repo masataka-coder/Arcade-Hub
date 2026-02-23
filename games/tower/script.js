@@ -127,6 +127,132 @@ function setLanguage(lang) {
     applyTranslations();
 }
 
+// --- Web Audio API を使った動的BGM生成クラス ---
+class BGMPlayer {
+    constructor() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioCtx = new AudioContext();
+        this.isPlaying = false;
+        this.nextNoteTime = 0;
+        this.current16thNote = 0;
+        this.tempo = 120;
+        this.lookahead = 25.0;
+        this.scheduleAheadTime = 0.1;
+        this.timerID = null;
+        this.isMuted = false;
+
+        this.masterGain = this.audioCtx.createGain();
+        this.masterGain.gain.value = 0.2;
+        this.masterGain.connect(this.audioCtx.destination);
+
+        // シーケンスパターン (C Major / A Minor)
+        this.bassLine = [33, 0, 33, 33, 36, 0, 36, 36, 38, 0, 38, 38, 31, 0, 31, 31];
+    }
+
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.2, this.audioCtx.currentTime);
+        return this.isMuted;
+    }
+
+    m2f(note) {
+        return 440 * Math.pow(2, (note - 69) / 12);
+    }
+
+    scheduleNote(beatNumber, time) {
+        // キック
+        if (beatNumber % 4 === 0) {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.connect(gain); gain.connect(this.masterGain);
+            osc.frequency.setValueAtTime(150, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.1);
+            gain.gain.setValueAtTime(0.5, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.start(time); osc.stop(time + 0.1);
+        }
+
+        // スネア的なノイズ
+        if (beatNumber % 8 === 4) {
+            const bufferSize = this.audioCtx.sampleRate * 0.1;
+            const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = this.audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 1000;
+            const gain = this.audioCtx.createGain();
+            gain.gain.setValueAtTime(0.1, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            noise.connect(filter); filter.connect(gain); gain.connect(this.masterGain);
+            noise.start(time);
+        }
+
+        // ベースライン
+        const bNote = this.bassLine[beatNumber];
+        if (bNote) {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = this.m2f(bNote);
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            osc.connect(gain); gain.connect(this.masterGain);
+            osc.start(time); osc.stop(time + 0.2);
+        }
+
+        // ウェーブ中 / ボス戦での緊迫感演出 (高音の刻み)
+        if (gameState.waveActive && beatNumber % 2 === 0) {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = this.m2f(72 + (beatNumber % 4));
+            gain.gain.setValueAtTime(0.03, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+            osc.connect(gain); gain.connect(this.masterGain);
+            osc.start(time); osc.stop(time + 0.05);
+        }
+    }
+
+    nextNote() {
+        const secondsPerBeat = 60.0 / this.tempo;
+        this.nextNoteTime += 0.25 * secondsPerBeat;
+        this.current16thNote = (this.current16thNote + 1) % 16;
+    }
+
+    scheduler() {
+        while (this.nextNoteTime < this.audioCtx.currentTime + this.scheduleAheadTime) {
+            this.scheduleNote(this.current16thNote, this.nextNoteTime);
+            this.nextNote();
+        }
+        this.timerID = setTimeout(() => this.scheduler(), this.lookahead);
+    }
+
+    start() {
+        if (this.isPlaying) return;
+        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+        this.isPlaying = true;
+        this.current16thNote = 0;
+        this.nextNoteTime = this.audioCtx.currentTime + 0.05;
+        this.scheduler();
+    }
+
+    stop() {
+        this.isPlaying = false;
+        clearTimeout(this.timerID);
+    }
+}
+
+let bgm = null;
+
+function toggleSound() {
+    if (!bgm) bgm = new BGMPlayer();
+    const isMuted = bgm.toggleMute();
+    document.getElementById('soundToggleBtn').innerText = isMuted ? '🔇' : '🔊';
+}
+
 // --- 設定定数 ---
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
@@ -1027,11 +1153,18 @@ function initGame(stageId) {
     generatePathGrid();
     document.getElementById('title-screen').classList.remove('active');
     document.getElementById('game-container').classList.add('active');
+    if (!bgm) {
+        bgm = new BGMPlayer();
+        const soundBtn = document.getElementById('soundToggleBtn');
+        if (soundBtn) soundBtn.innerText = bgm.isMuted ? '🔇' : '🔊';
+    }
+    bgm.start();
     resetGame();
 }
 
 function returnToTitle() {
     gameState.isRunning = false;
+    if (bgm) bgm.stop();
     document.getElementById('game-container').classList.remove('active');
     document.getElementById('title-screen').classList.add('active');
 }
@@ -1528,6 +1661,7 @@ function updateUI() {
 
 function endGame() {
     gameState.isGameOver = true;
+    if (bgm) bgm.stop();
     document.getElementById('game-over').style.display = 'block';
     document.getElementById('game-over-title').innerText = getT('msg_gameover');
     document.getElementById('final-score').innerText = `${getT('final_wave')}: ${gameState.wave}`;

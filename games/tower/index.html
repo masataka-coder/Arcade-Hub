@@ -12,6 +12,12 @@
 
     <h1 data-i18n="game_title">Tower Defense</h1>
 
+    <!-- Sound Toggle -->
+    <div class="sound-toggle fixed flex gap-2" style="top: 2rem; right: 10rem; z-index: 1001;">
+        <button id="soundToggleBtn" onclick="toggleSound()" class="utility-btn"
+            style="padding: 0.5rem 1rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--panel-bg); backdrop-filter: blur(8px);">🔊</button>
+    </div>
+
     <!-- Language Toggle -->
     <div class="lang-toggle fixed flex gap-2">
         <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
