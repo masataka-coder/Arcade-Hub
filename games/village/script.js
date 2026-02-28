@@ -60,19 +60,58 @@ const config = {
     merchantItems: [
         { id: 'merchant_discount', name: '交渉術の指南書', desc: '商人からの購入価格 -10%', cost: 200, icon: '📜' },
         { id: 'yield_boost', name: '祝福の種', desc: '全ての資源産出量 +10%', cost: 350, icon: '🌱' },
-        { id: 'pop_boost', name: '聖なるお守り', desc: '人口上限 +5', cost: 500, icon: '🧿' }
     ],
     collections: [
-        "古代の石版", "錆びた剣", "輝く水晶", "精霊の涙", "竜の鱗",
-        "森の妖精の羽", "黄金の林檎", "古のコイン", "魔法のランプ", "不死鳥の灰",
-        "月の雫", "太陽の紋章", "星くずの砂", "人魚の真珠", "巨人の指輪",
-        "悪魔の角", "天使の羽根", "エルフの弓", "ドワーフのハンマー", "ゴブリンの牙",
-        "オークの斧", "スライムの核", "ヴァンパイアの牙", "狼男の毛皮", "ミノタウロスの蹄",
-        "ペガサスの蹄鉄", "ユニコーンの角", "ドラゴンの牙", "キメラの尾", "ケルベロスの骨",
-        "ゴーレムの核", "ガーゴイルの欠片", "バジリスクの眼", "メデューサの髪", "クラーケンの墨",
-        "リヴァイアサンの鱗", "ベヒーモスの角", "フェンリルの牙", "ヨルムンガンドの鱗", "スレイプニルの蹄",
-        "ユグドラシルの枝", "ミョルニルの破片", "グングニルの穂先", "エクスカリバーの欠片", "アヴァロンの土",
-        "聖杯の欠片", "賢者の石の欠片", "パンドラの箱の欠片", "イージスの盾の破片", "神の息吹"
+        { id: "c1", name: "古代の石版", icon: "🪨", desc: "かつてこの地に存在した古代文明の記録が刻まれている不気味な石版。" },
+        { id: "c2", name: "錆びた剣", icon: "🗡️", desc: "血の匂いが染み付いた、使い古された剣。過去の英雄の遺物かもしれない。" },
+        { id: "c3", name: "輝く水晶", icon: "🔮", desc: "暗闇でも淡く光り続ける不思議な水晶。微かな魔力を感じる。" },
+        { id: "c4", name: "精霊の涙", icon: "💧", desc: "森に住む精霊が流したとされる美しく透き通った涙の結晶。" },
+        { id: "c5", name: "竜の鱗", icon: "🐉", desc: "恐るべき竜の体表を覆っていたとされる硬くて熱を帯びた鱗。" },
+        { id: "c6", name: "森の妖精の羽", icon: "🦋", desc: "とても脆くて美しい、森に住まうとされる妖精の羽。" },
+        { id: "c7", name: "黄金の林檎", icon: "🍎", desc: "一口かじれば寿命が延びるという伝説がある、純金のような林檎。" },
+        { id: "c8", name: "古のコイン", icon: "🪙", desc: "現在の市場では使えない、見知らぬ王の横顔が彫られた硬貨。" },
+        { id: "c9", name: "魔法のランプ", icon: "🪔", desc: "こすると魔神が出てきそうな雰囲気を持つ、古めかしいランプ。" },
+        { id: "c10", name: "不死鳥の灰", icon: "🔥", desc: "何度でも蘇るとされる不死鳥が燃え尽きた後に残るという神奇な灰。" },
+        { id: "c11", name: "月の雫", icon: "🌙", desc: "月明かりをそのまま固めたかのように輝く、神秘的な雫型の石。" },
+        { id: "c12", name: "太陽の紋章", icon: "☀️", desc: "大昔に太陽神を崇めた人々が作っていたとされる黄金の紋章。" },
+        { id: "c13", name: "星くずの砂", icon: "✨", desc: "空から降ってきたとされる、チカチカと輝く不思議な砂の集まり。" },
+        { id: "c14", name: "人魚の真珠", icon: "🦪", desc: "海からやってきた人魚が流す涙は、美しい真珠になると言われている。" },
+        { id: "c15", name: "巨人の指輪", icon: "💍", desc: "人間では腕輪にしか見えないほど巨大なサイズの指輪。" },
+        { id: "c16", name: "悪魔の角", icon: "👿", desc: "邪悪なオーラを放つ黒い角。持っているだけで不吉な予感がする。" },
+        { id: "c17", name: "天使の羽根", icon: "👼", desc: "純白で触れると心が休まる、天空からの使者の羽根。" },
+        { id: "c18", name: "エルフの弓", icon: "🏹", desc: "森の民によって作られた、美しい装飾が施されたしなやかな弓。" },
+        { id: "c19", name: "ドワーフのハンマー", icon: "🔨", desc: "小人が使っていたとは思えないほど重く、頑丈で実用的なハンマー。" },
+        { id: "c20", name: "ゴブリンの牙", icon: "👹", desc: "醜い小鬼の牙。あまり良い匂いはしないが一部の呪術で使われる。" },
+        { id: "c21", name: "オークの斧", icon: "🪓", desc: "乱暴な豚の獣人が使っていたとされる武骨で巨大な斧。" },
+        { id: "c22", name: "スライムの核", icon: "🦠", desc: "プルプルした生き物の中心にあった、ゼリー状の冷たい核。" },
+        { id: "c23", name: "ヴァンパイアの牙", icon: "🦇", desc: "血を吸うために鋭く尖った、吸血鬼の恐ろしい牙。" },
+        { id: "c24", name: "狼男の毛皮", icon: "🐺", desc: "満月の夜にのみ姿を現すとされる獣人の、荒々しい毛皮。" },
+        { id: "c25", name: "ミノタウロスの蹄", icon: "🐂", desc: "迷宮を彷徨う牛頭の怪物の、大地をえぐる強靭な蹄。" },
+        { id: "c26", name: "ペガサスの蹄鉄", icon: "☁️", desc: "空を駆ける天馬の足につけられていたとされる、非常に軽い蹄鉄。" },
+        { id: "c27", name: "ユニコーンの角", icon: "🦄", desc: "あらゆる毒を浄化する力があると信じられている、純白の一角獣の角。" },
+        { id: "c28", name: "ドラゴンの牙", icon: "🔥", desc: "どんな鎧も貫くという、巨大な飛竜の鋭い牙。" },
+        { id: "c29", name: "キメラの尾", icon: "🐍", desc: "複数の生物が混ざり合った怪物の、蛇の形をした不気味な尻尾。" },
+        { id: "c30", name: "ケルベロスの骨", icon: "🦴", desc: "地獄の番犬と呼ばれた三つ首の魔犬の、黒く焦げた骨。" },
+        { id: "c31", name: "ゴーレムの核", icon: "🪨", desc: "泥や石の巨人を動かしていたとされる、呪文が刻まれた魔石。" },
+        { id: "c32", name: "ガーゴイルの欠片", icon: "🗿", desc: "動き出す石像の一部。魔除けの効果があるとかないとか。" },
+        { id: "c33", name: "バジリスクの眼", icon: "👁️", desc: "見たものを石に変えるという魔物からえぐり出された、不気味な眼球。" },
+        { id: "c34", name: "メデューサの髪", icon: "🐍", desc: "髪の毛の代わりにうごめく蛇。切り落とされても微かに動いている。" },
+        { id: "c35", name: "クラーケンの墨", icon: "🦑", desc: "海賊も恐れる巨大イカが吐き出した、絶対に消えない真っ黒な墨。" },
+        { id: "c36", name: "リヴァイアサンの鱗", icon: "🌊", desc: "海を支配する巨大な幻獣の、青く輝く大きな鱗。" },
+        { id: "c37", name: "ベヒーモスの角", icon: "🦏", desc: "大地を揺るがす巨大な獣の、突き上げるような太い角。" },
+        { id: "c38", name: "フェンリルの牙", icon: "❄️", desc: "神々をも喰らうとされる巨大狼の、冷気を纏った鋭い牙。" },
+        { id: "c39", name: "ヨルムンガンドの鱗", icon: "🐍", desc: "世界を取り巻くほど巨大な大蛇の、不気味な色をした鱗。" },
+        { id: "c40", name: "スレイプニルの蹄", icon: "🐎", desc: "八本足を持つとされる、神の乗用馬の蹄。" },
+        { id: "c41", name: "ユグドラシルの枝", icon: "🌳", desc: "世界を支える巨大な世界樹から折れたとされる、生命力に溢れる枝。" },
+        { id: "c42", name: "ミョルニルの破片", icon: "⚡", desc: "雷神が振るったとされる無敵の槌の、帯電している破片。" },
+        { id: "c43", name: "グングニルの穂先", icon: "🎯", desc: "決して的を外さないと言われる神の槍の、鋭く尖った先端部分。" },
+        { id: "c44", name: "エクスカリバーの欠片", icon: "🗡️", desc: "聖剣が砕けた際に飛び散ったとされる、高貴な光を放つ欠片。" },
+        { id: "c45", name: "アヴァロンの土", icon: "🌱", desc: "妖精が住むという理想郷の、豊穣な魔力を秘めた土。" },
+        { id: "c46", name: "聖杯の欠片", icon: "🍷", desc: "あらゆる願いを叶えるとされる奇跡の杯の、美しい破片。" },
+        { id: "c47", name: "賢者の石の欠片", icon: "🔴", desc: "あらゆる金属を金に変え、不老不死をもたらす石の微小な欠片。" },
+        { id: "c48", name: "パンドラの箱の欠片", icon: "📦", desc: "あらゆる災厄が飛び出したとされる箱の、呪われた木片。" },
+        { id: "c49", name: "イージスの盾の破片", icon: "🛡️", desc: "いかなる攻撃も防ぐとされる神の盾の、非常に硬い破片。" },
+        { id: "c50", name: "神の息吹", icon: "🌬️", desc: "世界を創り出した神々の力が微かに残る、不思議な風を封じ込めた瓶。" }
     ]
 };
 
@@ -640,11 +679,12 @@ function completeExpedition() {
     // Collection logic (50% chance, no duplicates)
     let foundColText = '';
     if (Math.random() < 0.5 && state.collections.length < config.collections.length) {
-        const unowned = config.collections.filter(c => !state.collections.includes(c));
+        // state.collectionsにはID文字列のみ保存する
+        const unowned = config.collections.filter(c => !state.collections.includes(c.id));
         if (unowned.length > 0) {
             const found = unowned[Math.floor(Math.random() * unowned.length)];
-            state.collections.push(found);
-            foundColText = `<div class="glass font-black px-4 py-2 rounded-xl text-purple-600 text-sm mt-2 w-full text-center border-purple-200">🏆 コレクション発見:<br>${found}</div>`;
+            state.collections.push(found.id);
+            foundColText = `<div class="glass font-black px-4 py-2 rounded-xl text-purple-600 text-sm mt-2 w-full text-center border-purple-200">🏆 新たなコレクション発見!<br><span class="text-2xl">${found.icon}</span> ${found.name}</div>`;
         }
     }
 
@@ -698,12 +738,33 @@ function renderCollections() {
         cont.innerHTML = '<span class="text-[10px] text-slate-500">まだ見つかっていません</span>';
         return;
     }
-    state.collections.forEach(item => {
-        const span = document.createElement('span');
-        span.className = 'text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-200 shadow-sm';
-        span.textContent = item;
-        cont.appendChild(span);
+    state.collections.forEach(itemId => {
+        // もっち文字列データ時代のロード対策
+        const refItem = config.collections.find(c => c.id === itemId || c.name === itemId);
+        if (!refItem) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'text-3xl bg-purple-50 hover:bg-purple-100 p-2 rounded-xl border-2 border-purple-200 shadow-sm transition-transform hover:scale-110 active:scale-95';
+        btn.innerHTML = refItem.icon;
+        btn.onclick = () => showCollectionModal(refItem);
+        cont.appendChild(btn);
     });
+}
+
+function showCollectionModal(item) {
+    const modal = document.getElementById('collectionModal');
+    if (!modal) return;
+
+    document.getElementById('modalColIcon').textContent = item.icon;
+    document.getElementById('modalColName').textContent = item.name;
+    document.getElementById('modalColDesc').textContent = item.desc;
+
+    modal.classList.remove('hidden');
+}
+
+function closeCollectionModal() {
+    const modal = document.getElementById('collectionModal');
+    if (modal) modal.classList.add('hidden');
 }
 
 // --- Trade & Merchant ---

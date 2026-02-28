@@ -2,6 +2,9 @@ body {
     font-family: 'Noto Sans JP', sans-serif;
     overflow: hidden;
     background-color: #0f172a;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* ゲーム画面 */
