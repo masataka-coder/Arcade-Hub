@@ -13,7 +13,8 @@ const DEFAULTS = {
     merchantActive: false,
     merchantCooldown: 30,
     hasStation: false,
-    agentRules: {}
+    agentRules: {},
+    collections: []
 };
 
 let state = { ...DEFAULTS };
@@ -60,6 +61,18 @@ const config = {
         { id: 'merchant_discount', name: '交渉術の指南書', desc: '商人からの購入価格 -10%', cost: 200, icon: '📜' },
         { id: 'yield_boost', name: '祝福の種', desc: '全ての資源産出量 +10%', cost: 350, icon: '🌱' },
         { id: 'pop_boost', name: '聖なるお守り', desc: '人口上限 +5', cost: 500, icon: '🧿' }
+    ],
+    collections: [
+        "古代の石版", "錆びた剣", "輝く水晶", "精霊の涙", "竜の鱗",
+        "森の妖精の羽", "黄金の林檎", "古のコイン", "魔法のランプ", "不死鳥の灰",
+        "月の雫", "太陽の紋章", "星くずの砂", "人魚の真珠", "巨人の指輪",
+        "悪魔の角", "天使の羽根", "エルフの弓", "ドワーフのハンマー", "ゴブリンの牙",
+        "オークの斧", "スライムの核", "ヴァンパイアの牙", "狼男の毛皮", "ミノタウロスの蹄",
+        "ペガサスの蹄鉄", "ユニコーンの角", "ドラゴンの牙", "キメラの尾", "ケルベロスの骨",
+        "ゴーレムの核", "ガーゴイルの欠片", "バジリスクの眼", "メデューサの髪", "クラーケンの墨",
+        "リヴァイアサンの鱗", "ベヒーモスの角", "フェンリルの牙", "ヨルムンガンドの鱗", "スレイプニルの蹄",
+        "ユグドラシルの枝", "ミョルニルの破片", "グングニルの穂先", "エクスカリバーの欠片", "アヴァロンの土",
+        "聖杯の欠片", "賢者の石の欠片", "パンドラの箱の欠片", "イージスの盾の破片", "神の息吹"
     ]
 };
 
@@ -105,7 +118,7 @@ function startGame(biome) {
     const nameInput = document.getElementById('villageNameInput').value.trim();
     if (nameInput) state.name = nameInput;
     document.getElementById('titleScreen').style.display = 'none';
-    document.getElementById('villageMain').className = `w-2/3 h-full village-area relative overflow-hidden flex-shrink-0 biome-${biome}`;
+    document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${biome}`;
     init();
     log(`「${state.name}」が始まりました。`, '☀️');
 }
@@ -117,9 +130,10 @@ function loadGame() {
         // 後から追加されたステータスの補完
         if (!state.upgrades) state.upgrades = { merchant_discount: 0, yield_boost: 0 };
         if (state.merchantCooldown === undefined) state.merchantCooldown = 30;
+        if (!state.collections) state.collections = [];
 
         document.getElementById('titleScreen').style.display = 'none';
-        document.getElementById('villageMain').className = `w-2/3 h-full village-area relative overflow-hidden flex-shrink-0 biome-${state.biome}`;
+        document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${state.biome}`;
         init();
         log("データをロードしました。");
     }
@@ -225,6 +239,7 @@ function updateUI() {
     renderAlchemy();
     renderMarket();
     updateExpeditionUI();
+    renderCollections();
 
     const banner = document.getElementById('travelerBanner');
     if (banner && !banner.classList.contains('hidden')) {
@@ -257,8 +272,6 @@ function updateUI() {
         document.getElementById('tab-villages').classList.remove('hidden');
     }
 
-    if (currentTab === 'agent') renderAgent();
-    if (currentTab === 'villages') renderVillages();
 }
 
 function tab(t) {
@@ -269,6 +282,8 @@ function tab(t) {
         if (pane) pane.classList.toggle('hidden', x !== t);
         if (tabBtn) tabBtn.className = `shrink-0 px-4 py-4 ${x === t ? 'tab-active' : 'text-slate-400'} ${x === 'villages' ? 'border-l-2 border-slate-200' : ''}`;
     });
+    if (t === 'agent') renderAgent();
+    if (t === 'villages') renderVillages();
 }
 
 // --- Logic Loops ---
@@ -632,10 +647,33 @@ function updateExpeditionUI() {
 
 function completeExpedition() {
     state.expeditionEnd = null;
-    state.villagers.forEach(v => { if (v.job === 'soldier') v.onExpedition = false; });
+    let soldierCount = 0;
+    state.villagers.forEach(v => {
+        if (v.job === 'soldier' && v.onExpedition) {
+            v.onExpedition = false;
+            soldierCount++;
+        }
+    });
+    if (soldierCount === 0) soldierCount = 1;
 
-    const wood = 200, stone = 200, gold = 50;
+    // Randomness based on soldier count
+    const r = () => 0.5 + Math.random();
+    const wood = Math.floor(100 * soldierCount * r());
+    const stone = Math.floor(100 * soldierCount * r());
+    const gold = Math.floor(20 * soldierCount * r());
+
     state.wood += wood; state.stone += stone; state.gold += gold;
+
+    // Collection logic (50% chance, no duplicates)
+    let foundColText = '';
+    if (Math.random() < 0.5 && state.collections.length < config.collections.length) {
+        const unowned = config.collections.filter(c => !state.collections.includes(c));
+        if (unowned.length > 0) {
+            const found = unowned[Math.floor(Math.random() * unowned.length)];
+            state.collections.push(found);
+            foundColText = `<div class="glass font-black px-4 py-2 rounded-xl text-purple-600 text-sm mt-2 w-full text-center border-purple-200">🏆 コレクション発見:<br>${found}</div>`;
+        }
+    }
 
     renderEverything();
     updateUI();
@@ -644,9 +682,12 @@ function completeExpedition() {
     const modal = document.getElementById('expeditionResultModal');
     if (modal) {
         document.getElementById('expeditionResultItems').innerHTML = `
-            <div class="glass px-4 py-2 rounded-xl text-slate-700">🌲 ${wood}</div>
-            <div class="glass px-4 py-2 rounded-xl text-slate-700">🪨 ${stone}</div>
-            <div class="glass px-4 py-2 rounded-xl text-yellow-600">💰 ${gold}</div>
+            <div class="flex gap-2 justify-center w-full">
+                <div class="glass px-4 py-2 rounded-xl text-slate-700 text-lg">🌲 ${wood}</div>
+                <div class="glass px-4 py-2 rounded-xl text-slate-700 text-lg">🪨 ${stone}</div>
+                <div class="glass px-4 py-2 rounded-xl text-yellow-600 text-lg">💰 ${gold}</div>
+            </div>
+            ${foundColText}
         `;
         modal.classList.remove('hidden');
     }
@@ -672,6 +713,23 @@ function renderAlchemy() {
         btn.innerHTML = `${r.name} (💎${r.cost.crystal})`;
         btn.onclick = () => { if (can) { state.crystal -= r.cost.crystal; r.effect(); updateUI(); } };
         list.appendChild(btn);
+    });
+}
+
+function renderCollections() {
+    const cont = document.getElementById('collectionList');
+    if (!cont) return;
+    document.getElementById('collectionCount').textContent = state.collections.length;
+    cont.innerHTML = '';
+    if (state.collections.length === 0) {
+        cont.innerHTML = '<span class="text-[10px] text-slate-500">まだ見つかっていません</span>';
+        return;
+    }
+    state.collections.forEach(item => {
+        const span = document.createElement('span');
+        span.className = 'text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-200 shadow-sm';
+        span.textContent = item;
+        cont.appendChild(span);
     });
 }
 
@@ -989,35 +1047,47 @@ function renderAgent() {
     const cont = document.getElementById('agentList');
     if (!cont) return;
     cont.innerHTML = '';
-    state.villagers.forEach(v => {
+
+    // リーダーシップ特性を持つ人のみ
+    const leaders = state.villagers.filter(v => v.trait && v.trait.bonus === 'agent');
+    if (leaders.length === 0) {
+        cont.innerHTML = '<p class="text-[10px] text-slate-500 font-bold p-4 text-center">リーダーシップを持つ村人がいません</p>';
+        return;
+    }
+
+    leaders.forEach(v => {
         const el = document.createElement('div');
         el.className = "bg-white p-3 flex flex-col gap-2 rounded-xl border border-slate-200 shadow-sm text-xs font-bold";
 
         const ar = v.agentRule || {};
 
-        const resSelect = `<select id="ar_res_${v.id}" class="border bg-slate-50 p-1 rounded" onchange="updateAgent(${v.id})">
+        const resSelect = `<select id="ar_res_${v.id}" class="border bg-slate-50 p-2 rounded" onchange="updateAgent(${v.id})">
             <option value="">(条件なし)</option>
-            <option value="food" ${ar.res === 'food' ? 'selected' : ''}>食料が</option>
-            <option value="wood" ${ar.res === 'wood' ? 'selected' : ''}>木材が</option>
-            <option value="stone" ${ar.res === 'stone' ? 'selected' : ''}>石材が</option>
-            <option value="iron" ${ar.res === 'iron' ? 'selected' : ''}>鉄が</option>
+            <option value="popFull" ${ar.res === 'popFull' ? 'selected' : ''}>家が足りない(人口上限)なら</option>
+            <option value="foodLow" ${ar.res === 'foodLow' ? 'selected' : ''}>食料が50未満なら</option>
+            <option value="woodFull" ${ar.res === 'woodFull' ? 'selected' : ''}>木材が200以上余っているなら</option>
+            <option value="stoneFull" ${ar.res === 'stoneFull' ? 'selected' : ''}>石材が200以上余っているなら</option>
         </select>`;
 
-        const threshInput = `<input id="ar_th_${v.id}" type="number" class="border bg-slate-50 p-1 w-16 text-center rounded" value="${ar.threshold || 50}" onchange="updateAgent(${v.id})"> 以下なら`;
-
-        const jobSelect = `<select id="ar_job_${v.id}" class="border bg-slate-50 p-1 rounded" onchange="updateAgent(${v.id})">
-            ${config.jobs.map(j => `<option value="${j.id}" ${ar.job === j.id ? 'selected' : ''}>${j.name}にする</option>`).join('')}
+        const actionSelect = `<select id="ar_act_${v.id}" class="border bg-slate-50 p-2 rounded w-full mt-1" onchange="updateAgent(${v.id})">
+            <option value="">(行動を選択)</option>
+            ${config.buildings.map(b => `<option value="build_${b.id}" ${ar.action === 'build_' + b.id ? 'selected' : ''}>${b.name}を建築する</option>`).join('')}
         </select>`;
 
         el.innerHTML = `
             <div class="flex justify-between items-center px-1 pb-1 border-b">
                 <span>${v.emoji} ${v.name}</span>
-                <span class="text-[10px] text-indigo-500 bg-indigo-50 px-2 rounded-full border border-indigo-100">${config.jobs.find(j => j.id === v.job)?.name || '無職'}</span>
+                <span class="text-[10px] text-indigo-500 bg-indigo-50 px-2 rounded-full border border-indigo-100">リーダー</span>
             </div>
-            <div class="flex gap-1 items-center mt-1 w-full flex-wrap text-[10px]">
-                ${resSelect}
-                ${threshInput}
-                ${jobSelect}
+            <div class="flex flex-col gap-1 mt-1 w-full text-[11px]">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">もし</span>
+                    ${resSelect}
+                </div>
+                <div class="flex items-center gap-2 w-full">
+                    <span class="text-slate-500">自動で</span>
+                    ${actionSelect}
+                </div>
             </div>
         `;
         cont.appendChild(el);
@@ -1028,30 +1098,40 @@ function updateAgent(id) {
     const v = state.villagers.find(x => x.id === id);
     if (!v) return;
     const res = document.getElementById(`ar_res_${id}`).value;
-    const thresh = parseInt(document.getElementById(`ar_th_${id}`).value) || 0;
-    const job = document.getElementById(`ar_job_${id}`).value;
-    if (res) {
-        v.agentRule = { res, threshold: thresh, job };
+    const action = document.getElementById(`ar_act_${id}`).value;
+
+    if (res && action) {
+        v.agentRule = { res, action };
     } else {
         delete v.agentRule;
     }
 }
 
 function applyAgentRules() {
-    if (!state.villagers.some(v => v.trait && v.trait.bonus === 'agent')) return;
-    let changed = false;
-    state.villagers.forEach(v => {
-        if (v.agentRule && v.agentRule.res) {
-            const currentAmount = state[v.agentRule.res];
-            if (currentAmount <= v.agentRule.threshold) {
-                if (v.job !== v.agentRule.job) {
-                    v.job = v.agentRule.job;
-                    changed = true;
-                }
+    const leaders = state.villagers.filter(v => v.trait && v.trait.bonus === 'agent');
+    if (leaders.length === 0) return;
+
+    leaders.forEach(v => {
+        if (v.agentRule && v.agentRule.res && v.agentRule.action) {
+            let triggered = false;
+            // 条件判定
+            if (v.agentRule.res === 'popFull' && state.villagers.length >= getPopMax()) {
+                triggered = true;
+            } else if (v.agentRule.res === 'foodLow' && state.food < 50) {
+                triggered = true;
+            } else if (v.agentRule.res === 'woodFull' && state.wood >= 200) {
+                triggered = true;
+            } else if (v.agentRule.res === 'stoneFull' && state.stone >= 200) {
+                triggered = true;
+            }
+
+            // アクション実行
+            if (triggered && v.agentRule.action.startsWith('build_')) {
+                const bId = v.agentRule.action.split('_')[1];
+                build(bId); // build() はコストなどをチェックし、実行可能かつ建築中でなければ開始する
             }
         }
     });
-    if (changed) { renderVillagerList(); renderAgent(); }
 }
 
 // --- Village System ---
@@ -1105,6 +1185,7 @@ function createNewVillage() {
     state.biome = biome;
 
     saveGame();
+    document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${biome}`;
     init();
 
     log(`新しい村「${state.name}」への移住が完了しました。トロッコ駅を建設するまで他の村へは戻れません。`, '🚞');
@@ -1121,6 +1202,7 @@ function travelToVillage(index) {
     savedVillages[index] = current;
 
     saveGame();
+    document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${state.biome}`;
     init();
 
     log(`トロッコに乗って「${state.name}」へ移動しました。`, '🚇');
