@@ -14,6 +14,8 @@ const translations = {
         video_label_gameplay: "プレイ映像",
         game_neon_title: "ネオンストライク",
         game_neon_desc: "究極のネオン・シューティング体験。新技術を駆使して迫りくる敵と巨大なボスを撃破せよ。ショップで機体を強化し、ハイスコアを目指せ。",
+        game_village_title: "村の調和：Evolution",
+        game_village_desc: "資源を集め、村を発展させ、襲来する敵から村を守り抜こう。交易所や遠征を活用して村をレベルアップ！",
         pwa_install_btn: "インストール",
         pwa_install_msg: "Arcade Hub をアプリとして追加しますか？",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
@@ -33,6 +35,8 @@ const translations = {
         video_label_gameplay: "Gameplay",
         game_neon_title: "Neon Strike",
         game_neon_desc: "The ultimate neon shooting experience. Use advanced technology to defeat waves of enemies and giant bosses. Upgrade your ship in the shop and aim for the high score.",
+        game_village_title: "Village Harmony: Evolution",
+        game_village_desc: "Gather resources, expand your village, and defend against incoming enemies. Utilize trading and expeditions to level up your village!",
         pwa_install_btn: "Install",
         pwa_install_msg: "Do you want to add Arcade Hub as an app?",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
@@ -57,6 +61,11 @@ const gameData = {
         video: "assets/movies/neon-cg.mp4",
         video2: "assets/movies/neon.mp4",
         path: "games/neon/index.html"
+    },
+    village: {
+        video: "",
+        image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>🏕️ Village</text></svg>",
+        path: "games/village/index.html"
     }
 };
 

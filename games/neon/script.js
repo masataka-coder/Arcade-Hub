@@ -1053,15 +1053,18 @@ function renderShopItems() {
 
 // イベントリスナー設定
 prevShipBtn.addEventListener('click', () => {
+    if (isPlaying) return;
     currentShipIndex = (currentShipIndex - 1 + SHIPS.length) % SHIPS.length;
     updateMenuUI();
 });
 nextShipBtn.addEventListener('click', () => {
+    if (isPlaying) return;
     currentShipIndex = (currentShipIndex + 1) % SHIPS.length;
     updateMenuUI();
 });
 
 shopBtn.addEventListener('click', () => {
+    if (isPlaying) return;
     renderShopItems();
     shopModalEl.classList.remove('hidden');
 });
@@ -1071,6 +1074,7 @@ closeShopBtn.addEventListener('click', () => {
 });
 
 startBtn.addEventListener('click', () => {
+    if (isPlaying) return;
     if (!bgm) {
         bgm = new BGMPlayer();
         if (bgm.isMuted) soundToggleBtn.innerText = '🔇';

@@ -102,7 +102,8 @@ h1 {
     font-weight: 600;
     border-radius: 16px;
     cursor: pointer;
-    width: 320px;
+    width: 100%;
+    max-width: 320px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -119,7 +120,8 @@ h1 {
 #game-container {
     display: none;
     flex-direction: column;
-    width: 840px;
+    width: 100%;
+    max-width: 840px;
     background: var(--panel-bg);
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
@@ -179,7 +181,14 @@ h1 {
     padding: 20px;
     background: #000;
     display: flex;
-    justify-content: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 840px) {
+    #canvas-wrapper {
+        justify-content: center;
+    }
 }
 
 canvas {

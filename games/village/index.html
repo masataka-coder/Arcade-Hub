@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村の調和：Evolution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="h-screen flex text-slate-800">
+
+    <!-- Sound Toggle -->
+    <button id="soundToggleBtn" onclick="toggleVillageBGM()"
+        class="fixed top-4 right-4 z-[1000] glass px-4 py-2 rounded-2xl shadow-lg border border-white/20 text-xl backdrop-blur-md">
+        🔊
+    </button>
+
+    <!-- タイトル画面 -->
+    <div id="titleScreen"
+        class="fixed inset-0 title-screen flex flex-col items-center justify-center p-6 text-white text-center">
+        <h1
+            class="text-6xl font-black italic mb-2 tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
+            VILLAGE HARMONY</h1>
+        <p class="text-slate-400 mb-12 tracking-widest font-bold">エボリューション</p>
+
+        <div id="saveOptions" class="flex flex-col gap-4 w-full max-w-sm mb-12">
+            <button onclick="showBiomeSelect()"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-lg transition-all">新規作成</button>
+            <button id="loadBtn" onclick="loadGame()"
+                class="hidden bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all">続きから</button>
+            <button onclick="location.href='../../index.html'"
+                class="mt-4 text-slate-400 hover:text-white transition-colors flex items-center justify-center gap-2">
+                <span>🏠</span> ポータルに戻る
+            </button>
+        </div>
+
+        <div id="biomeSelect" class="hidden flex flex-col gap-4 w-full max-w-2xl">
+            <h2 class="text-xl font-bold mb-2">村の名前と場所を選んでください</h2>
+            <input type="text" id="villageNameInput" placeholder="村の名前"
+                class="w-full max-w-sm mx-auto p-4 rounded-xl text-slate-800 font-bold mb-4" />
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="startGame('forest')"
+                    class="bg-white/10 p-6 rounded-3xl hover:bg-white/20 border-2 border-transparent hover:border-emerald-500 transition-all text-left">
+                    <span class="text-4xl block mb-2">🌲</span>
+                    <span class="font-black block">森林</span>
+                    <span class="text-[10px] text-slate-400">木材採取 +20%<br>バランスが良く初心者向け</span>
+                </button>
+                <button onclick="startGame('mountain')"
+                    class="bg-white/10 p-6 rounded-3xl hover:bg-white/20 border-2 border-transparent hover:border-slate-400 transition-all text-left">
+                    <span class="text-4xl block mb-2">🏔️</span>
+                    <span class="font-black block">山岳</span>
+                    <span class="text-[10px] text-slate-400">石材 +20% / 鉄獲得 +30%<br>建築と研究が捗る</span>
+                </button>
+                <button onclick="startGame('desert')"
+                    class="bg-white/10 p-6 rounded-3xl hover:bg-white/20 border-2 border-transparent hover:border-yellow-500 transition-all text-left">
+                    <span class="text-4xl block mb-2">🏜️</span>
+                    <span class="font-black block">砂漠</span>
+                    <span class="text-[10px] text-slate-400">ゴールド獲得 +30% / 食料 -20%<br>上級者向けの交易バイオーム</span>
+                </button>
+            </div>
+            <button onclick="cancelBiomeSelect()" class="mt-8 text-slate-400 text-sm hover:underline">戻る</button>
+        </div>
+    </div>
+
+    <!-- ゲーム本体 -->
+    <div id="villageMain" class="w-2/3 h-full village-area relative overflow-hidden flex-shrink-0">
+        <div id="weatherOverlay" class="weather-overlay"></div>
+
+        <!-- 中央資源 -->
+        <div id="resourceNodes"
+            class="absolute top-[40%] left-1/2 -translate-x-1/2 flex gap-8 z-10 w-full justify-center">
+            <div id="nodeWood"
+                class="text-8xl cursor-pointer hover:scale-110 active:scale-95 transition-all filter drop-shadow-xl"
+                onclick="collect('wood', event)">🌳</div>
+            <div id="nodeStone"
+                class="text-8xl cursor-pointer hover:scale-110 active:scale-95 transition-all filter drop-shadow-xl"
+                onclick="collect('stone', event)">🪨</div>
+            <div id="nodeFood"
+                class="text-8xl cursor-pointer hover:scale-110 active:scale-95 transition-all filter drop-shadow-xl hidden"
+                onclick="collect('food', event)">🌾</div>
+            <div id="nodeIron"
+                class="text-8xl cursor-pointer hover:scale-110 active:scale-95 transition-all filter drop-shadow-xl hidden"
+                onclick="collect('iron', event)">⛏️</div>
+        </div>
+
+        <!-- 建築中表示エリア -->
+        <div id="constructionContainer" class="absolute top-[60%] left-[20%] z-20 hidden"></div>
+
+        <div id="buildingsContainer" class="absolute inset-0 pointer-events-none"></div>
+        <div id="villagersContainer" class="absolute inset-0 pointer-events-auto"></div>
+
+        <!-- 敵 -->
+        <div id="enemyView" class="absolute inset-0 bg-red-900/10 flex items-center justify-center z-[100] hidden">
+            <div class="text-[14rem] animate-bounce cursor-pointer" onclick="attackEnemy()">👿</div>
+            <div
+                class="absolute top-20 w-80 h-4 bg-slate-200 rounded-full border-2 border-white overflow-hidden shadow-lg">
+                <div id="enemyHP" class="bg-red-500 h-full w-full"></div>
+            </div>
+        </div>
+
+        <!-- ステータスボード -->
+        <div class="absolute top-6 left-6 space-y-3 z-50">
+            <div class="flex gap-3">
+                <div class="glass p-3 rounded-2xl min-w-[120px] shadow-lg">
+                    <p class="text-[9px] font-bold text-slate-400">村のレベル</p>
+                    <p class="text-2xl font-black text-emerald-600" id="uiLevel">1</p>
+                </div>
+                <div class="glass p-3 rounded-2xl min-w-[120px] shadow-lg">
+                    <p class="text-[9px] font-bold text-slate-400">人口</p>
+                    <p class="text-2xl font-black text-blue-600">
+                        <span id="popNow">0</span><span class="text-slate-300 text-lg mx-1">/</span><span
+                            id="popMax">0</span>
+                    </p>
+                </div>
+                <div class="glass p-3 rounded-2xl min-w-[120px] shadow-lg">
+                    <p class="text-[9px] font-bold text-slate-400">幸福度</p>
+                    <p class="text-2xl font-black text-pink-500" id="uiHappy">100%</p>
+                </div>
+                <div class="glass p-3 rounded-2xl min-w-[120px] shadow-lg flex flex-col justify-center items-center">
+                    <p id="uiWeatherIcon" class="text-2xl">☀️</p>
+                    <p id="uiWeatherText" class="text-[9px] font-black uppercase">晴れ</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 flex-wrap max-w-md">
+                <div class="glass p-2 px-4 rounded-xl shadow flex items-center gap-2 border-b-2 border-emerald-500">
+                    <span>🌲</span><span id="resWood" class="font-black">0</span>
+                </div>
+                <div class="glass p-2 px-4 rounded-xl shadow flex items-center gap-2 border-b-2 border-slate-500">
+                    <span>🪨</span><span id="resStone" class="font-black">0</span>
+                </div>
+                <div class="glass p-2 px-4 rounded-xl shadow flex items-center gap-2 border-b-2 border-blue-500">
+                    <span>🍞</span><span id="resFood" class="font-black">0</span>
+                </div>
+                <div class="glass p-2 px-4 rounded-xl shadow flex items-center gap-2 border-b-2 border-orange-500">
+                    <span>⛓️</span><span id="resIron" class="font-black">0</span>
+                </div>
+                <div class="glass p-2 px-4 rounded-xl shadow flex items-center gap-2 border-b-2 border-indigo-400">
+                    <span>💎</span><span id="resCrystal" class="font-black">0</span>
+                </div>
+                <div class="glass p-2 px-4 rounded-xl shadow flex items-center gap-2 border-b-2 border-yellow-500">
+                    <span>💰</span><span id="resGold" class="font-black">0</span>
+                </div>
+            </div>
+            <button onclick="levelUpVillage()" id="levelUpBtn"
+                class="mt-2 w-full glass p-2 rounded-xl text-xs font-black shadow-lg text-emerald-700 hidden">
+                ⇧ 村をレベルアップ
+            </button>
+        </div>
+
+        <!-- 通知エリア -->
+        <div id="notificationContainer"
+            class="absolute bottom-6 left-6 space-y-2 z-[60] max-w-sm pointer-events-none flex flex-col items-start hidden">
+        </div>
+    </div>
+
+    <!-- サイドバー -->
+    <div class="flex-1 h-full bg-white border-l border-slate-200 flex flex-col shadow-2xl z-40">
+        <div
+            class="flex overflow-x-auto custom-scroll border-b text-[10px] items-center font-black uppercase tracking-widest bg-slate-50 shrink-0">
+            <button onclick="tab('build')" id="tab-build" class="shrink-0 px-4 py-4 tab-active">建築</button>
+            <button onclick="tab('villagers')" id="tab-villagers" class="shrink-0 px-4 py-4 text-slate-400">村人</button>
+            <button onclick="tab('market')" id="tab-market" class="shrink-0 px-4 py-4 text-slate-400">交易</button>
+            <button onclick="tab('extra')" id="tab-extra" class="shrink-0 px-4 py-4 text-slate-400">遠征/錬金</button>
+            <button onclick="tab('research')" id="tab-research" class="shrink-0 px-4 py-4 text-slate-400">研究</button>
+            <button onclick="tab('agent')" id="tab-agent" class="shrink-0 px-4 py-4 text-slate-400 hidden">代理人</button>
+            <button onclick="tab('villages')" id="tab-villages"
+                class="shrink-0 px-4 py-4 text-slate-400 hidden border-l-2 border-slate-200">💎 村</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scroll p-5">
+            <!-- 訪問者バナー -->
+            <div id="travelerBanner" class="hidden mb-6 bg-indigo-600 rounded-3xl p-5 text-white shadow-xl">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-black text-lg">訪問者!</h3>
+                    <span id="travelerEmoji" class="text-4xl">👦</span>
+                </div>
+                <p class="text-[14px] font-bold mb-1" id="travelerName">???</p>
+                <p class="text-[11px] text-yellow-300 font-bold mb-4" id="travelerTrait">???</p>
+                <div class="flex gap-2">
+                    <button onclick="acceptTraveler()"
+                        class="flex-1 bg-white text-indigo-600 py-2 rounded-xl font-black">歓迎</button>
+                    <button onclick="rejectTraveler()"
+                        class="px-4 bg-indigo-800 text-white rounded-xl font-bold">拒否</button>
+                </div>
+            </div>
+
+            <div id="paneBuild" class="space-y-3"></div>
+            <div id="paneVillagers" class="hidden space-y-3"></div>
+            <div id="paneMarket" class="hidden space-y-3"></div>
+            <div id="paneExtra" class="hidden space-y-6">
+                <section>
+                    <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">外の世界を探索</h4>
+                    <div id="expeditionView" class="bg-slate-900 rounded-2xl p-5 text-white">
+                        <div id="expeditionStatus">
+                            <p class="text-sm font-bold mb-4">兵士を探索に派遣できます</p>
+                            <button onclick="startExpedition()" id="expStartBtn"
+                                class="w-full bg-emerald-600 py-3 rounded-xl font-black disabled:opacity-50">遠征に出発
+                                (3分)</button>
+                        </div>
+                        <div id="expeditionTimer" class="hidden text-center py-4">
+                            <p class="text-4xl font-black mb-1" id="expCountdown">03:00</p>
+                            <p class="text-[10px] opacity-60">探索中...</p>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">錬金術の秘密</h4>
+                    <div id="alchemyList" class="space-y-2"></div>
+                </section>
+            </div>
+            <div id="paneResearch" class="hidden space-y-3"></div>
+            <div id="paneAgent" class="hidden space-y-3">
+                <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">代理人の指示設定</h4>
+                <p class="text-[10px] text-slate-500 mb-4">「リーダーシップ」を持つ者がいれば、村人に自動行動の条件を指示できます。</p>
+                <div id="agentList" class="space-y-3"></div>
+            </div>
+            <div id="paneVillages" class="hidden space-y-3">
+                <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">新たな村の開拓</h4>
+                <div id="villagesList" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商人取引モーダル -->
+    <div id="merchantModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] hidden pointer-events-auto">
+        <div
+            class="bg-yellow-50 rounded-3xl p-8 max-w-md w-full shadow-2xl transform transition-all border-4 border-yellow-200">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-5xl">👳‍♂️</span>
+                    <div>
+                        <h3 class="font-black text-xl text-yellow-900">さすらいの商人</h3>
+                        <p class="text-xs font-bold text-yellow-700">珍しい品はいかがかな？</p>
+                    </div>
+                </div>
+                <button onclick="closeMerchantModal()" class="text-slate-400 hover:text-slate-600 p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor"
+                        stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="merchantModalContent">
+            </div>
+        </div>
+    </div>
+
+    <!-- 遠征帰還モーダル -->
+    <div id="expeditionResultModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] hidden pointer-events-auto">
+        <div
+            class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform transition-all border-4 border-emerald-100 text-center">
+            <h2 class="text-3xl font-black text-emerald-600 mb-2">遠征帰還！</h2>
+            <p class="text-slate-500 font-bold mb-6 text-sm">兵士たちが無事に帰還しました</p>
+            <div id="expeditionResultItems" class="flex justify-center gap-4 mb-8 text-2xl font-black">
+            </div>
+            <button onclick="closeExpeditionResultModal()"
+                class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black hover:bg-emerald-500 transition-all shadow-lg active:scale-95">確認</button>
+        </div>
+    </div>
+
+    <!-- 村人情報モーダル -->
+    <div id="villagerModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] hidden pointer-events-auto">
+        <div
+            class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform transition-all border-4 border-indigo-100">
+            <div class="flex justify-between items-start mb-6">
+                <div id="modalVillagerEmoji" class="text-6xl bg-indigo-50 p-4 rounded-2xl">👦</div>
+                <button onclick="closeVillagerModal()" class="text-slate-400 hover:text-slate-600 p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor"
+                        stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <h3 id="modalVillagerName" class="text-2xl font-black text-slate-800 tracking-tight">???</h3>
+                    <p id="modalVillagerJob" class="text-indigo-600 font-bold uppercase tracking-widest text-xs mt-1">
+                        木こり
+                    </p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">現在の特性</p>
+                    <div class="flex items-center gap-2">
+                        <span id="modalVillagerTraitName" class="font-black text-indigo-500">???</span>
+                        <span id="modalVillagerTraitDesc" class="text-xs text-slate-500 font-medium">???</span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeVillagerModal()"
+                class="w-full mt-8 bg-slate-800 text-white py-4 rounded-2xl font-black hover:bg-slate-700 transition-all shadow-lg active:scale-95">閉じる</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

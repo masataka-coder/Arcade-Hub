@@ -948,7 +948,7 @@ function generateTerrain(n) {
 function setupTanks(n) {
     tanks = {}; numOpponents = n;
     tanks[1] = { x: Math.floor(width * 0.05) + 20, y: 0, color: '#3B82F6', health: 100, angle: 45, power: 50, isCPU: false, name: 'PLAYER' };
-    const range = 0.8; const step = range / n;
+    const range = width < 600 ? 0.9 : 0.8; const step = range / n;
     for (let i = 0; i < n; i++) {
         const id = i + 2; const r = 0.15 + (step * i) + (Math.random() * step * 0.8);
         tanks[id] = { x: Math.floor(width * r), y: 0, color: CPU_COLORS[i % 10], health: 100, angle: 135, power: 50, isCPU: true, name: `CPU ${i + 1}` };
@@ -2123,6 +2123,7 @@ function gameLoop() {
         const t = tanks[id];
         if (t.health <= 0) continue;
 
+        const tankScale = Math.min(1.0, width / 700); // Scale down on small screens
         ctx.save();
         ctx.translate(t.x, t.y);
 
@@ -2133,6 +2134,7 @@ function gameLoop() {
         const ang = Math.atan2(hR - hL, 10);
 
         ctx.rotate(ang);
+        ctx.scale(tankScale, tankScale);
 
         ctx.fillStyle = t.color;
         ctx.beginPath(); ctx.arc(0, -10, 10, Math.PI, 0); ctx.rect(-12, -10, 24, 10); ctx.fill();
