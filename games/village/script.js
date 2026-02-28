@@ -165,18 +165,7 @@ function renderEverything() {
 
     const vCont = document.getElementById('villagersContainer');
     vCont.innerHTML = '';
-    state.villagers.filter(v => !v.onExpedition).forEach(v => {
-        const el = document.createElement('div');
-        el.id = `v-${v.id}`;
-        el.className = 'villager-entity';
-        el.innerHTML = v.emoji;
-        el.onclick = (e) => {
-            e.stopPropagation();
-            showVillagerModal(v);
-        };
-        vCont.appendChild(el);
-        animateVillager(v);
-    });
+
 
     // 商人の再描画
     if (state.merchantActive) {
@@ -566,11 +555,8 @@ function acceptTraveler() {
 
         const entity = document.getElementById(`traveler-${pendingTraveler.id}`);
         if (entity) {
-            entity.id = `v-${pendingTraveler.id}`;
-            entity.onclick = null;
-            animateVillager(pendingTraveler);
-        } else {
-            renderEverything();
+            entity.style.opacity = '0';
+            setTimeout(() => entity.remove(), 500);
         }
 
         log(`${pendingTraveler.name} が仲間に加わりました！`);
@@ -597,20 +583,7 @@ function rejectTraveler() {
     updateUI();
 }
 
-function animateVillager(v) {
-    const el = document.getElementById(`v-${v.id}`);
-    if (!el) return;
-    const move = () => {
-        if (enemy.active) {
-            el.style.left = '50%'; el.style.top = '30%';
-        } else {
-            el.style.left = (10 + Math.random() * 80) + '%';
-            el.style.top = (30 + Math.random() * 60) + '%';
-        }
-        setTimeout(move, 4000 + Math.random() * 4000);
-    };
-    move();
-}
+
 
 // --- Expeditions ---
 function startExpedition() {
@@ -787,12 +760,19 @@ function renderMarket() {
         <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">市場での交易</h4>
         <div class="space-y-4">
             <div class="bg-yellow-50 p-4 rounded-2xl border border-yellow-200">
-                <p class="text-[10px] font-bold text-yellow-700 mb-3 uppercase">資源をゴールドに換金</p>
+                <p class="text-[10px] font-bold text-yellow-700 mb-2 uppercase">資源をゴールドに換金（売却）</p>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="tradeResource('wood')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🌲 100 → 💰 10</button>
+                    <button onclick="tradeResource('stone')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🪨 100 → 💰 10</button>
+                    <button onclick="tradeResource('food')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🍞 100 → 💰 20</button>
+                    <button onclick="tradeResource('iron')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">⛓️ 50 → 💰 40</button>
+                </div>
+                <p class="text-[10px] font-bold text-indigo-700 mb-2 uppercase">ゴールドで資源を購入</p>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="tradeResource('wood')" class="bg-white p-3 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🌲 100 → 💰 10</button>
-                    <button onclick="tradeResource('stone')" class="bg-white p-3 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🪨 100 → 💰 10</button>
-                    <button onclick="tradeResource('food')" class="bg-white p-3 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🍞 100 → 💰 20</button>
-                    <button onclick="tradeResource('iron')" class="bg-white p-3 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">⛓️ 50 → 💰 40</button>
+                    <button onclick="buyResource('wood')" class="bg-white p-2 rounded-xl border border-indigo-200 text-xs font-bold hover:bg-indigo-50 transition-colors">💰 15 → 🌲 100</button>
+                    <button onclick="buyResource('stone')" class="bg-white p-2 rounded-xl border border-indigo-200 text-xs font-bold hover:bg-indigo-50 transition-colors">💰 15 → 🪨 100</button>
+                    <button onclick="buyResource('food')" class="bg-white p-2 rounded-xl border border-indigo-200 text-xs font-bold hover:bg-indigo-50 transition-colors">💰 30 → 🍞 100</button>
+                    <button onclick="buyResource('iron')" class="bg-white p-2 rounded-xl border border-indigo-200 text-xs font-bold hover:bg-indigo-50 transition-colors">💰 60 → ⛓️ 50</button>
                 </div>
             </div>
             <div id="merchantShopPane" class="hidden">
@@ -816,6 +796,20 @@ function tradeResource(type) {
         updateUI();
     } else {
         log("資源が足りません。");
+    }
+}
+
+function buyResource(type) {
+    const costs = { wood: 15, stone: 15, food: 30, iron: 60 };
+    const gains = { wood: 100, stone: 100, food: 100, iron: 50 };
+
+    if (state.gold >= costs[type]) {
+        state.gold -= costs[type];
+        state[type] += gains[type];
+        log(`💰${costs[type]} で ${gains[type]} の資源を購入しました。`);
+        updateUI();
+    } else {
+        log("ゴールドが足りません。", "❌");
     }
 }
 
@@ -1061,8 +1055,10 @@ function renderAgent() {
 
         const ar = v.agentRule || {};
 
-        const resSelect = `<select id="ar_res_${v.id}" class="border bg-slate-50 p-2 rounded" onchange="updateAgent(${v.id})">
+        const resSelect = `<select id="ar_res_${v.id}" class="border bg-slate-50 p-2 rounded w-full" onchange="updateAgent(${v.id})">
             <option value="">(条件なし)</option>
+            <option value="hasTraveler" ${ar.res === 'hasTraveler' ? 'selected' : ''}>訪問者が来たら</option>
+            <option value="canExpedition" ${ar.res === 'canExpedition' ? 'selected' : ''}>兵士が待機しているなら</option>
             <option value="popFull" ${ar.res === 'popFull' ? 'selected' : ''}>家が足りない(人口上限)なら</option>
             <option value="foodLow" ${ar.res === 'foodLow' ? 'selected' : ''}>食料が50未満なら</option>
             <option value="woodFull" ${ar.res === 'woodFull' ? 'selected' : ''}>木材が200以上余っているなら</option>
@@ -1071,21 +1067,34 @@ function renderAgent() {
 
         const actionSelect = `<select id="ar_act_${v.id}" class="border bg-slate-50 p-2 rounded w-full mt-1" onchange="updateAgent(${v.id})">
             <option value="">(行動を選択)</option>
-            ${config.buildings.map(b => `<option value="build_${b.id}" ${ar.action === 'build_' + b.id ? 'selected' : ''}>${b.name}を建築する</option>`).join('')}
+            <optgroup label="訪問者">
+                <option value="acceptTraveler" ${ar.action === 'acceptTraveler' ? 'selected' : ''}>村人として歓迎する</option>
+                <option value="rejectTraveler" ${ar.action === 'rejectTraveler' ? 'selected' : ''}>村から追い出す</option>
+            </optgroup>
+            <optgroup label="部隊指示">
+                <option value="startExpedition" ${ar.action === 'startExpedition' ? 'selected' : ''}>遠征に出発させる</option>
+            </optgroup>
+            <optgroup label="交易 (市場要)">
+                <option value="trade_wood" ${ar.action === 'trade_wood' ? 'selected' : ''}>木材を換金する</option>
+                <option value="trade_stone" ${ar.action === 'trade_stone' ? 'selected' : ''}>石材を換金する</option>
+            </optgroup>
+            <optgroup label="自動建築">
+                ${config.buildings.map(b => `<option value="build_${b.id}" ${ar.action === 'build_' + b.id ? 'selected' : ''}>${b.name}を建築する</option>`).join('')}
+            </optgroup>
         </select>`;
 
         el.innerHTML = `
-            <div class="flex justify-between items-center px-1 pb-1 border-b">
+            <div class="flex justify-between items-center px-1 pb-1 border-b mb-1">
                 <span>${v.emoji} ${v.name}</span>
                 <span class="text-[10px] text-indigo-500 bg-indigo-50 px-2 rounded-full border border-indigo-100">リーダー</span>
             </div>
-            <div class="flex flex-col gap-1 mt-1 w-full text-[11px]">
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-500">もし</span>
+            <div class="text-[11px] space-y-1 w-full bg-slate-100/50 p-2 rounded">
+                <div class="flex flex-col gap-1">
+                    <span class="text-slate-500 font-black">【もし】</span>
                     ${resSelect}
                 </div>
-                <div class="flex items-center gap-2 w-full">
-                    <span class="text-slate-500">自動で</span>
+                <div class="flex flex-col gap-1">
+                    <span class="text-slate-500 font-black">【自動で】</span>
                     ${actionSelect}
                 </div>
             </div>
@@ -1114,6 +1123,7 @@ function applyAgentRules() {
     leaders.forEach(v => {
         if (v.agentRule && v.agentRule.res && v.agentRule.action) {
             let triggered = false;
+
             // 条件判定
             if (v.agentRule.res === 'popFull' && state.villagers.length >= getPopMax()) {
                 triggered = true;
@@ -1123,12 +1133,30 @@ function applyAgentRules() {
                 triggered = true;
             } else if (v.agentRule.res === 'stoneFull' && state.stone >= 200) {
                 triggered = true;
+            } else if (v.agentRule.res === 'hasTraveler' && pendingTraveler) {
+                triggered = true;
+            } else if (v.agentRule.res === 'canExpedition' && state.villagers.some(sv => sv.job === 'soldier' && !sv.onExpedition)) {
+                triggered = true;
             }
 
             // アクション実行
-            if (triggered && v.agentRule.action.startsWith('build_')) {
-                const bId = v.agentRule.action.split('_')[1];
-                build(bId); // build() はコストなどをチェックし、実行可能かつ建築中でなければ開始する
+            if (triggered) {
+                const act = v.agentRule.action;
+                if (act.startsWith('build_')) {
+                    const bId = act.split('_')[1];
+                    build(bId);
+                } else if (act === 'acceptTraveler' && pendingTraveler && state.villagers.length < getPopMax()) {
+                    acceptTraveler();
+                } else if (act === 'rejectTraveler' && pendingTraveler) {
+                    rejectTraveler();
+                } else if (act === 'startExpedition' && state.villagers.some(sv => sv.job === 'soldier' && !sv.onExpedition)) {
+                    startExpedition();
+                } else if (act.startsWith('trade_')) {
+                    if (state.buildings.some(b => b.id === 'market')) {
+                        const rId = act.split('_')[1];
+                        tradeResource(rId);
+                    }
+                }
             }
         }
     });
