@@ -17,7 +17,8 @@ const DEFAULTS = {
     agentRules: {},
     collections: [],
     diplomacy: { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false },
-    books: []
+    books: [],
+    unreadBooks: []
 };
 
 let state = { ...DEFAULTS };
@@ -120,11 +121,31 @@ const config = {
         { id: "c50", name: "神の息吹", icon: "🌬️", desc: "世界を創り出した神々の力が微かに残る、不思議な風を封じ込めた瓶。" }
     ],
     books: [
-        "古代建築の基礎", "石材加工の極意", "深層の鉱石学", "竜の飼育法", "星見の術",
-        "錬金術入門", "防衛戦術大全", "大農園の拡張法", "市場経済の歴史", "精霊との対話",
-        "鉄器の鍛造技術", "王室外交録", "幻獣の生態研究", "水流と魔力", "暗黒魔法の基礎",
-        "生命の樹の伝説", "光の魔法陣", "次元航法", "巨大建築の構造力学", "神々の言語",
-        "砂漠適応の生態学", "雪原の生存術", "森林資源の保全", "地下迷宮の構造群", "最終兵器の設計図"
+        { id: "古代建築の基礎", name: "古代建築の基礎", icon: "🏛️", desc: "堅牢な石造りの技術が記されている。", reward: { stone: 50, wood: 50 } },
+        { id: "石材加工の極意", name: "石材加工の極意", icon: "🗿", desc: "石材の無駄をなくす削り方。", reward: { stone: 100 } },
+        { id: "深層の鉱石学", name: "深層の鉱石学", icon: "💎", desc: "地下深くの鉱脈の探し方。", reward: { iron: 30, crystal: 5 } },
+        { id: "竜の飼育法", name: "竜の飼育法", icon: "🐉", desc: "誰も見たことがない竜の飼い方。", reward: { gold: 50 } },
+        { id: "星見の術", name: "星見の術", icon: "🔭", desc: "星の動きから運命を読み解く術。", reward: { crystal: 10 } },
+        { id: "錬金術入門", name: "錬金術入門", icon: "🧪", desc: "物質の変換の第一歩。", reward: { gold: 30, crystal: 5 } },
+        { id: "防衛戦術大全", name: "防衛戦術大全", icon: "🛡️", desc: "村を守るための堅牢な陣形。", reward: { stone: 150 } },
+        { id: "大農園の拡張法", name: "大農園の拡張法", icon: "🌾", desc: "少ない土地で多くの作物を得る方法。", reward: { food: 200 } },
+        { id: "市場経済の歴史", name: "市場経済の歴史", icon: "⚖", desc: "過去の商人たちの熱い戦いの記録。", reward: { gold: 100 } },
+        { id: "精霊との対話", name: "精霊との対話", icon: "🧚", desc: "自然を味方につけるための作法。", reward: { wood: 100 } },
+        { id: "鉄器の鍛造技術", name: "鉄器の鍛造技術", icon: "⚒️", desc: "より鋭く、より硬い鉄の鍛え方。", reward: { iron: 50 } },
+        { id: "王室外交録", name: "王室外交録", icon: "👑", desc: "大国を相手に立ち回る貴族の話。", reward: { gold: 80 } },
+        { id: "幻獣の生態研究", name: "幻獣の生態研究", icon: "🦄", desc: "世界に散らばる幻獣たちの記録。", reward: { crystal: 15 } },
+        { id: "水流と魔力", name: "水流と魔力", icon: "💧", desc: "水と魔力の親和性について。", reward: { wood: 50, crystal: 5 } },
+        { id: "暗黒魔法の基礎", name: "暗黒魔法の基礎", icon: "🌑", desc: "触れてはいけない禁忌の知識。", reward: { iron: 50, gold: 50 } },
+        { id: "生命の樹の伝説", name: "生命の樹の伝説", icon: "🌳", desc: "全てを生み出したとされる大樹の話。", reward: { wood: 200 } },
+        { id: "光の魔法陣", name: "光の魔法陣", icon: "✨", desc: "闇を払う強大な力の描き方。", reward: { crystal: 20 } },
+        { id: "次元航法", name: "次元航法", icon: "🌌", desc: "空間を渡るための高度な魔法。", reward: { gold: 150 } },
+        { id: "巨大建築の構造力学", name: "巨大建築の構造力学", icon: "🏗️", desc: "重力に逆らう巨大な塔の建て方。", reward: { stone: 200, iron: 50 } },
+        { id: "神々の言語", name: "神々の言語", icon: "📜", desc: "かつて神が使ったとされる言葉。", reward: { crystal: 25 } },
+        { id: "砂漠適応の生態学", name: "砂漠適応の生態学", icon: "🏜️", desc: "過酷な環境を生き抜くための知恵。", reward: { food: 100, gold: 50 } },
+        { id: "雪原の生存術", name: "雪原の生存術", icon: "❄️", desc: "凍える世界で火を絶やさない方法。", reward: { wood: 100, food: 100 } },
+        { id: "森林資源の保全", name: "森林資源の保全", icon: "🌲", desc: "木々を育てながら森と共に生きる。", reward: { wood: 300 } },
+        { id: "地下迷宮の構造群", name: "地下迷宮の構造群", icon: "🚇", desc: "世界中に広がる地下通路の地図。", reward: { stone: 150, gold: 50 } },
+        { id: "最終兵器の設計図", name: "最終兵器の設計図", icon: "⚙️", desc: "かつて世界を滅ぼしかけた兵器の図面。", reward: { iron: 100, crystal: 30 } }
     ]
 };
 
@@ -185,6 +206,7 @@ function loadGame() {
         if (!state.collections) state.collections = [];
         if (!state.diplomacy) state.diplomacy = { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false };
         if (!state.books) state.books = [];
+        if (!state.unreadBooks) state.unreadBooks = [];
 
         document.getElementById('titleScreen').style.display = 'none';
         document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${state.biome}`;
@@ -203,6 +225,51 @@ function init() {
 function saveGame() {
     localStorage.setItem('v-evolve-save', JSON.stringify(state));
     localStorage.setItem('v-evolve-villages', JSON.stringify(savedVillages));
+}
+
+function exportSaveData() {
+    saveGame();
+    const exportData = {
+        save: JSON.parse(localStorage.getItem('v-evolve-save') || '{}'),
+        villages: JSON.parse(localStorage.getItem('v-evolve-villages') || '[]')
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "village-harmony-save.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    log("セーブデータを出力しました！", "📥");
+}
+
+function importSaveData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (data.save) {
+                    localStorage.setItem('v-evolve-save', JSON.stringify(data.save));
+                    localStorage.setItem('v-evolve-villages', JSON.stringify(data.villages || []));
+                    log("セーブデータを読み込みました！ページを更新します。", "📥");
+                    alert("セーブデータを読み込みました。ページを更新します。");
+                    location.reload();
+                } else {
+                    alert("無効なセーブデータファイルです。");
+                }
+            } catch (err) {
+                alert("セーブデータの読み込みに失敗しました。");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
 }
 
 // --- UI & Rendering ---
@@ -244,7 +311,7 @@ function renderEverything() {
         el.onclick = (e) => {
             e.stopPropagation();
             if (state.villagers.length < getPopMax()) acceptTraveler();
-            else log("警告: 家に空きがありません。");
+            else log("警告: 家に空きがありません。", "⚠");
         };
         vCont.appendChild(el);
     }
@@ -283,6 +350,7 @@ function updateUI() {
     renderMarket();
     updateExpeditionUI();
     renderCollections();
+    renderBooks();
 
     const banner = document.getElementById('travelerBanner');
     if (banner && !banner.classList.contains('hidden')) {
@@ -306,6 +374,8 @@ function updateUI() {
     const saved = localStorage.getItem('v-evolve-save');
     const loadBtn = document.getElementById('loadBtn');
     if (saved && loadBtn) loadBtn.classList.remove('hidden');
+    const exportBtn = document.getElementById('exportBtn');
+    if (saved && exportBtn) exportBtn.classList.remove('hidden');
 
     const hasAgent = state.villagers.some(v => v.trait && v.trait.bonus === 'agent');
     const tabAgent = document.getElementById('tab-agent');
@@ -483,17 +553,132 @@ function updateWeatherVisuals() {
         }
     } else if (weather.id === 'snow') {
         for (let i = 0; i < 30; i++) {
-            const s = document.createElement('div');
-            s.className = 'snow-flake';
-            s.style.left = Math.random() * 100 + '%';
-            s.style.animationDuration = (3 + Math.random() * 5) + 's';
             s.style.animationDelay = Math.random() + 's';
             container.appendChild(s);
         }
     }
 }
 
-// --- Village Actions ---
+// --- Books UI ---
+function renderBooks() {
+    const cont = document.getElementById('bookList');
+    if (!cont) return;
+    cont.innerHTML = '';
+
+    // Header format total books
+    const bookCountSpan = document.getElementById('bookCount');
+    if (bookCountSpan) {
+        bookCountSpan.textContent = (state.unreadBooks.length + state.books.length) + "/" + config.books.length;
+    }
+
+    if (state.unreadBooks.length === 0 && state.books.length === 0) {
+        cont.innerHTML = '<p class="text-[10px] text-slate-500 font-bold opacity-60">まだ知識を持っていません</p>';
+        return;
+    }
+
+    // Unread Books
+    state.unreadBooks.forEach((bId, index) => {
+        const b = config.books.find(x => x.id === bId);
+        if (!b) return;
+        cont.innerHTML += `
+            <button onclick="openBookModal('${bId}', true, ${index})" class="w-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 p-3 rounded-xl flex items-center gap-3 transition-all relative overflow-hidden group">
+                <span class="absolute top-0 right-[-10px] text-5xl opacity-5 group-hover:scale-110 transition-transform">${b.icon}</span>
+                <span class="text-2xl z-10 filter drop-shadow animate-pulse">${b.icon}</span>
+                <div class="text-left z-10 flex-1">
+                    <p class="text-xs font-black text-indigo-900 tracking-widest">${b.name}</p>
+                    <p class="text-[10px] font-bold text-indigo-500 mt-1 uppercase">未読 - 🗄️ Click to Read</p>
+                </div>
+                <div class="h-2 w-2 rounded-full bg-red-500 z-10 mr-2 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+            </button>
+        `;
+    });
+
+    // Read Books
+    state.books.forEach(bId => {
+        const b = config.books.find(x => x.id === bId);
+        if (!b) return;
+        cont.innerHTML += `
+            <button onclick="openBookModal('${bId}', false, -1)" class="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex items-center gap-3 transition-all relative overflow-hidden group">
+                <span class="absolute top-0 right-[-10px] text-5xl opacity-5 group-hover:scale-110 transition-transform">${b.icon}</span>
+                <span class="text-2xl z-10 filter drop-shadow opacity-70">${b.icon}</span>
+                <div class="text-left z-10">
+                    <p class="text-xs font-black text-slate-700 tracking-widest">${b.name}</p>
+                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase">既読</p>
+                </div>
+            </button>
+        `;
+    });
+}
+
+function openBookModal(id, isUnread, unreadIndex) {
+    const b = config.books.find(x => x.id === id);
+    if (!b) return;
+
+    document.getElementById('modalBookName').textContent = b.name;
+    document.getElementById('modalBookIcon').textContent = b.icon;
+    document.getElementById('modalBookDesc').textContent = b.desc;
+
+    // Format reward text
+    let reqText = [];
+    if (b.reward.wood) reqText.push(`🌲 +${b.reward.wood}`);
+    if (b.reward.stone) reqText.push(`🪨 +${b.reward.stone}`);
+    if (b.reward.food) reqText.push(`🌾 +${b.reward.food}`);
+    if (b.reward.iron) reqText.push(`⛏️ +${b.reward.iron}`);
+    if (b.reward.gold) reqText.push(`💰 +${b.reward.gold}`);
+    if (b.reward.crystal) reqText.push(`💎 +${b.reward.crystal}`);
+
+    document.getElementById('modalBookReward').innerHTML = `報酬: <span class="ml-1">${reqText.join(' ')}</span>`;
+
+    const readBtn = document.getElementById('bookReadBtn');
+    if (isUnread) {
+        readBtn.style.display = 'block';
+        // Remove old onclick bindings to prevent double trigger
+        readBtn.onclick = () => readBook(id, unreadIndex);
+    } else {
+        readBtn.style.display = 'none';
+        readBtn.onclick = null;
+    }
+
+    const modal = document.getElementById('bookModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeBookModal() {
+    const modal = document.getElementById('bookModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function readBook(id, unreadIndex) {
+    if (unreadIndex < 0 || unreadIndex >= state.unreadBooks.length) return;
+
+    // Validate that the ID matches
+    if (state.unreadBooks[unreadIndex] !== id) return;
+
+    // Remove from unread
+    state.unreadBooks.splice(unreadIndex, 1);
+
+    // Add to read if not exists
+    if (!state.books.includes(id)) {
+        state.books.push(id);
+    }
+
+    // Apply rewards
+    const b = config.books.find(x => x.id === id);
+    if (b && b.reward) {
+        if (b.reward.wood) state.wood += b.reward.wood;
+        if (b.reward.stone) state.stone += b.reward.stone;
+        if (b.reward.food) state.food += b.reward.food;
+        if (b.reward.iron) state.iron += b.reward.iron;
+        if (b.reward.gold) state.gold += b.reward.gold;
+        if (b.reward.crystal) state.crystal += b.reward.crystal;
+    }
+
+    log(`『${b.name}』から知識を得ました！`, '📘');
+    closeBookModal();
+    updateUI();
+}
+
+// --- Collections ---
 function collect(type, e) {
     let amt = 1;
     if (type === 'wood' && state.biome === 'forest') amt = 1.2;
@@ -1177,7 +1362,11 @@ function closeVillagerModal() {
 window.onload = () => {
     const saved = localStorage.getItem('v-evolve-save');
     const loadBtn = document.getElementById('loadBtn');
-    if (saved && loadBtn) loadBtn.classList.remove('hidden');
+    const exportBtn = document.getElementById('exportBtn');
+    if (saved) {
+        if (loadBtn) loadBtn.classList.remove('hidden');
+        if (exportBtn) exportBtn.classList.remove('hidden');
+    }
 };
 
 // --- Envoy & Diplomacy ---
@@ -1319,7 +1508,7 @@ function contractAnid() {
 
         for (let i = 0; i < 5; i++) {
             const book = config.books[Math.floor(Math.random() * config.books.length)];
-            state.books.push(book);
+            state.unreadBooks.push(book.id);
         }
         state.diplomacy.anidContracted = true;
         log("アニド歴史記録財団と取引し、貴重な本を5冊受け取りました！", '📚');
@@ -1384,11 +1573,15 @@ function renderDiplomacy() {
                 <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">📚</div>
                 <p class="font-black text-purple-900 mb-1">アニド歴史記録財団</p>
                 <div class="text-[11px] text-purple-700 font-bold mt-2">
-                    所持している知識（本）: <span class="text-lg text-purple-900 font-black ml-1">${state.books ? state.books.length : 0}</span> 冊
+                    所持している知識（本）: <span class="text-lg text-purple-900 font-black ml-1">${(state.books ? state.books.length : 0) + (state.unreadBooks ? state.unreadBooks.length : 0)}</span> 冊
                 </div>
-                ${state.books && state.books.length > 0 ? `
+                ${(state.books && state.books.length > 0) || (state.unreadBooks && state.unreadBooks.length > 0) ? `
                     <div class="flex gap-1 flex-wrap mt-3">
-                        ${state.books.map(b => `<span class="bg-white px-2 py-1 rounded-md border border-purple-200 text-[9px] shadow-sm font-bold text-purple-800">${b}</span>`).join('')}
+                        ${[...(state.unreadBooks || []), ...(state.books || [])].map(bId => {
+            const bObj = config.books.find(x => x.id === bId);
+            const name = bObj ? bObj.name : bId;
+            return `<span class="bg-white px-2 py-1 rounded-md border border-purple-200 text-[9px] shadow-sm font-bold text-purple-800">${name}</span>`;
+        }).join('')}
                     </div>
                 ` : `<p class="text-[10px] text-purple-600 mt-2 opacity-60">まだ本は持っていません</p>`}
             </div>
