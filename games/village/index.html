@@ -170,6 +170,8 @@
             <button onclick="tab('extra')" id="tab-extra" class="shrink-0 px-4 py-4 text-slate-400">遠征/錬金</button>
             <button onclick="tab('research')" id="tab-research" class="shrink-0 px-4 py-4 text-slate-400">研究</button>
             <button onclick="tab('agent')" id="tab-agent" class="shrink-0 px-4 py-4 text-slate-400 hidden">代理人</button>
+            <button onclick="tab('diplomacy')" id="tab-diplomacy"
+                class="shrink-0 px-4 py-4 text-slate-400 hidden text-purple-600 font-black">外交</button>
             <button onclick="tab('villages')" id="tab-villages"
                 class="shrink-0 px-4 py-4 text-slate-400 hidden border-l-2 border-slate-200">💎 村</button>
         </div>
@@ -227,6 +229,7 @@
                 <p class="text-[10px] text-slate-500 mb-4">「リーダーシップ」特性を持つ村長（代理人）に、村の方針を任せることができます。</p>
                 <div id="agentList" class="space-y-3"></div>
             </div>
+            <div id="paneDiplomacy" class="hidden space-y-3"></div>
             <div id="paneVillages" class="hidden space-y-3">
                 <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">新たな村の開拓</h4>
                 <div id="villagesList" class="space-y-4"></div>
@@ -304,6 +307,17 @@
             </div>
             <button onclick="closeVillagerModal()"
                 class="w-full mt-8 bg-slate-800 text-white py-4 rounded-2xl font-black hover:bg-slate-700 transition-all shadow-lg active:scale-95">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 使者契約モーダル -->
+    <div id="envoyModal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[250] hidden pointer-events-auto">
+        <div id="envoyModalContainer"
+            class="bg-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl transform transition-all border-4 text-center relative overflow-hidden">
+            <div id="envoyModalContent" class="relative z-10">
+                <!-- JSで中身を描画 -->
+            </div>
         </div>
     </div>
 

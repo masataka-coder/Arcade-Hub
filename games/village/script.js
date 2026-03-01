@@ -14,7 +14,10 @@ const DEFAULTS = {
     merchantCooldown: 30,
     hasStation: false,
     agentRules: {},
-    collections: []
+    agentRules: {},
+    collections: [],
+    diplomacy: { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false },
+    books: []
 };
 
 let state = { ...DEFAULTS };
@@ -36,7 +39,10 @@ const config = {
         { id: 'barracks', name: '兵舎', wood: 150, stone: 150, icon: '💂', desc: '兵士の拠点 (要石材)' },
         { id: 'forge', name: '鍛冶屋', wood: 200, iron: 50, icon: '⚒️', desc: '兵装強化' },
         { id: 'market', name: '市場', wood: 120, stone: 80, icon: '⚖', trade: true, desc: '資源を換金できる' },
-        { id: 'station', name: 'トロッコ駅', wood: 500, stone: 500, iron: 200, reqLevel: 10, icon: '🛤️', desc: '新たな村へ移動可能になる' }
+        { id: 'station', name: 'トロッコ駅', wood: 500, stone: 500, iron: 200, reqLevel: 10, icon: '🛤️', desc: '新たな村へ移動可能になる' },
+        { id: 'library', name: '大図書館', wood: 300, stone: 300, iron: 100, reqBook: '古代建築の基礎', icon: '🏛️', desc: '古代の建築知識の集積所' },
+        { id: 'golem_factory', name: 'ゴーレム工房', wood: 500, stone: 800, iron: 300, reqBook: '巨大建築の構造力学', icon: '🗿', desc: '自動防衛網として機能' },
+        { id: 'magic_tower', name: '魔法の塔', wood: 1000, stone: 1000, reqBook: '光の魔法陣', icon: '🗼', desc: '幸福度の限界を大きく上げる' }
     ],
     jobs: [
         { id: 'wood', name: '木こり', emoji: '🪓' },
@@ -112,6 +118,13 @@ const config = {
         { id: "c48", name: "パンドラの箱の欠片", icon: "📦", desc: "あらゆる災厄が飛び出したとされる箱の、呪われた木片。" },
         { id: "c49", name: "イージスの盾の破片", icon: "🛡️", desc: "いかなる攻撃も防ぐとされる神の盾の、非常に硬い破片。" },
         { id: "c50", name: "神の息吹", icon: "🌬️", desc: "世界を創り出した神々の力が微かに残る、不思議な風を封じ込めた瓶。" }
+    ],
+    books: [
+        "古代建築の基礎", "石材加工の極意", "深層の鉱石学", "竜の飼育法", "星見の術",
+        "錬金術入門", "防衛戦術大全", "大農園の拡張法", "市場経済の歴史", "精霊との対話",
+        "鉄器の鍛造技術", "王室外交録", "幻獣の生態研究", "水流と魔力", "暗黒魔法の基礎",
+        "生命の樹の伝説", "光の魔法陣", "次元航法", "巨大建築の構造力学", "神々の言語",
+        "砂漠適応の生態学", "雪原の生存術", "森林資源の保全", "地下迷宮の構造群", "最終兵器の設計図"
     ]
 };
 
@@ -170,6 +183,8 @@ function loadGame() {
         if (!state.upgrades) state.upgrades = { merchant_discount: 0, yield_boost: 0 };
         if (state.merchantCooldown === undefined) state.merchantCooldown = 30;
         if (!state.collections) state.collections = [];
+        if (!state.diplomacy) state.diplomacy = { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false };
+        if (!state.books) state.books = [];
 
         document.getElementById('titleScreen').style.display = 'none';
         document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${state.biome}`;
@@ -296,6 +311,11 @@ function updateUI() {
     const tabAgent = document.getElementById('tab-agent');
     if (tabAgent) tabAgent.classList.toggle('hidden', !hasAgent);
 
+    const hasDiplomacy = state.hasStation;
+    const tabDiplomacy = document.getElementById('tab-diplomacy');
+    if (tabDiplomacy) tabDiplomacy.classList.toggle('hidden', !hasDiplomacy);
+    if (hasDiplomacy) renderDiplomacy();
+
     if (state.hasStation) {
         document.getElementById('tab-villages').classList.remove('hidden');
     }
@@ -304,13 +324,14 @@ function updateUI() {
 
 function tab(t) {
     currentTab = t;
-    ['build', 'villagers', 'extra', 'research', 'market', 'agent', 'villages'].forEach(x => {
+    ['build', 'villagers', 'extra', 'research', 'market', 'agent', 'diplomacy', 'villages'].forEach(x => {
         const pane = document.getElementById(`pane${x.charAt(0).toUpperCase() + x.slice(1)}`);
         const tabBtn = document.getElementById(`tab-${x}`);
         if (pane) pane.classList.toggle('hidden', x !== t);
         if (tabBtn) tabBtn.className = `shrink-0 px-4 py-4 ${x === t ? 'tab-active' : 'text-slate-400'} ${x === 'villages' ? 'border-l-2 border-slate-200' : ''}`;
     });
     if (t === 'agent') renderAgent();
+    if (t === 'diplomacy') renderDiplomacy();
     if (t === 'villages') renderVillages();
 }
 
@@ -343,6 +364,40 @@ function startLoops() {
         } else {
             // 商人がいるとき、帰還タイマーを自分で管理するか、setTimeoutで管理するか
             // 既にsetTimeoutで管理しているのでここはスルーでも可
+        }
+
+        // 使者の出現ロジック
+        if (state.hasStation && !state.envoyActive && state.time % 30 === 0 && Math.random() < 0.2) {
+            spawnEnvoy();
+        }
+
+        // ブロべニア傭兵団の報復
+        if (state.diplomacy && state.diplomacy.broveniaRefused) {
+            if (state.time % 45 === 0 && Math.random() < 0.3) {
+                const lostWood = Math.floor(state.wood * 0.15);
+                const lostStone = Math.floor(state.stone * 0.15);
+                state.wood -= lostWood;
+                state.stone -= lostStone;
+                log(`🦹 ブロべニア傭兵に襲撃され、資源が略奪されました！(🌲-${lostWood} 🪨-${lostStone})`, '🔥');
+            }
+        }
+
+        // ガレクティス大商人組合からの支援
+        if (state.diplomacy && state.diplomacy.galectisContracted) {
+            if (state.time % 60 === 0) {
+                const rw = Math.floor(20 + Math.random() * 30);
+                const rs = Math.floor(20 + Math.random() * 30);
+                state.wood += rw; state.stone += rs;
+                log(`🧐 ガレクティス大商人組合から定期支援が届きました。(🌲+${rw} 🪨+${rs})`, '📦');
+            }
+        }
+
+        // エルミナア大聖堂の呪い
+        if (state.diplomacy && state.diplomacy.elminaaRefused) {
+            if (state.time % 30 === 0 && Math.random() < 0.4) {
+                state.happiness -= 20;
+                log(`⛪ エルミナア大聖堂の呪いで村人の幸福度が低下しました！`, '😭');
+            }
         }
 
         updateUI();
@@ -398,6 +453,8 @@ function processProduction() {
 
     let targetHappy = (state.food > 0 ? 100 : 30);
     state.buildings.forEach(b => { if (b.happy) targetHappy += b.happy; });
+    if (state.diplomacy && state.diplomacy.elminaaContracted) targetHappy += 50;
+
     state.happiness += (targetHappy - state.happiness) * 0.1;
 
     if (state.food < 0) state.food = 0;
@@ -542,6 +599,9 @@ function levelUpVillage() {
         state.level++;
         updateUI();
         log(`村がレベル${state.level}になりました！`, '🎉');
+        if (state.hasStation) {
+            spawnEnvoy();
+        }
     }
 }
 
@@ -684,8 +744,15 @@ function completeExpedition() {
         if (unowned.length > 0) {
             const found = unowned[Math.floor(Math.random() * unowned.length)];
             state.collections.push(found.id);
-            foundColText = `<div class="glass font-black px-4 py-2 rounded-xl text-purple-600 text-sm mt-2 w-full text-center border-purple-200">🏆 新たなコレクション発見!<br><span class="text-2xl">${found.icon}</span> ${found.name}</div>`;
+            foundColText += `<div class="glass font-black px-4 py-2 rounded-xl text-purple-600 text-sm mt-2 w-full text-center border-purple-200">🏆 新たなコレクション発見!<br><span class="text-2xl">${found.icon}</span> ${found.name}</div>`;
         }
+    }
+
+    // Book logic (1/15 chance)
+    if (Math.random() < (1 / 15)) {
+        const book = config.books[Math.floor(Math.random() * config.books.length)];
+        state.books.push(book);
+        foundColText += `<div class="glass font-black px-4 py-2 rounded-xl text-blue-600 text-sm mt-2 w-full text-center border-blue-200">📘 本を発見!<br>${book}</div>`;
     }
 
     renderEverything();
@@ -717,9 +784,12 @@ function renderAlchemy() {
     if (!list) return;
     list.innerHTML = '';
     const recipes = [
-        { name: '黄金の薬', cost: { crystal: 5 }, effect: () => { state.gold += 100; log("錬金術でゴールドを生成しました。"); } }
+        { name: '黄金の薬', cost: { crystal: 5 }, effect: () => { state.gold += 100; log("錬金術でゴールドを生成しました。"); } },
+        { name: '賢者の石', reqBook: '錬金術入門', cost: { crystal: 20 }, effect: () => { state.happiness += 50; log("賢者の石で村人大喜び！", "✨"); } },
+        { name: 'マナ抽出液', reqBook: '水流と魔力', cost: { crystal: 10 }, effect: () => { state.wood += 500; state.stone += 500; log("マナの力で大量の基本資源を確保！", "🔮"); } }
     ];
     recipes.forEach(r => {
+        if (r.reqBook && (!state.books || !state.books.includes(r.reqBook))) return;
         const can = state.crystal >= r.cost.crystal;
         const btn = document.createElement('button');
         btn.className = `w-full p-3 rounded-xl border text-xs font-bold ${can ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 opacity-50'}`;
@@ -932,6 +1002,13 @@ function buyMerchantItem(id, cost, containerId) {
 
 // --- Combat ---
 function spawnEnemy() {
+    if (state.diplomacy && state.diplomacy.broveniaContracted && state.gold >= 100) {
+        state.gold -= 100;
+        log("🦹 ブロべニア傭兵部隊が現れ、即座に敵を駆除しました！ (💰-100)", '⚔️');
+        updateUI();
+        return;
+    }
+
     enemy.active = true;
     enemy.max = 200 + state.level * 100;
     enemy.hp = enemy.max;
@@ -966,6 +1043,8 @@ function renderBuildList() {
     if (!cont) return;
     cont.innerHTML = '';
     config.buildings.forEach(b => {
+        if (b.reqBook && (!state.books || !state.books.includes(b.reqBook))) return;
+
         const owned = state.buildings.filter(x => x.id === b.id).length;
         const can = state.wood >= (b.wood || 0) && state.stone >= (b.stone || 0) && state.iron >= (b.iron || 0) && (!b.reqLevel || state.level >= b.reqLevel);
         const btn = document.createElement('button');
@@ -1013,9 +1092,13 @@ function renderResearchList() {
     cont.innerHTML = '';
     const res = [
         { id: 'gather', name: '道具改良', wood: 100, stone: 100 },
-        { id: 'combat', name: '戦術訓練', wood: 150, iron: 50 }
+        { id: 'combat', name: '戦術訓練', wood: 150, iron: 50 },
+        { id: 'defense', name: '防衛網強化', wood: 300, stone: 300, iron: 100, reqBook: '防衛戦術大全' },
+        { id: 'farm_exp', name: '農家術の極み', wood: 200, stone: 100, gold: 50, reqBook: '大農園の拡張法' },
+        { id: 'trading', name: '市場経済学', wood: 400, gold: 200, reqBook: '市場経済の歴史' }
     ];
     res.forEach(r => {
+        if (r.reqBook && (!state.books || !state.books.includes(r.reqBook))) return;
         const lv = state.research[r.id];
         const w = Math.floor(r.wood * Math.pow(1.5, lv));
         const s = Math.floor((r.stone || 0) * Math.pow(1.5, lv));
@@ -1096,6 +1179,272 @@ window.onload = () => {
     const loadBtn = document.getElementById('loadBtn');
     if (saved && loadBtn) loadBtn.classList.remove('hidden');
 };
+
+// --- Envoy & Diplomacy ---
+let currentEnvoy = null;
+
+function spawnEnvoy() {
+    if (document.getElementById('envoy')) document.getElementById('envoy').remove();
+
+    state.envoyActive = true;
+    const factions = ['brovenia', 'anid', 'galectis', 'elminaa'];
+    currentEnvoy = factions[Math.floor(Math.random() * factions.length)];
+
+    if (currentEnvoy === 'brovenia' && state.diplomacy.broveniaContracted) { state.envoyActive = false; return; }
+    if (currentEnvoy === 'anid' && state.diplomacy.anidContracted) { state.envoyActive = false; return; }
+    if (currentEnvoy === 'galectis' && state.diplomacy.galectisContracted) { state.envoyActive = false; return; }
+    if (currentEnvoy === 'elminaa' && state.diplomacy.elminaaContracted) { state.envoyActive = false; return; }
+
+    const vCont = document.getElementById('villagersContainer');
+    const el = document.createElement('div');
+    el.id = 'envoy';
+    el.className = 'merchant-entity';
+
+    let icon = '📜';
+    let name = '';
+    if (currentEnvoy === 'brovenia') { icon = '🦹'; name = 'ブロべニア傭兵団'; }
+    else if (currentEnvoy === 'anid') { icon = '🧙‍♂️'; name = 'アニド歴史記録財団'; }
+    else if (currentEnvoy === 'galectis') { icon = '🧐'; name = 'ガレクティス大商人組合'; }
+    else if (currentEnvoy === 'elminaa') { icon = '⛪'; name = 'エルミナア大聖堂'; }
+
+    el.innerHTML = icon;
+    el.style.right = '-15%';
+    el.style.top = '70%';
+    vCont.appendChild(el);
+
+    log(`${icon} ${name}の使者がやってきました。`, '📜');
+
+    setTimeout(() => {
+        if (el) el.style.right = '15%';
+    }, 100);
+
+    el.onclick = () => {
+        openEnvoyModal();
+    };
+
+    setTimeout(() => {
+        if (state.envoyActive) {
+            if (el) el.style.right = '-15%';
+            setTimeout(() => {
+                if (document.getElementById('envoy')) document.getElementById('envoy').remove();
+                state.envoyActive = false;
+                log("使者は去っていきました。");
+                closeEnvoyModal();
+                updateUI();
+            }, 1500);
+        }
+    }, 60000);
+}
+
+function openEnvoyModal() {
+    closeEnvoyModal();
+    const modal = document.getElementById('envoyModal');
+    if (!modal) return;
+
+    let title = '', icon = '', desc = '', actionBtn = '';
+
+    if (currentEnvoy === 'brovenia') {
+        title = 'ブロべニア傭兵団の使者'; icon = '🦹';
+        desc = '「我が傭兵団と契約すれば、魔物が現れた際に即座に駆除してやろう。初期費用は💰200、一回につき💰100だ。拒否すれば…どうなるか分かっているな？」';
+        const can = state.gold >= 200;
+        actionBtn = `
+            <button onclick="contractBrovenia()" class="w-full ${can ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-700 opacity-50'} text-white py-4 rounded-2xl font-black mb-3 transition-colors" ${can ? '' : 'disabled'}>契約する (💰200)</button>
+            <button onclick="refuseBrovenia()" class="w-full bg-red-900/40 text-red-500 hover:bg-red-900/60 border border-red-500/30 py-4 rounded-2xl font-black transition-colors">拒否する</button>
+        `;
+    } else if (currentEnvoy === 'anid') {
+        title = 'アニド歴史記録財団の使者'; icon = '🧙‍♂️';
+        desc = '「我々は失われた歴史を収集している。あなたの持つ『コレクション』を5つ譲ってくれるなら、代わりに貴重な知识が記された『本』をランダムに5冊授けよう。」';
+        const can = state.collections.length >= 5;
+        actionBtn = `
+            <button onclick="contractAnid()" class="w-full ${can ? 'bg-purple-600 hover:bg-purple-500' : 'bg-slate-700 opacity-50'} text-white py-4 rounded-2xl font-black mb-3 transition-colors" ${can ? '' : 'disabled'}>取引する (コレクション×5 を消費)</button>
+            <button onclick="closeEnvoyModal()" class="w-full bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600 py-4 rounded-2xl font-black transition-colors">今回は見送る</button>
+        `;
+    } else if (currentEnvoy === 'galectis') {
+        title = 'ガレクティス大商人組合の使者'; icon = '🧐';
+        desc = '「我々と契約すれば、定期的に莫大な資源の支援を保証しよう。契約金は💰500だ。どうかな？」';
+        const can = state.gold >= 500;
+        actionBtn = `
+            <button onclick="contractGalectis()" class="w-full ${can ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-slate-700 opacity-50'} text-white py-4 rounded-2xl font-black mb-3 transition-colors" ${can ? '' : 'disabled'}>契約する (💰500)</button>
+            <button onclick="closeEnvoyModal()" class="w-full bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600 py-4 rounded-2xl font-black transition-colors">今回は見送る</button>
+        `;
+    } else if (currentEnvoy === 'elminaa') {
+        title = 'エルミナア大聖堂の使者'; icon = '⛪';
+        desc = '「村の信仰を我々に委ねなさい。少々の寄付（💎20）で、村人は幸福に満ち、人口の上限も増えるでしょう。拒否すれば神の罰が下りますよ。」';
+        const can = state.crystal >= 20;
+        actionBtn = `
+            <button onclick="contractElminaa()" class="w-full ${can ? 'bg-pink-600 hover:bg-pink-500' : 'bg-slate-700 opacity-50'} text-white py-4 rounded-2xl font-black mb-3 transition-colors" ${can ? '' : 'disabled'}>契約する (💎20)</button>
+            <button onclick="refuseElminaa()" class="w-full bg-red-900/40 text-red-500 hover:bg-red-900/60 border border-red-500/30 py-4 rounded-2xl font-black transition-colors">拒否する</button>
+        `;
+    }
+
+    document.getElementById('envoyModalContent').innerHTML = `
+        <div class="text-7xl mb-4 drop-shadow-xl">${icon}</div>
+        <h3 class="text-xl font-black text-white mb-4 tracking-widest">${title}</h3>
+        <div class="bg-black/50 p-5 rounded-2xl border border-white/10 mb-8 backdrop-blur-sm">
+            <p class="text-sm text-slate-300 font-bold leading-loose text-left">${desc}</p>
+        </div>
+        ${actionBtn}
+    `;
+
+    modal.classList.remove('hidden');
+}
+
+function closeEnvoyModal() {
+    const modal = document.getElementById('envoyModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function contractBrovenia() {
+    if (state.gold >= 200) {
+        state.gold -= 200;
+        state.diplomacy.broveniaContracted = true;
+        state.diplomacy.broveniaRefused = false;
+        log("ブロべニア傭兵団と契約を結びました！以後の魔物襲撃時、💰100で自動迎撃します。", '🤝');
+        dismissEnvoy();
+    }
+}
+
+function refuseBrovenia() {
+    state.diplomacy.broveniaRefused = true;
+    log("ブロべニア傭兵団の提案を拒否しました。報復に注意してください…", '⚠️');
+    dismissEnvoy();
+}
+
+function contractAnid() {
+    if (state.collections.length >= 5) {
+        for (let i = 0; i < 5; i++) {
+            const idx = Math.floor(Math.random() * state.collections.length);
+            state.collections.splice(idx, 1);
+        }
+
+        for (let i = 0; i < 5; i++) {
+            const book = config.books[Math.floor(Math.random() * config.books.length)];
+            state.books.push(book);
+        }
+        state.diplomacy.anidContracted = true;
+        log("アニド歴史記録財団と取引し、貴重な本を5冊受け取りました！", '📚');
+        dismissEnvoy();
+    }
+}
+
+function contractGalectis() {
+    if (state.gold >= 500) {
+        state.gold -= 500;
+        state.diplomacy.galectisContracted = true;
+        log("ガレクティス大商人組合と契約を結びました！定期的に資源が送られてきます。", '🤝');
+        dismissEnvoy();
+    }
+}
+
+function contractElminaa() {
+    if (state.crystal >= 20) {
+        state.crystal -= 20;
+        state.diplomacy.elminaaContracted = true;
+        state.diplomacy.elminaaRefused = false;
+        state.popMax += 5;
+        log("エルミナア大聖堂と契約しました！幸福な雰囲気になり、最大人口が5増えました。", '🤝');
+        dismissEnvoy();
+    }
+}
+
+function refuseElminaa() {
+    state.diplomacy.elminaaRefused = true;
+    log("エルミナア大聖堂の提案を拒否しました。呪いに気をつけてください…", '⚠️');
+    dismissEnvoy();
+}
+
+function dismissEnvoy() {
+    closeEnvoyModal();
+    const el = document.getElementById('envoy');
+    if (el) {
+        el.style.right = '-15%';
+        setTimeout(() => { if (el) el.remove(); }, 1500);
+    }
+    state.envoyActive = false;
+    updateUI();
+}
+
+function renderDiplomacy() {
+    const cont = document.getElementById('paneDiplomacy');
+    if (!cont) return;
+    cont.innerHTML = `
+        <h4 class="text-xs font-black text-slate-400 mb-3 tracking-widest">協定・契約</h4>
+        <div class="space-y-4">
+            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200 shadow-sm relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">🦹</div>
+                <p class="font-black text-indigo-900 mb-1">ブロべニア傭兵団</p>
+                <p class="text-[10px] text-indigo-700 font-bold mb-3 leading-relaxed">敵の襲撃時に💰100を支払い、<br>自動で強力な傭兵が駆除を行います。</p>
+                ${state.diplomacy && state.diplomacy.broveniaContracted
+            ? `<button onclick="cancelBrovenia()" class="w-full bg-red-100/50 text-red-600 border border-red-200 py-3 rounded-xl text-xs font-black hover:bg-red-100 transition-colors">契約を破棄する</button>`
+            : `<div class="bg-slate-200/50 text-slate-500 py-2 rounded-xl text-xs font-bold text-center border border-slate-200">未契約</div>`
+        }
+            </div>
+            
+            <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200 shadow-sm relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">📚</div>
+                <p class="font-black text-purple-900 mb-1">アニド歴史記録財団</p>
+                <div class="text-[11px] text-purple-700 font-bold mt-2">
+                    所持している知識（本）: <span class="text-lg text-purple-900 font-black ml-1">${state.books ? state.books.length : 0}</span> 冊
+                </div>
+                ${state.books && state.books.length > 0 ? `
+                    <div class="flex gap-1 flex-wrap mt-3">
+                        ${state.books.map(b => `<span class="bg-white px-2 py-1 rounded-md border border-purple-200 text-[9px] shadow-sm font-bold text-purple-800">${b}</span>`).join('')}
+                    </div>
+                ` : `<p class="text-[10px] text-purple-600 mt-2 opacity-60">まだ本は持っていません</p>`}
+            </div>
+            
+            <div class="bg-yellow-50 p-4 rounded-2xl border border-yellow-200 shadow-sm relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">🧐</div>
+                <p class="font-black text-yellow-900 mb-1">ガレクティス大商人組合</p>
+                <p class="text-[10px] text-yellow-700 font-bold mb-3 leading-relaxed">定期的に一定量の木材と石材の<br>支援物資が村に届きます。</p>
+                ${state.diplomacy && state.diplomacy.galectisContracted
+            ? `<button onclick="cancelGalectis()" class="w-full bg-red-100/50 text-red-600 border border-red-200 py-3 rounded-xl text-xs font-black hover:bg-red-100 transition-colors">契約を破棄する</button>`
+            : `<div class="bg-slate-200/50 text-slate-500 py-2 rounded-xl text-xs font-bold text-center border border-slate-200">未契約</div>`
+        }
+            </div>
+            
+            <div class="bg-pink-50 p-4 rounded-2xl border border-pink-200 shadow-sm relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">⛪</div>
+                <p class="font-black text-pink-900 mb-1">エルミナア大聖堂</p>
+                <p class="text-[10px] text-pink-700 font-bold mb-3 leading-relaxed">村の人口上限が5増え、<br>自然と幸福度が高くなります。</p>
+                ${state.diplomacy && state.diplomacy.elminaaContracted
+            ? `<button onclick="cancelElminaa()" class="w-full bg-red-100/50 text-red-600 border border-red-200 py-3 rounded-xl text-xs font-black hover:bg-red-100 transition-colors">契約を破棄する</button>`
+            : `<div class="bg-slate-200/50 text-slate-500 py-2 rounded-xl text-xs font-bold text-center border border-slate-200">未契約</div>`
+        }
+            </div>
+        </div>
+    `;
+}
+
+function cancelGalectis() {
+    if (confirm("ガレクティス大商人組合との契約を破棄しますか？")) {
+        state.diplomacy.galectisContracted = false;
+        log("ガレクティス大商人組合との契約を破棄しました。", "ℹ️");
+        updateUI();
+        renderDiplomacy();
+    }
+}
+
+function cancelElminaa() {
+    if (confirm("エルミナア大聖堂との契約を破棄しますか？\\n人口上限が下がり、怒りを買います。")) {
+        state.diplomacy.elminaaContracted = false;
+        state.diplomacy.elminaaRefused = true;
+        state.popMax -= 5;
+        log("エルミナア大聖堂との契約を破棄しました。", "⚠️");
+        updateUI();
+        renderDiplomacy();
+    }
+}
+
+function cancelBrovenia() {
+    if (confirm("ブロべニア傭兵団との契約を破棄しますか？\\n怒りを買い、資源を略奪される可能性があります。")) {
+        state.diplomacy.broveniaContracted = false;
+        state.diplomacy.broveniaRefused = true;
+        log("ブロべニア傭兵団との契約を破棄しました。", "⚠️");
+        updateUI();
+        renderDiplomacy();
+    }
+}
 
 // --- Agent System ---
 function renderAgent() {
