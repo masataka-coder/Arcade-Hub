@@ -16,8 +16,9 @@ const DEFAULTS = {
     agentRules: {},
     agentRules: {},
     collections: [],
-    diplomacy: { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false },
-    books: []
+    diplomacy: { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false, shadowContracted: false },
+    books: [],
+    unreadBooks: []
 };
 
 let state = { ...DEFAULTS };
@@ -34,15 +35,20 @@ const config = {
     buildings: [
         { id: 'tent', name: 'ログテント', wood: 10, stone: 0, pop: 1, icon: '⛺', desc: '人口上限+1' },
         { id: 'farm', name: '農園', wood: 30, stone: 10, icon: '🌾', desc: '農家が働ける' },
-        { id: 'mine', name: '深層採掘場', wood: 80, stone: 100, icon: '⛏️', desc: '石工が鉄や宝石を掘る' },
+        { id: 'mine', name: '深層採掘場', wood: 80, stone: 100, reqBook: '深層の鉱石学', icon: '⛏️', desc: '石工が鉄や宝石を掘る' },
         { id: 'fountain', name: '石の噴水', wood: 0, stone: 150, iron: 10, happy: 20, icon: '⛲', desc: '幸福度の上限UP' },
         { id: 'barracks', name: '兵舎', wood: 150, stone: 150, icon: '💂', desc: '兵士の拠点 (要石材)' },
         { id: 'forge', name: '鍛冶屋', wood: 200, iron: 50, icon: '⚒️', desc: '兵装強化' },
         { id: 'market', name: '市場', wood: 120, stone: 80, icon: '⚖', trade: true, desc: '資源を換金できる' },
         { id: 'station', name: 'トロッコ駅', wood: 500, stone: 500, iron: 200, reqLevel: 10, icon: '🛤️', desc: '新たな村へ移動可能になる' },
         { id: 'library', name: '大図書館', wood: 300, stone: 300, iron: 100, reqBook: '古代建築の基礎', icon: '🏛️', desc: '古代の建築知識の集積所' },
+        { id: 'dragon_nest', name: '竜舎房', wood: 800, stone: 500, iron: 200, pop: 10, happy: 50, reqBook: '竜の飼育法', icon: '🐉', desc: '強力な竜を飼育、人口と幸福度が大幅UP' },
+        { id: 'observatory', name: '天文台', wood: 250, stone: 400, iron: 50, happy: 30, reqBook: '星見の術', icon: '🔭', desc: '星々を観測し幸福度を上げる' },
+        { id: 'tree_of_life', name: '生命の樹', wood: 1500, stone: 1000, crystal: 10, pop: 20, happy: 100, reqBook: '生命の樹の伝説', icon: '🌳', desc: '全てを内包する生命の源' },
         { id: 'golem_factory', name: 'ゴーレム工房', wood: 500, stone: 800, iron: 300, reqBook: '巨大建築の構造力学', icon: '🗿', desc: '自動防衛網として機能' },
-        { id: 'magic_tower', name: '魔法の塔', wood: 1000, stone: 1000, reqBook: '光の魔法陣', icon: '🗼', desc: '幸福度の限界を大きく上げる' }
+        { id: 'magic_tower', name: '魔法の塔', wood: 1000, stone: 1000, reqBook: '光の魔法陣', icon: '🗼', desc: '幸福度の限界を大きく上げる' },
+        { id: 'dungeon_gate', name: '地下迷宮', wood: 500, stone: 1500, iron: 500, reqBook: '地下迷宮の構造群', icon: '🚇', desc: '地下に広がる謎の空間への入り口' },
+        { id: 'ultimate_weapon', name: '最終防衛兵器', wood: 2000, stone: 2000, iron: 1000, crystal: 50, happy: 200, reqBook: '最終兵器の設計図', icon: '⚙️', desc: '力で外敵を粉砕し、絶大な安心をもたらす' }
     ],
     jobs: [
         { id: 'wood', name: '木こり', emoji: '🪓' },
@@ -120,11 +126,31 @@ const config = {
         { id: "c50", name: "神の息吹", icon: "🌬️", desc: "世界を創り出した神々の力が微かに残る、不思議な風を封じ込めた瓶。" }
     ],
     books: [
-        "古代建築の基礎", "石材加工の極意", "深層の鉱石学", "竜の飼育法", "星見の術",
-        "錬金術入門", "防衛戦術大全", "大農園の拡張法", "市場経済の歴史", "精霊との対話",
-        "鉄器の鍛造技術", "王室外交録", "幻獣の生態研究", "水流と魔力", "暗黒魔法の基礎",
-        "生命の樹の伝説", "光の魔法陣", "次元航法", "巨大建築の構造力学", "神々の言語",
-        "砂漠適応の生態学", "雪原の生存術", "森林資源の保全", "地下迷宮の構造群", "最終兵器の設計図"
+        { id: "古代建築の基礎", name: "古代建築の基礎", icon: "🏛️", desc: "堅牢な石造りの技術が記されている。", unlockDesc: "建築「大図書館」" },
+        { id: "石材加工の極意", name: "石材加工の極意", icon: "🗿", desc: "石材の無駄をなくす削り方。", unlockDesc: "研究「石材加工の極意」" },
+        { id: "深層の鉱石学", name: "深層の鉱石学", icon: "💎", desc: "地下深くの鉱脈の探し方。", unlockDesc: "建築「深層採掘場」" },
+        { id: "竜の飼育法", name: "竜の飼育法", icon: "🐉", desc: "誰も見たことがない竜の飼い方。", unlockDesc: "建築「竜舎房」" },
+        { id: "星見の術", name: "星見の術", icon: "🔭", desc: "星の動きから運命を読み解く術。", unlockDesc: "建築「天文台」" },
+        { id: "錬金術入門", name: "錬金術入門", icon: "🧪", desc: "物質の変換の第一歩。", unlockDesc: "錬金術「賢者の石」" },
+        { id: "防衛戦術大全", name: "防衛戦術大全", icon: "🛡️", desc: "村を守るための堅牢な陣形。", unlockDesc: "研究「防衛網強化」" },
+        { id: "大農園の拡張法", name: "大農園の拡張法", icon: "🌾", desc: "少ない土地で多くの作物を得る方法。", unlockDesc: "研究「農家術の極み」" },
+        { id: "市場経済の歴史", name: "市場経済の歴史", icon: "⚖", desc: "過去の商人たちの熱い戦いの記録。", unlockDesc: "研究「市場経済学」" },
+        { id: "精霊との対話", name: "精霊との対話", icon: "🧚", desc: "自然を味方につけるための作法。", unlockDesc: "錬金術「精霊の護符」" },
+        { id: "鉄器の鍛造技術", name: "鉄器の鍛造技術", icon: "⚒️", desc: "より鋭く、より硬い鉄の鍛え方。", unlockDesc: "研究「鉄器の鍛造技術」" },
+        { id: "王室外交録", name: "王室外交録", icon: "👑", desc: "大国を相手に立ち回る貴族の話。", unlockDesc: "研究「王室外交術」" },
+        { id: "幻獣の生態研究", name: "幻獣の生態研究", icon: "🦄", desc: "世界に散らばる幻獣たちの記録。", unlockDesc: "錬金術「幻獣の霊薬」" },
+        { id: "水流と魔力", name: "水流と魔力", icon: "💧", desc: "水と魔力の親和性について。", unlockDesc: "錬金術「マナ抽出液」" },
+        { id: "暗黒魔法の基礎", name: "暗黒魔法の基礎", icon: "🌑", desc: "触れてはいけない禁忌の知識。", unlockDesc: "錬金術「暗黒物質」" },
+        { id: "生命の樹の伝説", name: "生命の樹の伝説", icon: "🌳", desc: "全てを生み出したとされる大樹の話。", unlockDesc: "建築「生命の樹」" },
+        { id: "光の魔法陣", name: "光の魔法陣", icon: "✨", desc: "闇を払う強大な力の描き方。", unlockDesc: "建築「魔法の塔」" },
+        { id: "次元航法", name: "次元航法", icon: "🌌", desc: "空間を渡るための高度な魔法。", unlockDesc: "錬金術「次元転送」" },
+        { id: "巨大建築の構造力学", name: "巨大建築の構造力学", icon: "🏗️", desc: "重力に逆らう巨大な塔の建て方。", unlockDesc: "建築「ゴーレム工房」" },
+        { id: "神々の言語", name: "神々の言語", icon: "📜", desc: "かつて神が使ったとされる言葉。", unlockDesc: "錬金術「神々の恩恵」" },
+        { id: "砂漠適応の生態学", name: "砂漠適応の生態学", icon: "🏜️", desc: "過酷な環境を生き抜くための知恵。", unlockDesc: "研究「過酷環境適応」" },
+        { id: "雪原の生存術", name: "雪原の生存術", icon: "❄️", desc: "凍える世界で火を絶やさない方法。", unlockDesc: "研究「耐寒防具」" },
+        { id: "森林資源の保全", name: "森林資源の保全", icon: "🌲", desc: "木々を育てながら森と共に生きる。", unlockDesc: "研究「森林管理」" },
+        { id: "地下迷宮の構造群", name: "地下迷宮の構造群", icon: "🚇", desc: "世界中に広がる地下通路の地図。", unlockDesc: "建築「地下迷宮」" },
+        { id: "最終兵器の設計図", name: "最終兵器の設計図", icon: "⚙️", desc: "かつて世界を滅ぼしかけた兵器の図面。", unlockDesc: "建築「最終防衛兵器」" }
     ]
 };
 
@@ -183,8 +209,10 @@ function loadGame() {
         if (!state.upgrades) state.upgrades = { merchant_discount: 0, yield_boost: 0 };
         if (state.merchantCooldown === undefined) state.merchantCooldown = 30;
         if (!state.collections) state.collections = [];
-        if (!state.diplomacy) state.diplomacy = { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false };
+        if (!state.diplomacy) state.diplomacy = { broveniaContracted: false, broveniaRefused: false, anidContracted: false, galectisContracted: false, elminaaContracted: false, elminaaRefused: false, shadowContracted: false };
+        if (state.diplomacy.shadowContracted === undefined) state.diplomacy.shadowContracted = false;
         if (!state.books) state.books = [];
+        if (!state.unreadBooks) state.unreadBooks = [];
 
         document.getElementById('titleScreen').style.display = 'none';
         document.getElementById('villageMain').className = `w-full h-[55%] md:w-2/3 md:h-full village-area relative overflow-hidden flex-shrink-0 biome-${state.biome}`;
@@ -203,6 +231,51 @@ function init() {
 function saveGame() {
     localStorage.setItem('v-evolve-save', JSON.stringify(state));
     localStorage.setItem('v-evolve-villages', JSON.stringify(savedVillages));
+}
+
+function exportSaveData() {
+    saveGame();
+    const exportData = {
+        save: JSON.parse(localStorage.getItem('v-evolve-save') || '{}'),
+        villages: JSON.parse(localStorage.getItem('v-evolve-villages') || '[]')
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "village-harmony-save.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    log("セーブデータを出力しました！", "📥");
+}
+
+function importSaveData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (data.save) {
+                    localStorage.setItem('v-evolve-save', JSON.stringify(data.save));
+                    localStorage.setItem('v-evolve-villages', JSON.stringify(data.villages || []));
+                    log("セーブデータを読み込みました！ページを更新します。", "📥");
+                    alert("セーブデータを読み込みました。ページを更新します。");
+                    location.reload();
+                } else {
+                    alert("無効なセーブデータファイルです。");
+                }
+            } catch (err) {
+                alert("セーブデータの読み込みに失敗しました。");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
 }
 
 // --- UI & Rendering ---
@@ -244,7 +317,7 @@ function renderEverything() {
         el.onclick = (e) => {
             e.stopPropagation();
             if (state.villagers.length < getPopMax()) acceptTraveler();
-            else log("警告: 家に空きがありません。");
+            else log("警告: 家に空きがありません。", "⚠");
         };
         vCont.appendChild(el);
     }
@@ -283,6 +356,7 @@ function updateUI() {
     renderMarket();
     updateExpeditionUI();
     renderCollections();
+    renderBooks();
 
     const banner = document.getElementById('travelerBanner');
     if (banner && !banner.classList.contains('hidden')) {
@@ -306,6 +380,8 @@ function updateUI() {
     const saved = localStorage.getItem('v-evolve-save');
     const loadBtn = document.getElementById('loadBtn');
     if (saved && loadBtn) loadBtn.classList.remove('hidden');
+    const exportBtn = document.getElementById('exportBtn');
+    if (saved && exportBtn) exportBtn.classList.remove('hidden');
 
     const hasAgent = state.villagers.some(v => v.trait && v.trait.bonus === 'agent');
     const tabAgent = document.getElementById('tab-agent');
@@ -425,16 +501,16 @@ function processProduction() {
         }
 
         if (v.job === 'wood') {
-            let wGain = gain * weatherMult.wood * biomeMult.wood;
+            let wGain = gain * weatherMult.wood * biomeMult.wood * (1 + (state.research.forest_manage || 0) * 0.2);
             if (v.trait && v.trait.bonus === 'power') wGain += v.trait.value;
             state.wood += wGain;
         }
         if (v.job === 'stone') {
-            let sGain = gain * biomeMult.stone;
+            let sGain = gain * biomeMult.stone * (1 + (state.research.stone_craft || 0) * 0.2);
             if (v.trait && v.trait.bonus === 'power') sGain += v.trait.value;
             state.stone += sGain;
         }
-        if (v.job === 'farmer') state.food += gain * weatherMult.food * biomeMult.food * 2.5;
+        if (v.job === 'farmer') state.food += gain * weatherMult.food * biomeMult.food * 2.5 * (1 + (state.research.harsh_env || 0) * 0.2);
 
         if (v.job === 'stone' && state.buildings.some(b => b.id === 'mine')) {
             if (Math.random() < (state.biome === 'mountain' ? 0.05 : 0.02)) state.iron += 1;
@@ -483,17 +559,116 @@ function updateWeatherVisuals() {
         }
     } else if (weather.id === 'snow') {
         for (let i = 0; i < 30; i++) {
-            const s = document.createElement('div');
-            s.className = 'snow-flake';
-            s.style.left = Math.random() * 100 + '%';
-            s.style.animationDuration = (3 + Math.random() * 5) + 's';
             s.style.animationDelay = Math.random() + 's';
             container.appendChild(s);
         }
     }
 }
 
-// --- Village Actions ---
+// --- Books UI ---
+function renderBooks() {
+    const cont = document.getElementById('bookList');
+    if (!cont) return;
+    cont.innerHTML = '';
+
+    // Header format total books
+    const bookCountSpan = document.getElementById('bookCount');
+    if (bookCountSpan) {
+        bookCountSpan.textContent = (state.unreadBooks.length + state.books.length) + "/" + config.books.length;
+    }
+
+    if (state.unreadBooks.length === 0 && state.books.length === 0) {
+        cont.innerHTML = '<p class="text-[10px] text-slate-500 font-bold opacity-60">まだ知識を持っていません</p>';
+        return;
+    }
+
+    // Unread Books
+    state.unreadBooks.forEach((bId, index) => {
+        const b = config.books.find(x => x.id === bId);
+        if (!b) return;
+        cont.innerHTML += `
+            <button onclick="openBookModal('${bId}', true, ${index})" class="w-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 p-3 rounded-xl flex items-center gap-3 transition-all relative overflow-hidden group">
+                <span class="absolute top-0 right-[-10px] text-5xl opacity-5 group-hover:scale-110 transition-transform">${b.icon}</span>
+                <span class="text-2xl z-10 filter drop-shadow animate-pulse">${b.icon}</span>
+                <div class="text-left z-10 flex-1">
+                    <p class="text-xs font-black text-indigo-900 tracking-widest">${b.name}</p>
+                    <p class="text-[10px] font-bold text-indigo-500 mt-1 uppercase">未読 - 🗄️ Click to Read</p>
+                </div>
+                <div class="h-2 w-2 rounded-full bg-red-500 z-10 mr-2 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+            </button>
+        `;
+    });
+
+    // Read Books
+    state.books.forEach(bId => {
+        const b = config.books.find(x => x.id === bId);
+        if (!b) return;
+        cont.innerHTML += `
+            <button onclick="openBookModal('${bId}', false, -1)" class="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded-xl flex items-center gap-3 transition-all relative overflow-hidden group">
+                <span class="absolute top-0 right-[-10px] text-5xl opacity-5 group-hover:scale-110 transition-transform">${b.icon}</span>
+                <span class="text-2xl z-10 filter drop-shadow opacity-70">${b.icon}</span>
+                <div class="text-left z-10">
+                    <p class="text-xs font-black text-slate-700 tracking-widest">${b.name}</p>
+                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase">既読</p>
+                </div>
+            </button>
+        `;
+    });
+}
+
+function openBookModal(id, isUnread, unreadIndex) {
+    const b = config.books.find(x => x.id === id);
+    if (!b) return;
+
+    document.getElementById('modalBookName').textContent = b.name;
+    document.getElementById('modalBookIcon').textContent = b.icon;
+    document.getElementById('modalBookDesc').textContent = b.desc;
+
+    // Format reward text
+    // Format reward text
+    document.getElementById('modalBookReward').innerHTML = b.unlockDesc ? `<span class="ml-1 text-purple-600">新しい知識を獲得: ${b.unlockDesc}</span>` : ``;
+
+    const readBtn = document.getElementById('bookReadBtn');
+    if (isUnread) {
+        readBtn.style.display = 'block';
+        // Remove old onclick bindings to prevent double trigger
+        readBtn.onclick = () => readBook(id, unreadIndex);
+    } else {
+        readBtn.style.display = 'none';
+        readBtn.onclick = null;
+    }
+
+    const modal = document.getElementById('bookModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeBookModal() {
+    const modal = document.getElementById('bookModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function readBook(id, unreadIndex) {
+    if (unreadIndex < 0 || unreadIndex >= state.unreadBooks.length) return;
+
+    // Validate that the ID matches
+    if (state.unreadBooks[unreadIndex] !== id) return;
+
+    // Remove from unread
+    state.unreadBooks.splice(unreadIndex, 1);
+
+    // Add to read if not exists
+    if (!state.books.includes(id)) {
+        state.books.push(id);
+    }
+
+    const b = config.books.find(x => x.id === id);
+
+    log(`『${b.name}』から知識を得ました！`, '📘');
+    closeBookModal();
+    updateUI();
+}
+
+// --- Collections ---
 function collect(type, e) {
     let amt = 1;
     if (type === 'wood' && state.biome === 'forest') amt = 1.2;
@@ -784,17 +959,40 @@ function renderAlchemy() {
     if (!list) return;
     list.innerHTML = '';
     const recipes = [
-        { name: '黄金の薬', cost: { crystal: 5 }, effect: () => { state.gold += 100; log("錬金術でゴールドを生成しました。"); } },
-        { name: '賢者の石', reqBook: '錬金術入門', cost: { crystal: 20 }, effect: () => { state.happiness += 50; log("賢者の石で村人大喜び！", "✨"); } },
-        { name: 'マナ抽出液', reqBook: '水流と魔力', cost: { crystal: 10 }, effect: () => { state.wood += 500; state.stone += 500; log("マナの力で大量の基本資源を確保！", "🔮"); } }
+        { name: '黄金の薬', desc: '手持ちの結晶をゴールドに変える', cost: { crystal: 5 }, effect: () => { state.gold += 100; log("錬金術でゴールドを生成しました。"); } },
+        { name: '賢者の石', desc: '村の幸福度が大幅に増加', reqBook: '錬金術入門', cost: { crystal: 20 }, effect: () => { state.happiness += 50; log("賢者の石で村人大喜び！", "✨"); } },
+        { name: 'マナ抽出液', desc: '木材と石材を大量生成', reqBook: '水流と魔力', cost: { crystal: 10 }, effect: () => { state.wood += 500; state.stone += 500; log("マナの力で大量の基本資源を確保！", "🔮"); } },
+        { name: '精霊の護符', desc: '村の幸福度を劇的に増加', reqBook: '精霊との対話', cost: { crystal: 15 }, effect: () => { state.happiness += 100; log("精霊の護符が幸福をもたらしました！", "🧚"); } },
+        { name: '幻獣の霊薬', desc: '食料を大量に生み出す', reqBook: '幻獣の生態研究', cost: { crystal: 15 }, effect: () => { state.food += 1000; log("幻獣の霊薬で食料が飛躍的に増加！", "🦄"); } },
+        { name: '暗黒物質', desc: '幸福度を犠牲にして鉄を調達', reqBook: '暗黒魔法の基礎', cost: { crystal: 5 }, effect: () => { state.iron += 500; state.happiness -= 30; log("禁忌の力で大量の鉄を生成したが、不満が出た…", "🌑"); } },
+        {
+            name: '次元転送', desc: '未所持のコレクションを確定入手', reqBook: '次元航法', cost: { gold: 300, crystal: 5 }, effect: () => {
+                const collectionOpts = config.collections.filter(c => !state.collections.includes(c.id));
+                if (collectionOpts.length > 0) {
+                    const found = collectionOpts[Math.floor(Math.random() * collectionOpts.length)];
+                    state.collections.push(found.id);
+                    log(`別次元からコレクション「${found.name}」を転送しました！`, "🌌");
+                } else {
+                    state.gold += 300; state.crystal += 5;
+                    log("すでにコレクションを全て集めています。コストが返還されました。", "⚠️");
+                }
+            }
+        },
+        { name: '神々の恩恵', desc: '全資源を凄まじい量獲得', reqBook: '神々の言語', cost: { crystal: 30 }, effect: () => { state.wood += 1000; state.stone += 1000; state.iron += 500; state.gold += 500; state.food += 1000; log("神々からの莫大な恩恵が降り注ぎました！", "📜"); } }
     ];
     recipes.forEach(r => {
         if (r.reqBook && (!state.books || !state.books.includes(r.reqBook))) return;
-        const can = state.crystal >= r.cost.crystal;
+        const can = state.crystal >= (r.cost.crystal || 0) && state.gold >= (r.cost.gold || 0);
         const btn = document.createElement('button');
         btn.className = `w-full p-3 rounded-xl border text-xs font-bold ${can ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 opacity-50'}`;
-        btn.innerHTML = `${r.name} (💎${r.cost.crystal})`;
-        btn.onclick = () => { if (can) { state.crystal -= r.cost.crystal; r.effect(); updateUI(); } };
+
+        let costStr = [];
+        if (r.cost.crystal) costStr.push(`💎${r.cost.crystal}`);
+        if (r.cost.gold) costStr.push(`💰${r.cost.gold}`);
+
+        btn.innerHTML = `<div class="flex justify-between items-center"><span class="font-black text-sm">${r.name}</span><span class="text-[10px] bg-indigo-100 px-2 py-1 rounded text-indigo-700">${costStr.join(', ')}</span></div>
+            <div class="text-[10px] text-slate-500 mt-1 text-left font-normal">${r.desc}</div>`;
+        btn.onclick = () => { if (can) { state.crystal -= (r.cost.crystal || 0); state.gold -= (r.cost.gold || 0); r.effect(); updateUI(); } };
         list.appendChild(btn);
     });
 }
@@ -893,10 +1091,10 @@ function renderMarket() {
             <div class="bg-yellow-50 p-4 rounded-2xl border border-yellow-200">
                 <p class="text-[10px] font-bold text-yellow-700 mb-2 uppercase">資源をゴールドに換金（売却）</p>
                 <div class="grid grid-cols-2 gap-2 mb-4">
-                    <button onclick="tradeResource('wood')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🌲 100 → 💰 10</button>
-                    <button onclick="tradeResource('stone')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🪨 100 → 💰 10</button>
-                    <button onclick="tradeResource('food')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">🍞 100 → 💰 20</button>
-                    <button onclick="tradeResource('iron')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors">⛓️ 50 → 💰 40</button>
+                    <button onclick="tradeResource('wood')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors flex flex-col items-center"><span>🌲 100 → 💰 ${Math.floor(10 * (1 + (state.research.trading || 0) * 0.2))}</span></button>
+                    <button onclick="tradeResource('stone')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors flex flex-col items-center"><span>🪨 100 → 💰 ${Math.floor(10 * (1 + (state.research.trading || 0) * 0.2))}</span></button>
+                    <button onclick="tradeResource('food')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors flex flex-col items-center"><span>🍞 100 → 💰 ${Math.floor(20 * (1 + (state.research.trading || 0) * 0.2))}</span></button>
+                    <button onclick="tradeResource('iron')" class="bg-white p-2 rounded-xl border text-xs font-bold hover:bg-yellow-100 transition-colors flex flex-col items-center"><span>⛓️ 50 → 💰 ${Math.floor(40 * (1 + (state.research.trading || 0) * 0.2))}</span></button>
                 </div>
                 <p class="text-[10px] font-bold text-indigo-700 mb-2 uppercase">ゴールドで資源を購入</p>
                 <div class="grid grid-cols-2 gap-2">
@@ -922,8 +1120,9 @@ function tradeResource(type) {
 
     if (state[type] >= costs[type]) {
         state[type] -= costs[type];
-        state.gold += gains[type];
-        log(`${costs[type]} の資源を 💰${gains[type]} に換金しました。`);
+        const gain = Math.floor(gains[type] * (1 + (state.research.trading || 0) * 0.2));
+        state.gold += gain;
+        log(`${costs[type]} の資源を 💰${gain} に換金しました。`);
         updateUI();
     } else {
         log("資源が足りません。");
@@ -1017,7 +1216,7 @@ function spawnEnemy() {
 }
 
 function attackEnemy() {
-    let pwr = 10 + state.research.combat * 5;
+    let pwr = 10 + state.research.combat * 5 + (state.research.forge_tech || 0) * 10 + (state.research.cold_resist || 0) * 5 + (state.research.defense || 0) * 15;
     state.villagers.forEach(v => {
         if (v.job === 'soldier') pwr += 15;
         if (v.trait && v.trait.bonus === 'defend') pwr += v.trait.value;
@@ -1027,8 +1226,9 @@ function attackEnemy() {
     if (enemy.hp <= 0) {
         enemy.active = false;
         document.getElementById('enemyView').classList.add('hidden');
-        state.gold += 20;
-        log("敵を撃退しました！ 報酬: 💰20", '🛡️');
+        let goldReward = 20 + (state.research.royal_dip || 0) * 10;
+        state.gold += goldReward;
+        log(`敵を撃退しました！ 報酬: 💰${goldReward}`, '🛡️');
         updateUI();
     }
 }
@@ -1091,15 +1291,21 @@ function renderResearchList() {
     if (!cont) return;
     cont.innerHTML = '';
     const res = [
-        { id: 'gather', name: '道具改良', wood: 100, stone: 100 },
-        { id: 'combat', name: '戦術訓練', wood: 150, iron: 50 },
-        { id: 'defense', name: '防衛網強化', wood: 300, stone: 300, iron: 100, reqBook: '防衛戦術大全' },
-        { id: 'farm_exp', name: '農家術の極み', wood: 200, stone: 100, gold: 50, reqBook: '大農園の拡張法' },
-        { id: 'trading', name: '市場経済学', wood: 400, gold: 200, reqBook: '市場経済の歴史' }
+        { id: 'gather', name: '道具改良', desc: '全資源の基本生産量が少しずつUP', wood: 100, stone: 100 },
+        { id: 'combat', name: '戦術訓練', desc: '村の基本戦闘力が全般的にUP', wood: 150, iron: 50 },
+        { id: 'defense', name: '防衛網強化', desc: '村の防衛力(戦闘力)が大きくUP', wood: 300, stone: 300, iron: 100, reqBook: '防衛戦術大全' },
+        { id: 'farm_exp', name: '農家術の極み', desc: '農家の食料生産量が大きくUP', wood: 200, stone: 100, gold: 50, reqBook: '大農園の拡張法' },
+        { id: 'trading', name: '市場経済学', desc: '市場で資源を売却した際の獲得ゴールドがUP', wood: 400, gold: 200, reqBook: '市場経済の歴史' },
+        { id: 'stone_craft', name: '石材加工の極意', desc: '石工の石材獲得量がUP', wood: 150, stone: 200, iron: 20, reqBook: '石材加工の極意' },
+        { id: 'forge_tech', name: '鉄器の鍛造技術', desc: '武器強化により村の戦闘力がさらにUP', wood: 300, iron: 200, reqBook: '鉄器の鍛造技術' },
+        { id: 'royal_dip', name: '王室外交術', desc: '敵撃退時の報酬(ゴールド)が増加', wood: 200, gold: 300, reqBook: '王室外交録' },
+        { id: 'harsh_env', name: '過酷環境適応', desc: '農家の食料獲得量が劇的にUP', wood: 100, food: 500, gold: 100, reqBook: '砂漠適応の生態学' },
+        { id: 'cold_resist', name: '耐寒防具', desc: '厳しい環境での生存力がUP(戦闘力上昇)', wood: 300, iron: 100, reqBook: '雪原の生存術' },
+        { id: 'forest_manage', name: '森林管理', desc: '木こりの木材獲得量がUP', wood: 500, iron: 50, reqBook: '森林資源の保全' }
     ];
     res.forEach(r => {
         if (r.reqBook && (!state.books || !state.books.includes(r.reqBook))) return;
-        const lv = state.research[r.id];
+        const lv = state.research[r.id] || 0;
         const w = Math.floor(r.wood * Math.pow(1.5, lv));
         const s = Math.floor((r.stone || 0) * Math.pow(1.5, lv));
         const i = Math.floor((r.iron || 0) * Math.pow(1.5, lv));
@@ -1107,7 +1313,8 @@ function renderResearchList() {
         const btn = document.createElement('button');
         btn.className = `w-full p-4 rounded-2xl border-2 text-left ${can ? 'bg-white' : 'bg-slate-50 opacity-60'}`;
         btn.innerHTML = `<div class="flex justify-between font-bold"><span>🔬 ${r.name}</span><span>Lv.${lv}</span></div>
-            <div class="text-[10px] mt-1">🌲${w} / 🪨${s} ${i ? `/ ⛓️${i}` : ''}</div>`;
+            <div class="text-[10px] text-slate-500 my-1">${r.desc}</div>
+            <div class="text-[10px] mt-1 text-slate-700">🌲${w} / 🪨${s} ${i ? `/ ⛓️${i}` : ''}</div>`;
         btn.onclick = () => { if (can) { state.wood -= w; state.stone -= s; state.iron -= i; state.research[r.id]++; updateUI(); } };
         cont.appendChild(btn);
     });
@@ -1177,7 +1384,11 @@ function closeVillagerModal() {
 window.onload = () => {
     const saved = localStorage.getItem('v-evolve-save');
     const loadBtn = document.getElementById('loadBtn');
-    if (saved && loadBtn) loadBtn.classList.remove('hidden');
+    const exportBtn = document.getElementById('exportBtn');
+    if (saved) {
+        if (loadBtn) loadBtn.classList.remove('hidden');
+        if (exportBtn) exportBtn.classList.remove('hidden');
+    }
 };
 
 // --- Envoy & Diplomacy ---
@@ -1187,13 +1398,14 @@ function spawnEnvoy() {
     if (document.getElementById('envoy')) document.getElementById('envoy').remove();
 
     state.envoyActive = true;
-    const factions = ['brovenia', 'anid', 'galectis', 'elminaa'];
+    const factions = ['brovenia', 'anid', 'galectis', 'elminaa', 'shadow'];
     currentEnvoy = factions[Math.floor(Math.random() * factions.length)];
 
     if (currentEnvoy === 'brovenia' && state.diplomacy.broveniaContracted) { state.envoyActive = false; return; }
     if (currentEnvoy === 'anid' && state.diplomacy.anidContracted) { state.envoyActive = false; return; }
     if (currentEnvoy === 'galectis' && state.diplomacy.galectisContracted) { state.envoyActive = false; return; }
     if (currentEnvoy === 'elminaa' && state.diplomacy.elminaaContracted) { state.envoyActive = false; return; }
+    if (currentEnvoy === 'shadow' && state.diplomacy.shadowContracted) { state.envoyActive = false; return; }
 
     const vCont = document.getElementById('villagersContainer');
     const el = document.createElement('div');
@@ -1206,6 +1418,7 @@ function spawnEnvoy() {
     else if (currentEnvoy === 'anid') { icon = '🧙‍♂️'; name = 'アニド歴史記録財団'; }
     else if (currentEnvoy === 'galectis') { icon = '🧐'; name = 'ガレクティス大商人組合'; }
     else if (currentEnvoy === 'elminaa') { icon = '⛪'; name = 'エルミナア大聖堂'; }
+    else if (currentEnvoy === 'shadow') { icon = '🕸️'; name = '影の運び屋ギルド'; }
 
     el.innerHTML = icon;
     el.style.right = '-15%';
@@ -1275,6 +1488,14 @@ function openEnvoyModal() {
             <button onclick="contractElminaa()" class="w-full ${can ? 'bg-pink-600 hover:bg-pink-500' : 'bg-slate-700 opacity-50'} text-white py-4 rounded-2xl font-black mb-3 transition-colors" ${can ? '' : 'disabled'}>契約する (💎20)</button>
             <button onclick="refuseElminaa()" class="w-full bg-red-900/40 text-red-500 hover:bg-red-900/60 border border-red-500/30 py-4 rounded-2xl font-black transition-colors">拒否する</button>
         `;
+    } else if (currentEnvoy === 'shadow') {
+        title = '影の運び屋ギルドの使者'; icon = '🕸️';
+        desc = '「裏の世界と繋がりたいようだな。我々と手を結べば、僅かな依頼料で『他組織の使者』をいつでも呼び出してやろう。契約金は💰1000だ。」';
+        const can = state.gold >= 1000;
+        actionBtn = `
+            <button onclick="contractShadow()" class="w-full ${can ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-800 opacity-50'} text-white py-4 rounded-2xl font-black mb-3 border border-slate-500 transition-colors" ${can ? '' : 'disabled'}>契約する (💰1000)</button>
+            <button onclick="closeEnvoyModal()" class="w-full bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-700 py-4 rounded-2xl font-black transition-colors">今回は見送る</button>
+        `;
     }
 
     document.getElementById('envoyModalContent').innerHTML = `
@@ -1317,12 +1538,12 @@ function contractAnid() {
             state.collections.splice(idx, 1);
         }
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
             const book = config.books[Math.floor(Math.random() * config.books.length)];
-            state.books.push(book);
+            state.unreadBooks.push(book.id);
         }
         state.diplomacy.anidContracted = true;
-        log("アニド歴史記録財団と取引し、貴重な本を5冊受け取りました！", '📚');
+        log("アニド歴史記録財団と取引し、貴重な本を3冊受け取りました！", '📚');
         dismissEnvoy();
     }
 }
@@ -1351,6 +1572,66 @@ function refuseElminaa() {
     state.diplomacy.elminaaRefused = true;
     log("エルミナア大聖堂の提案を拒否しました。呪いに気をつけてください…", '⚠️');
     dismissEnvoy();
+}
+
+function contractShadow() {
+    if (state.gold >= 1000) {
+        state.gold -= 1000;
+        state.diplomacy.shadowContracted = true;
+        log("影の運び屋ギルドと契約しました！任意の使者を呼び出せます。", '🤝');
+        dismissEnvoy();
+    }
+}
+
+function invokeEnvoy(faction) {
+    if (state.gold < 300) { log("ゴールドが足りません。(必要:💰300)", "⚠️"); return; }
+    if (state.envoyActive) { log("すでに何者かの使者が村に来ています。", "⚠️"); return; }
+
+    // コスト消費
+    state.gold -= 300;
+
+    // 指名された使者を出撃させる
+    if (document.getElementById('envoy')) document.getElementById('envoy').remove();
+
+    state.envoyActive = true;
+    currentEnvoy = faction;
+
+    const vCont = document.getElementById('villagersContainer');
+    const el = document.createElement('div');
+    el.id = 'envoy';
+    el.className = 'merchant-entity';
+
+    let icon = '📜';
+    let name = '';
+    if (currentEnvoy === 'brovenia') { icon = '🦹'; name = 'ブロべニア傭兵団'; }
+    else if (currentEnvoy === 'anid') { icon = '🧙‍♂️'; name = 'アニド歴史記録財団'; }
+    else if (currentEnvoy === 'galectis') { icon = '🧐'; name = 'ガレクティス大商人組合'; }
+    else if (currentEnvoy === 'elminaa') { icon = '⛪'; name = 'エルミナア大聖堂'; }
+
+    el.innerHTML = icon;
+    el.style.right = '-15%';
+    el.style.top = '70%';
+    vCont.appendChild(el);
+
+    log(`運び屋によって ${icon} ${name} の使者が呼ばれました。`, '🕸️');
+
+    setTimeout(() => { if (el) el.style.right = '15%'; }, 100);
+    el.onclick = () => { openEnvoyModal(); };
+
+    setTimeout(() => {
+        if (state.envoyActive) {
+            if (el) el.style.right = '-15%';
+            setTimeout(() => {
+                if (document.getElementById('envoy')) document.getElementById('envoy').remove();
+                state.envoyActive = false;
+                log("使者は去っていきました。");
+                closeEnvoyModal();
+                updateUI();
+            }, 1500);
+        }
+    }, 60000);
+
+    updateUI();
 }
 
 function dismissEnvoy() {
@@ -1384,11 +1665,15 @@ function renderDiplomacy() {
                 <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">📚</div>
                 <p class="font-black text-purple-900 mb-1">アニド歴史記録財団</p>
                 <div class="text-[11px] text-purple-700 font-bold mt-2">
-                    所持している知識（本）: <span class="text-lg text-purple-900 font-black ml-1">${state.books ? state.books.length : 0}</span> 冊
+                    所持している知識（本）: <span class="text-lg text-purple-900 font-black ml-1">${(state.books ? state.books.length : 0) + (state.unreadBooks ? state.unreadBooks.length : 0)}</span> 冊
                 </div>
-                ${state.books && state.books.length > 0 ? `
+                ${(state.books && state.books.length > 0) || (state.unreadBooks && state.unreadBooks.length > 0) ? `
                     <div class="flex gap-1 flex-wrap mt-3">
-                        ${state.books.map(b => `<span class="bg-white px-2 py-1 rounded-md border border-purple-200 text-[9px] shadow-sm font-bold text-purple-800">${b}</span>`).join('')}
+                        ${[...(state.unreadBooks || []), ...(state.books || [])].map(bId => {
+            const bObj = config.books.find(x => x.id === bId);
+            const name = bObj ? bObj.name : bId;
+            return `<span class="bg-white px-2 py-1 rounded-md border border-purple-200 text-[9px] shadow-sm font-bold text-purple-800">${name}</span>`;
+        }).join('')}
                     </div>
                 ` : `<p class="text-[10px] text-purple-600 mt-2 opacity-60">まだ本は持っていません</p>`}
             </div>
@@ -1412,8 +1697,33 @@ function renderDiplomacy() {
             : `<div class="bg-slate-200/50 text-slate-500 py-2 rounded-xl text-xs font-bold text-center border border-slate-200">未契約</div>`
         }
             </div>
+            
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-700 shadow-sm relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-6xl opacity-10 filter grayscale">🕸️</div>
+                <p class="font-black text-slate-100 mb-1">影の運び屋ギルド</p>
+                <p class="text-[10px] text-slate-400 font-bold mb-3 leading-relaxed">💰300を支払うことで、<br>任意の未契約組織の使者を<br>即座に村へ呼び出します。</p>
+                ${state.diplomacy && state.diplomacy.shadowContracted
+            ? `<div class="grid grid-cols-2 gap-2 mt-2 border-t border-slate-700 pt-3">
+                        ${!state.diplomacy.broveniaContracted ? `<button onclick="invokeEnvoy('brovenia')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🦹 傭兵団を呼ぶ</button>` : ''}
+                        ${!state.diplomacy.anidContracted ? `<button onclick="invokeEnvoy('anid')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🧙‍♂️ 記録財団を呼ぶ</button>` : ''}
+                        ${!state.diplomacy.galectisContracted ? `<button onclick="invokeEnvoy('galectis')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🧐 商人組合を呼ぶ</button>` : ''}
+                        ${!state.diplomacy.elminaaContracted ? `<button onclick="invokeEnvoy('elminaa')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">⛪ 大聖堂を呼ぶ</button>` : ''}
+                       </div>
+                       <button onclick="cancelShadow()" class="w-full bg-red-900/40 text-red-500 border border-red-500/30 py-3 mt-3 rounded-xl text-xs font-black hover:bg-red-900/60 transition-colors">契約を破棄する</button>`
+            : `<div class="bg-slate-800 text-slate-500 py-2 rounded-xl text-xs font-bold text-center border border-slate-700">未契約</div>`
+        }
+            </div>
         </div>
     `;
+}
+
+function cancelShadow() {
+    if (confirm("影の運び屋ギルドとの契約を破棄しますか？")) {
+        state.diplomacy.shadowContracted = false;
+        log("影の運び屋ギルドとの契約を破棄しました。", "ℹ️");
+        updateUI();
+        renderDiplomacy();
+    }
 }
 
 function cancelGalectis() {
