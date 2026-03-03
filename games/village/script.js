@@ -1150,25 +1150,27 @@ function renderMerchantShop(containerId = 'merchantShopPane') {
     cont.innerHTML = `
         <div class="space-y-3">
             ${config.merchantItems.map(item => {
-        const discount = (state.upgrades.merchant_discount || 0) * 0.1;
+        const discountLevel = state.upgrades.merchant_discount || 0;
+        // 割引率は1レベルにつき10%、最大50%（半額）までとする
+        const discount = Math.min(discountLevel * 0.1, 0.5);
         const owned = state.upgrades[item.id] || 0;
         const cost = Math.floor(item.cost * (1 - discount));
         const can = state.gold >= cost;
         return `
-                    <button onclick="buyMerchantItem('${item.id}', ${cost}, '${containerId}')" 
-                        class="w-full p-4 rounded-2xl border-2 text-left transition-all ${can ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg hover:scale-[1.02]' : 'bg-slate-100 border-slate-200 opacity-60'}">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="font-black text-xs">${item.icon} ${item.name}</p>
-                                <p class="text-[9px] opacity-80 mt-1">${item.desc}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-black text-sm mb-1">💰${cost}</p>
-                                <p class="text-[10px] ${owned > 0 ? 'text-yellow-500 font-bold' : 'opacity-50'}">所持: ${owned}</p>
-                            </div>
-                        </div>
-                    </button>
-                `;
+                    <button onclick="buyMerchantItem('${item.id}', ${cost}, '${containerId}')"
+    class="w-full p-4 rounded-2xl border-2 text-left transition-all ${can ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg hover:scale-[1.02]' : 'bg-slate-100 border-slate-200 opacity-60'}" >
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="font-black text-xs">${item.icon} ${item.name}</p>
+                <p class="text-[9px] opacity-80 mt-1">${item.desc}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-black text-sm mb-1">💰${cost}</p>
+                <p class="text-[10px] ${owned > 0 ? 'text-yellow-500 font-bold' : 'opacity-50'}">所持: ${owned}</p>
+            </div>
+        </div>
+                    </button >
+        `;
     }).join('')}
         </div>
     `;
@@ -1309,13 +1311,34 @@ function renderResearchList() {
         const w = Math.floor(r.wood * Math.pow(1.5, lv));
         const s = Math.floor((r.stone || 0) * Math.pow(1.5, lv));
         const i = Math.floor((r.iron || 0) * Math.pow(1.5, lv));
-        const can = state.wood >= w && state.stone >= s && state.iron >= i;
+        const f = Math.floor((r.food || 0) * Math.pow(1.5, lv));
+        const g = Math.floor((r.gold || 0) * Math.pow(1.5, lv));
+
+        const can = state.wood >= w && state.stone >= s && state.iron >= i && state.food >= f && state.gold >= g;
         const btn = document.createElement('button');
         btn.className = `w-full p-4 rounded-2xl border-2 text-left ${can ? 'bg-white' : 'bg-slate-50 opacity-60'}`;
+
+        let costStrs = [];
+        if (w) costStrs.push(`🌲${w}`);
+        if (s) costStrs.push(`🪨${s}`);
+        if (f) costStrs.push(`🍞${f}`);
+        if (i) costStrs.push(`⛓️${i}`);
+        if (g) costStrs.push(`💰${g}`);
+
         btn.innerHTML = `<div class="flex justify-between font-bold"><span>🔬 ${r.name}</span><span>Lv.${lv}</span></div>
             <div class="text-[10px] text-slate-500 my-1">${r.desc}</div>
-            <div class="text-[10px] mt-1 text-slate-700">🌲${w} / 🪨${s} ${i ? `/ ⛓️${i}` : ''}</div>`;
-        btn.onclick = () => { if (can) { state.wood -= w; state.stone -= s; state.iron -= i; state.research[r.id]++; updateUI(); } };
+            <div class="text-[10px] mt-1 text-slate-700 font-bold">${costStrs.join(' / ')}</div>`;
+        btn.onclick = () => {
+            if (can) {
+                state.wood -= w;
+                state.stone -= s;
+                state.iron -= i;
+                state.food -= f;
+                state.gold -= g;
+                state.research[r.id]++;
+                updateUI();
+            }
+        };
         cont.appendChild(btn);
     });
 }
@@ -1402,7 +1425,6 @@ function spawnEnvoy() {
     currentEnvoy = factions[Math.floor(Math.random() * factions.length)];
 
     if (currentEnvoy === 'brovenia' && state.diplomacy.broveniaContracted) { state.envoyActive = false; return; }
-    if (currentEnvoy === 'anid' && state.diplomacy.anidContracted) { state.envoyActive = false; return; }
     if (currentEnvoy === 'galectis' && state.diplomacy.galectisContracted) { state.envoyActive = false; return; }
     if (currentEnvoy === 'elminaa' && state.diplomacy.elminaaContracted) { state.envoyActive = false; return; }
     if (currentEnvoy === 'shadow' && state.diplomacy.shadowContracted) { state.envoyActive = false; return; }
@@ -1542,7 +1564,7 @@ function contractAnid() {
             const book = config.books[Math.floor(Math.random() * config.books.length)];
             state.unreadBooks.push(book.id);
         }
-        state.diplomacy.anidContracted = true;
+        state.diplomacy.anidContracted = false; // 取引は何度でも可能なためリセット
         log("アニド歴史記録財団と取引し、貴重な本を3冊受け取りました！", '📚');
         dismissEnvoy();
     }
@@ -1705,7 +1727,7 @@ function renderDiplomacy() {
                 ${state.diplomacy && state.diplomacy.shadowContracted
             ? `<div class="grid grid-cols-2 gap-2 mt-2 border-t border-slate-700 pt-3">
                         ${!state.diplomacy.broveniaContracted ? `<button onclick="invokeEnvoy('brovenia')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🦹 傭兵団を呼ぶ</button>` : ''}
-                        ${!state.diplomacy.anidContracted ? `<button onclick="invokeEnvoy('anid')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🧙‍♂️ 記録財団を呼ぶ</button>` : ''}
+                        <button onclick="invokeEnvoy('anid')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🧙‍♂️ 記録財団を呼ぶ</button>
                         ${!state.diplomacy.galectisContracted ? `<button onclick="invokeEnvoy('galectis')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">🧐 商人組合を呼ぶ</button>` : ''}
                         ${!state.diplomacy.elminaaContracted ? `<button onclick="invokeEnvoy('elminaa')" class="bg-slate-800 text-slate-200 border border-slate-600 py-2 rounded-lg text-xs font-black hover:bg-slate-700 transition-colors">⛪ 大聖堂を呼ぶ</button>` : ''}
                        </div>
