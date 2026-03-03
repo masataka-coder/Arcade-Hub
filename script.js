@@ -16,6 +16,8 @@ const translations = {
         game_neon_desc: "究極のネオン・シューティング体験。新技術を駆使して迫りくる敵と巨大なボスを撃破せよ。ショップで機体を強化し、ハイスコアを目指せ。",
         game_village_title: "村の調和：Evolution",
         game_village_desc: "資源を集め、村を発展させ、襲来する敵から村を守り抜こう。交易所や遠征を活用して村をレベルアップ！",
+        game_cafe_title: "ハッピーカフェ神業版",
+        game_cafe_desc: "農園経営からM&A、恐竜＆サイバーパンクタイムトラベルまで！至高の店舗経営シミュレーション。",
         pwa_install_btn: "インストール",
         pwa_install_msg: "Arcade Hub をアプリとして追加しますか？",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
@@ -37,6 +39,8 @@ const translations = {
         game_neon_desc: "The ultimate neon shooting experience. Use advanced technology to defeat waves of enemies and giant bosses. Upgrade your ship in the shop and aim for the high score.",
         game_village_title: "Village Harmony: Evolution",
         game_village_desc: "Gather resources, expand your village, and defend against incoming enemies. Utilize trading and expeditions to level up your village!",
+        game_cafe_title: "Happy Cafe God Edition",
+        game_cafe_desc: "From farms and M&As to time-traveling dinosaur & cyberpunk branches! The ultimate simulation game.",
         pwa_install_btn: "Install",
         pwa_install_msg: "Do you want to add Arcade Hub as an app?",
         footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
@@ -66,6 +70,11 @@ const gameData = {
         video: "",
         image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>🏕️ Village</text></svg>",
         path: "games/village/index.html"
+    },
+    cafe: {
+        video: "",
+        image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>☕ Happy Cafe</text></svg>",
+        path: "games/cafe/index.html"
     }
 };
 
