@@ -132,6 +132,39 @@ const getInitialState = () => ({
     lastTick: 0, gameLoopId: null, staffTimer: 0
 });
 
+// BGM
+let bgmAudio = null;
+let isBgmMuted = false;
+let isBgmInitialized = false;
+
+function initBGM() {
+    if (!bgmAudio) {
+        bgmAudio = new Audio('../../assets/musics/cafe/bgm.mp3');
+        bgmAudio.loop = true;
+        bgmAudio.volume = 0.5;
+    }
+}
+
+function playBGM() {
+    initBGM();
+    if (!isBgmMuted && bgmAudio.paused) {
+        bgmAudio.play().then(() => {
+            isBgmInitialized = true;
+        }).catch(e => console.log('BGM play failed. Need interaction.'));
+    }
+}
+
+function toggleBGM() {
+    initBGM();
+    isBgmMuted = !isBgmMuted;
+    bgmAudio.muted = isBgmMuted;
+    if (!isBgmMuted) {
+        playBGM();
+        isBgmInitialized = true;
+    }
+    renderApp();
+}
+
 let state = getInitialState();
 
 // --- セーブ＆ロード ---
@@ -692,10 +725,19 @@ const serveCustomer = (slotIndex, btnEl) => {
 };
 
 const handleAction = (e) => {
+    if (!isBgmInitialized && !isBgmMuted) {
+        playBGM();
+    }
+
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
 
     const { action, id, index } = btn.dataset;
+
+    if (action === 'toggle-bgm') {
+        toggleBGM();
+        return;
+    }
 
     if (action === 'new-game') {
         localStorage.removeItem(SAVE_KEY); state = getInitialState();
@@ -1429,6 +1471,13 @@ const renderApp = () => {
         shopHtml += `</div></div><div class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t-2 border-gray-200 p-4 flex justify-center z-10"><button data-action="goto-prep" class="bg-amber-500 hover:bg-amber-400 text-white text-xl font-bold py-3 px-16 rounded-full shadow-[0_5px_0_#b45309] active:translate-y-[5px] active:shadow-none transition-all">準備画面へ進む 🚀</button></div></div>`;
         app.innerHTML = shopHtml;
     }
+
+    // BGMボタンを追加 (すべての画面で表示)
+    app.insertAdjacentHTML('beforeend', `
+        <button data-action="toggle-bgm" style="position: absolute; top: 1rem; right: 1rem; z-index: 9999; border-radius: 9999px; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background-color: rgba(0,0,0,0.5); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); backdrop-filter: blur(4px); border: 2px solid rgba(255,255,255,0.2); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(0,0,0,0.7)'" onmouseout="this.style.backgroundColor='rgba(0,0,0,0.5)'">
+            ${isBgmMuted ? '🔇' : '🔊'}
+        </button>
+    `);
 };
 
 document.addEventListener('DOMContentLoaded', () => { document.body.addEventListener('click', handleAction); renderApp(); });
