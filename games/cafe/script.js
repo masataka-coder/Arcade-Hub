@@ -1081,7 +1081,7 @@ const renderGameUI = () => {
 };
 
 const renderApp = () => {
-    document.body.className = `h-screen w-screen flex flex-col relative ${THEMES.find(t => t.id === state.currentTheme)?.class || 'theme-default'}`;
+    document.body.className = `h-[100dvh] w-screen overflow-hidden flex flex-col relative ${THEMES.find(t => t.id === state.currentTheme)?.class || 'theme-default'}`;
     const app = $('app');
 
     if (state.screen === 'title') {
@@ -1193,7 +1193,7 @@ const renderApp = () => {
         const tabBtnCls = "px-4 py-2 font-bold text-sm rounded-t-xl transition-colors w-1/2 text-center";
 
         app.innerHTML = `
-                <div class="m-auto bg-white/95 backdrop-blur p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-2xl max-w-2xl w-[90%] md:w-full border-t-4 md:border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'} flex flex-col max-h-[95vh] md:max-h-[90vh]">
+                <div class="m-auto bg-white/95 backdrop-blur p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-2xl max-w-2xl w-[90%] md:w-full border-t-4 md:border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'} flex flex-col max-h-[85dvh]">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-2 md:mb-4 gap-2 md:gap-0 shrink-0">
                         <h2 class="text-xl md:text-2xl font-black ${state.day % 7 === 0 ? 'text-pink-600' : 'text-amber-800'}">${state.day % 7 === 0 ? '🎉 パーティ準備' : '☀️ 営業準備'} <span class="text-base md:text-xl">(Day ${state.day})</span></h2>
                         <div class="bg-slate-800 text-white font-black px-3 md:px-4 py-1 rounded-full text-sm md:text-base shadow">💰 ${formatMoney(state.money)}</div>
@@ -1254,8 +1254,8 @@ const renderApp = () => {
     }
     else if (state.screen === 'day_end') {
         app.innerHTML = `
-                <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div class="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl max-w-md w-[90%] md:w-full text-center border-t-8 border-amber-400">
+                <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div class="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl max-w-md w-[90%] md:w-full text-center border-t-8 border-amber-400 my-auto">
                         <h2 class="text-2xl md:text-3xl font-black text-amber-600 mb-2">Day ${state.day - 1} 営業終了</h2>
                         <div class="bg-amber-50 rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6 text-base md:text-lg font-bold text-gray-700 flex flex-col gap-2 md:gap-3">
                             <div class="flex justify-between border-b border-amber-200 pb-2"><span>満足客:</span><span class="text-green-600">${state.satisfiedToday} 人</span></div>
@@ -1280,10 +1280,10 @@ const renderApp = () => {
         const canBuyout = state.money >= buyoutCost;
 
         app.innerHTML = `
-                <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                    <div class="bg-slate-900 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl max-w-lg w-[90%] md:w-full text-center border-2 md:border-4 border-slate-700 relative overflow-hidden">
+                <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 overflow-y-auto">
+                    <div class="bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl max-w-lg w-[95%] md:w-full text-center border-2 md:border-4 border-slate-700 relative my-auto max-h-full overflow-y-auto no-scrollbar">
                         <div class="absolute -top-10 -right-10 text-8xl md:text-9xl opacity-10">⚔️</div>
-                        <h2 class="text-2xl md:text-3xl font-black text-white mb-4 md:mb-6 tracking-widest mt-2 md:mt-0">💥 RIVAL BATTLE 💥</h2>
+                        <h2 class="text-xl md:text-3xl font-black text-white mb-2 md:mb-6 tracking-widest mt-2 md:mt-0">💥 RIVAL BATTLE 💥</h2>
                         <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-8 gap-2 md:gap-0">
                             <div class="bg-blue-900/50 p-3 md:p-4 rounded-xl border-2 border-blue-500 flex-1 w-full md:w-auto">
                                 <div class="text-blue-300 font-bold text-xs md:text-sm mb-1">あなたのお店</div><div class="text-xl md:text-2xl font-black text-white">${formatMoney(mySales)}</div>
