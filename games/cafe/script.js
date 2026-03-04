@@ -968,9 +968,9 @@ const renderGameUI = () => {
         if (i < state.tray.length) {
             const icon = state.recipes[state.tray[i]].icon;
             const timerBar = state.franchise === 3 ? `<div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-800"><div id="tray-time-${i}" class="h-full bg-blue-400" style="width:${(state.trayTimers[i] / 10000) * 100}%"></div></div>` : '';
-            trayHtml += `<div class="relative w-16 h-16 bg-white rounded-xl shadow border-2 border-amber-200 flex items-center justify-center text-3xl tray-item hover:scale-110 cursor-pointer transition-transform ${state.franchise === 3 ? 'space-float' : ''}" data-action="tray-click" data-index="${i}" overflow-hidden>${icon}${timerBar}</div>`;
+            trayHtml += `<div class="relative w-12 h-12 md:w-16 md:h-16 bg-white rounded-xl shadow border-2 border-amber-200 flex items-center justify-center text-2xl md:text-3xl tray-item hover:scale-110 cursor-pointer transition-transform ${state.franchise === 3 ? 'space-float' : ''}" data-action="tray-click" data-index="${i}" overflow-hidden>${icon}${timerBar}</div>`;
         } else {
-            trayHtml += `<div class="w-16 h-16 bg-black/10 rounded-xl border-2 border-black/20 border-dashed flex items-center justify-center text-black/30 text-sm">空き</div>`;
+            trayHtml += `<div class="w-12 h-12 md:w-16 md:h-16 bg-black/10 rounded-xl border-2 border-black/20 border-dashed flex items-center justify-center text-black/30 text-[10px] md:text-sm">空き</div>`;
         }
     }
     $('ui-tray').innerHTML = trayHtml;
@@ -997,15 +997,15 @@ const renderGameUI = () => {
         const outOfStock = !canCook && !isPrep;
 
         kitchenHtml += `
-                <div class="relative bg-white/90 backdrop-blur p-4 rounded-2xl shadow-md border-b-4 border-amber-300 cursor-pointer hover:bg-white active:translate-y-1 transition-all flex flex-col items-center justify-center ${isPrep && !waitingTap && !isBroken ? 'is-preparing' : ''} ${waitingTap ? 'waiting-tap' : ''} ${isBroken ? 'broken-machine' : ''} ${outOfStock ? 'grayscale opacity-50' : ''}"
+                <div class="relative bg-white/90 backdrop-blur p-2 md:p-4 rounded-xl md:rounded-2xl shadow-md border-b-2 md:border-b-4 border-amber-300 cursor-pointer hover:bg-white active:translate-y-1 transition-all flex flex-col items-center justify-center ${isPrep && !waitingTap && !isBroken ? 'is-preparing' : ''} ${waitingTap ? 'waiting-tap' : ''} ${isBroken ? 'broken-machine' : ''} ${outOfStock ? 'grayscale opacity-50' : ''}"
                      data-action="prep-item" data-id="${r.id}">
-                    <div class="text-4xl mb-1 ${isBroken ? 'opacity-50' : ''}">${displayIcon}</div>
-                    <div class="font-bold text-gray-700 text-sm text-center">${r.name}</div>
+                    <div class="text-2xl md:text-4xl mb-1 ${isBroken ? 'opacity-50' : ''}">${displayIcon}</div>
+                    <div class="font-bold text-gray-700 text-[10px] md:text-sm text-center leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">${r.name}</div>
                     ${stepText}
-                    ${waitingTap && !isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-white/50 font-black text-red-500 rounded-2xl">TAP!</div>` : ''}
-                    ${isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white font-black rounded-2xl text-center leading-tight">故障!<br>連打<br>(${state.troubles.broken.tapsRemaining})</div>` : ''}
-                    ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-black rounded-2xl text-center">食材不足</div>` : ''}
-                    ${isPrep && !waitingTap && !isBroken ? `<div class="absolute bottom-2 left-2 right-2 h-2 bg-gray-200 rounded-full overflow-hidden"><div id="prep-bar-${r.id}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pData.elapsed / pData.duration) * 100}%"></div></div>` : ''}
+                    ${waitingTap && !isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-white/50 font-black text-red-500 rounded-xl md:rounded-2xl text-xs md:text-base">TAP!</div>` : ''}
+                    ${isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center leading-tight">故障!<br>連打<br>(${state.troubles.broken.tapsRemaining})</div>` : ''}
+                    ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center">不足</div>` : ''}
+                    ${isPrep && !waitingTap && !isBroken ? `<div class="absolute bottom-1 md:bottom-2 left-1 md:left-2 right-1 md:right-2 h-1.5 md:h-2 bg-gray-200 rounded-full overflow-hidden"><div id="prep-bar-${r.id}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pData.elapsed / pData.duration) * 100}%"></div></div>` : ''}
                 </div>
             `;
     });
@@ -1024,25 +1024,25 @@ const renderGameUI = () => {
         let customersHtml = '';
         for (let i = 0; i < GAME_CONFIG.maxSlots; i++) {
             const s = state.slots[i];
-            if (!s) customersHtml += `<div class="h-24 rounded-2xl border-2 border-dashed border-black/20 flex items-center justify-center text-black/30">空席</div>`;
-            else if (s.type === 'dirt') customersHtml += `<div class="customer-card relative rounded-2xl p-4 shadow-lg border-2 border-transparent dirt-slot flex items-center justify-center gap-4 cursor-pointer hover:bg-stone-400" data-action="clean-dirt" data-index="${i}"><div class="text-5xl">🗑️</div><div class="font-black text-white text-xl">タップで清掃！</div></div>`;
+            if (!s) customersHtml += `<div class="h-full w-24 md:h-24 md:w-full shrink-0 rounded-2xl border-2 border-dashed border-black/20 flex items-center justify-center text-black/30 text-[10px] md:text-base">空席</div>`;
+            else if (s.type === 'dirt') customersHtml += `<div class="customer-card relative rounded-2xl p-2 md:p-4 shadow-lg border-2 border-transparent dirt-slot flex flex-col md:flex-row items-center justify-center gap-1 md:gap-4 cursor-pointer hover:bg-stone-400 h-full w-24 md:h-24 md:w-full shrink-0" data-action="clean-dirt" data-index="${i}"><div class="text-3xl md:text-5xl">🗑️</div><div class="font-black text-white text-[10px] md:text-xl text-center leading-tight whitespace-nowrap">タップで<br class="md:hidden">清掃！</div></div>`;
             else {
                 const isThinking = s.state === 'thinking'; const pRatio = s.patience / s.maxPatience;
                 const canComplete = s.state === 'waiting' && canServe(s);
-                let orderIcons = isThinking ? '<span class="text-gray-400 text-sm animate-pulse">考え中...</span>' :
+                let orderIcons = isThinking ? '<span class="text-gray-400 text-xs md:text-sm animate-pulse">考え中...</span>' :
                     s.orders.map(oid => `<span class="${state.tray.includes(oid) ? 'opacity-100 scale-110' : 'opacity-50'} transition-all">${state.recipes[oid].icon}</span>`).join('');
 
                 customersHtml += `
-                        <div class="customer-card relative bg-white/95 backdrop-blur rounded-2xl p-3 shadow-lg border-2 ${s.custType === 'vip' || s.charId ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-white' : 'border-white/50'} flex items-center gap-3 cursor-pointer ${canComplete ? 'ring-4 ring-green-400 animate-pulse' : ''}" data-action="serve-customer" data-index="${i}">
-                            <div class="text-5xl bg-black/5 rounded-full w-14 h-14 flex flex-col items-center justify-center shadow-inner relative">
+                        <div class="customer-card relative bg-white/95 backdrop-blur rounded-xl md:rounded-2xl p-2 md:p-3 shadow-lg border-2 ${s.custType === 'vip' || s.charId ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-white' : 'border-white/50'} flex flex-col md:flex-row items-center gap-1 md:gap-3 cursor-pointer shrink-0 w-24 h-full md:w-full md:h-auto ${canComplete ? 'ring-2 md:ring-4 ring-green-400 animate-pulse' : ''}" data-action="serve-customer" data-index="${i}">
+                            <div class="text-3xl md:text-5xl bg-black/5 rounded-full w-10 h-10 md:w-14 md:h-14 flex flex-col items-center justify-center shadow-inner relative shrink-0">
                                 ${s.face}
-                                ${s.charId ? `<div class="absolute -bottom-2 text-xs font-black bg-yellow-400 text-white px-2 rounded-full whitespace-nowrap">${VIP_CHARS[s.charId].name}</div>` : ''}
+                                ${s.charId ? `<div class="absolute -bottom-2 text-[8px] md:text-xs font-black bg-yellow-400 text-white px-1 md:px-2 rounded-full whitespace-nowrap scale-90 md:scale-100">${VIP_CHARS[s.charId].name}</div>` : ''}
                             </div>
-                            <div class="flex-1 pointer-events-none mt-2">
-                                <div class="bg-blue-50/80 border-2 border-blue-200 rounded-xl p-1 mb-1 relative"><div class="text-center font-bold text-lg flex items-center justify-center gap-1">${orderIcons}</div></div>
-                                ${!isThinking ? `<div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden"><div id="patience-bar-${s.id}" class="h-full ${getPatienceColor(pRatio)} progress-bar-inner" style="width: ${pRatio * 100}%"></div></div>` : '<div class="h-2 w-full"></div>'}
+                            <div class="flex-1 pointer-events-none mt-1 md:mt-2 w-full flex flex-col justify-center">
+                                <div class="bg-blue-50/80 border bg-blue-100/50 md:border-2 border-blue-200 rounded-lg md:rounded-xl p-1 mb-1 md:mb-1.5 relative flex-1 flex flex-col justify-center min-h-[30px] md:min-h-[40px]"><div class="text-center font-bold text-xs md:text-lg flex flex-wrap items-center justify-center gap-0.5 md:gap-1 line-clamp-2 leading-tight">${orderIcons}</div></div>
+                                ${!isThinking ? `<div class="h-1 md:h-2 w-full bg-gray-200 rounded-full overflow-hidden mt-auto"><div id="patience-bar-${s.id}" class="h-full ${getPatienceColor(pRatio)} progress-bar-inner" style="width: ${pRatio * 100}%"></div></div>` : '<div class="h-1 md:h-2 w-full mt-auto"></div>'}
                             </div>
-                            ${!isThinking && s.patience < s.maxPatience && state.candies > 0 ? `<button data-action="use-candy" data-index="${i}" class="absolute -top-3 -right-3 bg-pink-100 border-2 border-pink-400 rounded-full w-10 h-10 flex items-center justify-center text-xl shadow hover:scale-110 z-10">🍬</button>` : ''}
+                            ${!isThinking && s.patience < s.maxPatience && state.candies > 0 ? `<button data-action="use-candy" data-index="${i}" class="absolute -top-2 -right-2 md:-top-3 md:-right-3 bg-pink-100 border-2 border-pink-400 rounded-full w-6 h-6 md:w-10 md:h-10 flex items-center justify-center text-[10px] md:text-xl shadow hover:scale-110 z-10">🍬</button>` : ''}
                         </div>
                     `;
             }
@@ -1087,14 +1087,14 @@ const renderApp = () => {
     if (state.screen === 'title') {
         const canLoad = hasSaveData();
         app.innerHTML = `
-                <div class="m-auto text-center bg-white/95 backdrop-blur p-8 rounded-3xl shadow-2xl border-4 border-amber-300 max-w-lg w-full relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 text-9xl opacity-20">☕</div>
-                    <h1 class="text-4xl font-black text-amber-800 mb-2 tracking-tight">ハッピーカフェ<br>神の領域エディション</h1>
-                    <p class="text-gray-600 font-bold mb-6 text-sm">市場仕入れ、チェイン、ペット、宇宙出店！<br>もはやカフェ経営の枠を超えた究極版！</p>
-                    <div class="flex flex-col gap-3">
-                        ${canLoad ? `<button data-action="load-game" class="bg-blue-500 hover:bg-blue-400 text-white text-xl font-bold py-4 rounded-full shadow-[0_5px_0_#1e3a8a] active:translate-y-[5px] active:shadow-none transition-all">続きから遊ぶ</button>` : ''}
-                        <button data-action="new-game" class="bg-amber-500 hover:bg-amber-400 text-white text-xl font-bold py-4 rounded-full shadow-[0_5px_0_#b45309] active:translate-y-[5px] active:shadow-none transition-all">最初から遊ぶ</button>
-                        <button data-action="goto-collection" class="bg-purple-500 hover:bg-purple-400 text-white text-xl font-bold py-3 rounded-full shadow-[0_4px_0_#6b21a8] active:translate-y-[4px] active:shadow-none transition-all mt-2">📖 図鑑・実績</button>
+                <div class="m-auto text-center bg-white/95 backdrop-blur p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl border-4 border-amber-300 max-w-lg w-[90%] md:w-full relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 text-8xl md:text-9xl opacity-20">☕</div>
+                    <h1 class="text-3xl md:text-4xl font-black text-amber-800 mb-2 tracking-tight">ハッピーカフェ<br>神の領域エディション</h1>
+                    <p class="text-gray-600 font-bold mb-4 md:mb-6 text-xs md:text-sm">市場仕入れ、チェイン、ペット、宇宙出店！<br>もはやカフェ経営の枠を超えた究極版！</p>
+                    <div class="flex flex-col gap-2 md:gap-3">
+                        ${canLoad ? `<button data-action="load-game" class="bg-blue-500 hover:bg-blue-400 text-white text-lg md:text-xl font-bold py-3 md:py-4 rounded-full shadow-[0_5px_0_#1e3a8a] active:translate-y-[5px] active:shadow-none transition-all">続きから遊ぶ</button>` : ''}
+                        <button data-action="new-game" class="bg-amber-500 hover:bg-amber-400 text-white text-lg md:text-xl font-bold py-3 md:py-4 rounded-full shadow-[0_5px_0_#b45309] active:translate-y-[5px] active:shadow-none transition-all">最初から遊ぶ</button>
+                        <button data-action="goto-collection" class="bg-purple-500 hover:bg-purple-400 text-white text-lg md:text-xl font-bold py-2 md:py-3 rounded-full shadow-[0_4px_0_#6b21a8] active:translate-y-[4px] active:shadow-none transition-all mt-1 md:mt-2">📖 図鑑・実績</button>
                     </div>
                 </div>
             `;
@@ -1118,22 +1118,22 @@ const renderApp = () => {
         });
 
         app.innerHTML = `
-                <div class="h-full w-full bg-slate-100 p-6 flex flex-col">
-                    <header class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-black text-slate-800">📖 コレクション＆実績</h2>
-                        <button data-action="goto-title" class="bg-gray-500 hover:bg-gray-400 text-white px-6 py-2 rounded-full font-bold shadow">戻る</button>
+                <div class="h-full w-full bg-slate-100 p-3 md:p-6 flex flex-col">
+                    <header class="flex justify-between items-center mb-3 md:mb-6 shrink-0">
+                        <h2 class="text-xl md:text-3xl font-black text-slate-800">📖 コレクション＆実績</h2>
+                        <button data-action="goto-title" class="bg-gray-500 hover:bg-gray-400 text-white px-4 py-1.5 md:px-6 md:py-2 rounded-full font-bold shadow text-sm md:text-base">戻る</button>
                     </header>
-                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-hidden">
-                        <div class="bg-white rounded-3xl p-6 shadow-md overflow-y-auto no-scrollbar"><h3 class="text-xl font-black mb-4 border-b-2 pb-2">🏆 実績一覧</h3><div class="flex flex-col gap-3">${achHtml}</div></div>
-                        <div class="bg-white rounded-3xl p-6 shadow-md overflow-y-auto no-scrollbar">
-                            <h3 class="text-xl font-black mb-4 border-b-2 pb-2">📋 統計データ</h3>
-                            <ul class="text-lg font-bold text-gray-600 flex flex-col gap-4">
-                                <li class="flex justify-between border-b pb-2"><span>累計売上:</span><span class="text-amber-600">${formatMoney(state.stats.totalEarned)}</span></li>
-                                <li class="flex justify-between border-b pb-2"><span>最高チェイン:</span><span class="text-yellow-500">${state.stats.maxChain} 回</span></li>
-                                <li class="flex justify-between border-b pb-2"><span>最高評価提供:</span><span class="text-green-600">${state.stats.perfectServes} 回</span></li>
-                                <li class="flex justify-between border-b pb-2"><span>泥棒逮捕数:</span><span class="text-blue-600">${state.stats.thiefCaught} 人</span></li>
-                                <li class="flex justify-between border-b pb-2"><span>パーティ成功:</span><span class="text-pink-600">${state.stats.partyCleared} 回</span></li>
-                                <li class="flex justify-between border-b pb-2"><span>到達日数:</span><span class="text-gray-800">${state.day} 日</span></li>
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 overflow-hidden">
+                        <div class="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-md overflow-y-auto no-scrollbar"><h3 class="text-lg md:text-xl font-black mb-3 md:mb-4 border-b-2 pb-2">🏆 実績一覧</h3><div class="flex flex-col gap-2 md:gap-3">${achHtml}</div></div>
+                        <div class="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-md overflow-y-auto no-scrollbar">
+                            <h3 class="text-lg md:text-xl font-black mb-3 md:mb-4 border-b-2 pb-2">📋 統計データ</h3>
+                            <ul class="text-base md:text-lg font-bold text-gray-600 flex flex-col gap-3 md:gap-4">
+                                <li class="flex justify-between border-b pb-1 md:pb-2"><span>累計売上:</span><span class="text-amber-600">${formatMoney(state.stats.totalEarned)}</span></li>
+                                <li class="flex justify-between border-b pb-1 md:pb-2"><span>最高チェイン:</span><span class="text-yellow-500">${state.stats.maxChain} 回</span></li>
+                                <li class="flex justify-between border-b pb-1 md:pb-2"><span>最高評価提供:</span><span class="text-green-600">${state.stats.perfectServes} 回</span></li>
+                                <li class="flex justify-between border-b pb-1 md:pb-2"><span>泥棒逮捕数:</span><span class="text-blue-600">${state.stats.thiefCaught} 人</span></li>
+                                <li class="flex justify-between border-b pb-1 md:pb-2"><span>パーティ成功:</span><span class="text-pink-600">${state.stats.partyCleared} 回</span></li>
+                                <li class="flex justify-between border-b pb-1 md:pb-2"><span>到達日数:</span><span class="text-gray-800">${state.day} 日</span></li>
                             </ul>
                         </div>
                     </div>
@@ -1193,10 +1193,10 @@ const renderApp = () => {
         const tabBtnCls = "px-4 py-2 font-bold text-sm rounded-t-xl transition-colors w-1/2 text-center";
 
         app.innerHTML = `
-                <div class="m-auto bg-white/95 backdrop-blur p-6 rounded-3xl shadow-2xl max-w-2xl w-full border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'}">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-black ${state.day % 7 === 0 ? 'text-pink-600' : 'text-amber-800'}">${state.day % 7 === 0 ? '🎉 パーティ準備' : '☀️ 営業準備'} (Day ${state.day})</h2>
-                        <div class="bg-slate-800 text-white font-black px-4 py-1 rounded-full">💰 ${formatMoney(state.money)}</div>
+                <div class="m-auto bg-white/95 backdrop-blur p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-2xl max-w-2xl w-[90%] md:w-full border-t-4 md:border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'} flex flex-col max-h-[95vh] md:max-h-[90vh]">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-2 md:mb-4 gap-2 md:gap-0 shrink-0">
+                        <h2 class="text-xl md:text-2xl font-black ${state.day % 7 === 0 ? 'text-pink-600' : 'text-amber-800'}">${state.day % 7 === 0 ? '🎉 パーティ準備' : '☀️ 営業準備'} <span class="text-base md:text-xl">(Day ${state.day})</span></h2>
+                        <div class="bg-slate-800 text-white font-black px-3 md:px-4 py-1 rounded-full text-sm md:text-base shadow">💰 ${formatMoney(state.money)}</div>
                     </div>
                     
                     <div class="bg-red-50 border-l-4 border-red-500 p-2 rounded-r-xl mb-4">
@@ -1204,15 +1204,17 @@ const renderApp = () => {
                         <div class="text-sm font-black text-red-700">${state.day % 7 === 0 ? '今日は貸切パーティ！食材消費なしで料理が作れます！' : state.trend.text}</div>
                     </div>
 
-                    ${state.day % 7 === 0 ? '<p class="font-bold text-gray-600 mb-6 text-center">※パーティの日は特別ルールのボーナスステージです</p>' : `
-                        <div class="flex border-b-2 border-gray-200 mb-4">
+                    ${state.day % 7 === 0 ? '<p class="font-bold text-gray-600 mb-6 text-center text-sm md:text-base shrink-0">※パーティの日は特別ルールのボーナスステージです</p>' : `
+                        <div class="flex border-b-2 border-gray-200 mb-2 md:mb-4 shrink-0">
                             <div data-action="change-prep-tab" data-id="menu" class="${tabBtnCls} ${state.prepTab === 'menu' ? 'bg-amber-100 text-amber-800 border-2 border-b-0 border-amber-200' : 'bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200'}">🍔 メニュー選択</div>
                             <div data-action="change-prep-tab" data-id="market" class="${tabBtnCls} ${state.prepTab === 'market' ? 'bg-blue-100 text-blue-800 border-2 border-b-0 border-blue-200' : 'bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200'}">🛒 食材市場</div>
                         </div>
-                        ${contentHtml}
+                        <div class="flex-1 overflow-y-auto no-scrollbar min-h-[200px]">
+                            ${contentHtml}
+                        </div>
                     `}
                     
-                    <button data-action="start-game" ${!canStart && state.day % 7 !== 0 ? 'disabled' : ''} class="w-full mt-4 text-xl font-bold py-3 rounded-full shadow-[0_5px_0_rgba(0,0,0,0.2)] active:translate-y-[5px] active:shadow-none transition-all ${canStart || state.day % 7 === 0 ? (state.day % 7 === 0 ? 'bg-pink-500 text-white hover:bg-pink-400' : 'bg-amber-500 text-white hover:bg-amber-400') : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">お店をオープン！</button>
+                    <button data-action="start-game" ${!canStart && state.day % 7 !== 0 ? 'disabled' : ''} class="w-full mt-2 md:mt-4 text-lg md:text-xl font-bold py-3 md:py-4 rounded-full shadow-[0_5px_0_rgba(0,0,0,0.2)] active:translate-y-[5px] active:shadow-none transition-all shrink-0 ${canStart || state.day % 7 === 0 ? (state.day % 7 === 0 ? 'bg-pink-500 text-white hover:bg-pink-400' : 'bg-amber-500 text-white hover:bg-amber-400') : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">お店をオープン！</button>
                 </div>
             `;
     }
@@ -1220,31 +1222,31 @@ const renderApp = () => {
         const locName = state.franchise === 5 ? '未来店' : state.franchise === 4 ? '恐竜店' : state.franchise === 3 ? '宇宙ステーション店' : state.franchise === 2 ? 'ハワイ店' : '本店';
         app.innerHTML = `
                 ${state.isFever ? '<div class="fever-bg"></div>' : ''}
-                <header class="bg-black/80 backdrop-blur text-white p-2 px-4 flex justify-between items-center shadow-md z-20">
-                    <div class="flex gap-3 items-center">
-                        <div class="text-xl font-black bg-white/10 px-3 py-1 rounded-full shadow-inner text-yellow-300">💰 <span id="ui-money">${formatMoney(state.money)}</span></div>
-                        <div class="text-sm font-bold bg-pink-500/80 px-2 py-1 rounded-full text-white flex items-center gap-1">🍬 <span id="ui-candies">${state.candies}</span></div>
-                        <div id="ui-chain" class="font-black text-gray-400 bg-white/10 px-2 py-1 rounded-full">CHAIN: 0</div>
-                        ${!state.isPartyDay ? `<div class="text-sm font-bold bg-white/10 px-2 py-1 rounded-full hidden sm:block">評判: ${renderStars(state.reputation)}</div>` : ''}
+                <header class="bg-black/80 backdrop-blur text-white p-1.5 md:p-2 px-2 md:px-4 flex justify-between items-center shadow-md z-20 overflow-x-auto no-scrollbar whitespace-nowrap gap-2">
+                    <div class="flex gap-1.5 md:gap-3 items-center shrink-0">
+                        <div class="text-sm md:text-xl font-black bg-white/10 px-2 md:px-3 py-0.5 md:py-1 rounded-full shadow-inner text-yellow-300">💰 <span id="ui-money">${formatMoney(state.money)}</span></div>
+                        <div class="text-xs md:text-sm font-bold bg-pink-500/80 px-2 py-0.5 md:py-1 rounded-full text-white flex items-center gap-1">🍬 <span id="ui-candies">${state.candies}</span></div>
+                        <div id="ui-chain" class="font-black text-gray-400 bg-white/10 px-2 py-0.5 md:py-1 rounded-full text-xs md:text-sm">CHAIN: 0</div>
+                        ${!state.isPartyDay ? `<div class="text-[10px] md:text-sm font-bold bg-white/10 px-2 py-0.5 md:py-1 rounded-full items-center gap-1 hidden sm:flex">評判: ${renderStars(state.reputation)}</div>` : ''}
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="text-sm font-bold text-amber-200 hidden sm:block">Day ${state.day} (${locName})</div>
-                        <div id="ui-time" class="text-xl font-bold bg-white/20 px-4 py-1 rounded-full">⏱ 残り ${GAME_CONFIG.dayDuration}秒</div>
+                    <div class="flex items-center gap-2 md:gap-3 shrink-0 ml-auto">
+                        <div class="text-xs md:text-sm font-bold text-amber-200 hidden sm:block">Day ${state.day}</div>
+                        <div id="ui-time" class="text-sm md:text-xl font-bold bg-white/20 px-2 md:px-4 py-0.5 md:py-1 rounded-full">⏱ <span class="hidden md:inline">残り</span> ${GAME_CONFIG.dayDuration}秒</div>
                     </div>
                 </header>
-                <div id="game-wrapper" class="flex-1 flex overflow-hidden relative transition-all duration-300">
-                    <div class="w-[55%] p-4 flex flex-col bg-black/5 shadow-inner">
-                        <div class="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar relative" id="ui-customers"></div>
+                <div id="game-wrapper" class="flex-1 flex flex-col md:flex-row overflow-hidden relative transition-all duration-300">
+                    <div class="w-full md:w-[45%] h-[30%] md:h-full p-2 md:p-4 flex flex-col bg-black/5 shadow-inner">
+                        <div class="flex-1 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar relative items-center md:items-stretch py-1" id="ui-customers"></div>
                     </div>
-                    <div class="w-[45%] p-6 shadow-[-10px_0_20px_rgba(0,0,0,0.1)] z-10 flex flex-col bg-white/50 backdrop-blur-sm">
-                        <div id="ui-inventory" class="flex gap-1 md:gap-2 justify-center mb-3 bg-white/70 p-2 rounded-xl shadow-sm"></div>
-                        <div class="grid grid-cols-2 gap-3 flex-1 content-start" id="ui-kitchen"></div>
-                        <div class="mt-4 bg-black/70 p-4 rounded-2xl shadow-xl backdrop-blur relative">
-                            <h3 class="text-white/80 font-bold mb-2 text-sm text-center">🍽 提供トレイ ${state.franchise === 3 ? '<span class="text-red-400 font-black animate-pulse">(無重力注意!)</span>' : state.franchise === 4 ? '<span class="text-red-400 font-black animate-pulse">(肉食恐竜注意!)</span>' : ''}</h3>
-                            <div class="flex justify-center gap-3 flex-wrap" id="ui-tray"></div>
+                    <div class="w-full md:w-[55%] h-[70%] md:h-full p-2 md:p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.1)] md:shadow-[-10px_0_20px_rgba(0,0,0,0.1)] z-10 flex flex-col bg-white/50 backdrop-blur-sm overflow-y-auto overflow-x-hidden">
+                        <div id="ui-inventory" class="flex gap-1 md:gap-2 justify-center mb-2 md:mb-3 bg-white/70 p-1 md:p-2 rounded-xl text-xs md:text-base shadow-sm shrink-0"></div>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 flex-1 content-start pb-4" id="ui-kitchen"></div>
+                        <div class="mt-auto md:mt-4 bg-black/70 p-2 md:p-4 rounded-xl md:rounded-2xl shadow-xl backdrop-blur relative shrink-0">
+                            <h3 class="text-white/80 font-bold mb-1 md:mb-2 text-[10px] md:text-sm text-center">🍽 提供トレイ ${state.franchise === 3 ? '<span class="text-red-400 font-black animate-pulse">(無重力注意!)</span>' : state.franchise === 4 ? '<span class="text-red-400 font-black animate-pulse">(肉食恐竜注意!)</span>' : ''}</h3>
+                            <div class="flex justify-center gap-1.5 md:gap-3 flex-wrap" id="ui-tray"></div>
                         </div>
                     </div>
-                    <div id="ui-delivery" class="absolute right-0 top-20 z-30" style="display:none;"></div>
+                    <div id="ui-delivery" class="absolute right-0 top-10 md:top-20 z-30 scale-75 md:scale-100 origin-top-right" style="display:none;"></div>
                     <div id="thief-wrapper" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
                 </div>
             `;
@@ -1253,16 +1255,16 @@ const renderApp = () => {
     else if (state.screen === 'day_end') {
         app.innerHTML = `
                 <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border-t-8 border-amber-400">
-                        <h2 class="text-3xl font-black text-amber-600 mb-2">Day ${state.day - 1} 営業終了</h2>
-                        <div class="bg-amber-50 rounded-2xl p-6 mb-6 text-lg font-bold text-gray-700 flex flex-col gap-3">
+                    <div class="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl max-w-md w-[90%] md:w-full text-center border-t-8 border-amber-400">
+                        <h2 class="text-2xl md:text-3xl font-black text-amber-600 mb-2">Day ${state.day - 1} 営業終了</h2>
+                        <div class="bg-amber-50 rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6 text-base md:text-lg font-bold text-gray-700 flex flex-col gap-2 md:gap-3">
                             <div class="flex justify-between border-b border-amber-200 pb-2"><span>満足客:</span><span class="text-green-600">${state.satisfiedToday} 人</span></div>
                             <div class="flex justify-between border-b border-amber-200 pb-2"><span>怒った客:</span><span class="text-red-500">${state.lostToday} 人</span></div>
-                            <div class="flex justify-between text-2xl mt-2 text-amber-800"><span>売上:</span><span>${formatMoney(state.earnedToday)}</span></div>
+                            <div class="flex justify-between text-xl md:text-2xl mt-1 md:mt-2 text-amber-800"><span>売上:</span><span>${formatMoney(state.earnedToday)}</span></div>
                         </div>
-                        <div class="text-xl font-black mb-6">総資金: <span class="text-amber-600">${formatMoney(state.money)}</span></div>
-                        <button data-action="go-shop" class="w-full bg-blue-500 hover:bg-blue-400 text-white text-xl font-bold py-4 rounded-full shadow-[0_5px_0_#1e3a8a] active:translate-y-[5px] active:shadow-none transition-all">
-                            ショップ・スキル強化へ 🛒
+                        <div class="text-lg md:text-xl font-black mb-4 md:mb-6">総資金: <span class="text-amber-600">${formatMoney(state.money)}</span></div>
+                        <button data-action="go-shop" class="w-full bg-blue-500 hover:bg-blue-400 text-white text-lg md:text-xl font-bold py-3 md:py-4 rounded-full shadow-[0_5px_0_#1e3a8a] active:translate-y-[5px] active:shadow-none transition-all">
+                            ショップ・育成へ 🛒
                         </button>
                     </div>
                 </div>
@@ -1279,28 +1281,28 @@ const renderApp = () => {
 
         app.innerHTML = `
                 <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                    <div class="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full text-center border-4 border-slate-700 relative overflow-hidden">
-                        <div class="absolute -top-10 -right-10 text-9xl opacity-10">⚔️</div>
-                        <h2 class="text-3xl font-black text-white mb-6 tracking-widest">💥 RIVAL BATTLE 💥</h2>
-                        <div class="flex justify-between items-center mb-8">
-                            <div class="bg-blue-900/50 p-4 rounded-xl border-2 border-blue-500 flex-1">
-                                <div class="text-blue-300 font-bold text-sm mb-1">あなたのお店</div><div class="text-2xl font-black text-white">${formatMoney(mySales)}</div>
+                    <div class="bg-slate-900 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl max-w-lg w-[90%] md:w-full text-center border-2 md:border-4 border-slate-700 relative overflow-hidden">
+                        <div class="absolute -top-10 -right-10 text-8xl md:text-9xl opacity-10">⚔️</div>
+                        <h2 class="text-2xl md:text-3xl font-black text-white mb-4 md:mb-6 tracking-widest mt-2 md:mt-0">💥 RIVAL BATTLE 💥</h2>
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-8 gap-2 md:gap-0">
+                            <div class="bg-blue-900/50 p-3 md:p-4 rounded-xl border-2 border-blue-500 flex-1 w-full md:w-auto">
+                                <div class="text-blue-300 font-bold text-xs md:text-sm mb-1">あなたのお店</div><div class="text-xl md:text-2xl font-black text-white">${formatMoney(mySales)}</div>
                             </div>
-                            <div class="text-4xl mx-4 font-black text-yellow-500 italic">VS</div>
-                            <div class="bg-red-900/50 p-4 rounded-xl border-2 border-red-500 flex-1">
-                                <div class="text-red-300 font-bold text-sm mb-1">ライバル店</div><div class="text-2xl font-black text-white">${formatMoney(rivalSales)}</div>
+                            <div class="text-2xl md:text-4xl mx-2 md:mx-4 font-black text-yellow-500 italic rotate-90 md:rotate-0">VS</div>
+                            <div class="bg-red-900/50 p-3 md:p-4 rounded-xl border-2 border-red-500 flex-1 w-full md:w-auto">
+                                <div class="text-red-300 font-bold text-xs md:text-sm mb-1">ライバル店</div><div class="text-xl md:text-2xl font-black text-white">${formatMoney(rivalSales)}</div>
                             </div>
                         </div>
-                        ${isWin ? '<div class="bg-green-500/20 border-2 border-green-500 p-4 rounded-2xl mb-4 animate-bounce"><h3 class="text-2xl font-black text-green-400">YOU WIN!!</h3><p class="text-white font-bold">賞金 +¥10,000！</p></div>' : '<div class="bg-gray-800 border-2 border-gray-600 p-4 rounded-2xl mb-4"><h3 class="text-2xl font-black text-gray-400">YOU LOSE...</h3></div>'}
+                        ${isWin ? '<div class="bg-green-500/20 border-2 border-green-500 p-2 md:p-4 rounded-xl md:rounded-2xl mb-3 md:mb-4 animate-bounce"><h3 class="text-xl md:text-2xl font-black text-green-400">YOU WIN!!</h3><p class="text-white font-bold text-sm md:text-base">賞金 +¥10,000！</p></div>' : '<div class="bg-gray-800 border-2 border-gray-600 p-2 md:p-4 rounded-xl md:rounded-2xl mb-3 md:mb-4"><h3 class="text-xl md:text-2xl font-black text-gray-400">YOU LOSE...</h3></div>'}
                         
-                        <div class="bg-purple-900/40 border-2 border-purple-500 p-4 rounded-2xl mb-8">
-                            <h3 class="text-purple-300 font-bold mb-2">ライバルチェーンの買収 (現在: ${state.acquiredRivals || 0}社傘下)</h3>
-                            <button data-action="buyout-rival" data-cost="${buyoutCost}" class="w-full ${canBuyout ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-gray-700 text-gray-500 cursor-not-allowed'} font-black py-3 rounded-xl shadow-md transition-all">
-                                🏢 対象の会社を買収する (💰${formatMoney(buyoutCost)})
+                        <div class="bg-purple-900/40 border-2 border-purple-500 p-3 md:p-4 rounded-xl md:rounded-2xl mb-4 md:mb-8 text-sm md:text-base">
+                            <h3 class="text-purple-300 font-bold mb-1 md:mb-2">ライバルチェーンの買収 (現在: ${state.acquiredRivals || 0}社傘下)</h3>
+                            <button data-action="buyout-rival" data-cost="${buyoutCost}" class="w-full ${canBuyout ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-gray-700 text-gray-500 cursor-not-allowed'} font-black py-2 md:py-3 rounded-lg md:rounded-xl shadow-md transition-all text-xs md:text-base">
+                                🏢 対象会社を買収する (💰${formatMoney(buyoutCost)})
                             </button>
                         </div>
 
-                        <button data-action="finish-rival" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black text-xl font-black py-4 rounded-full shadow-[0_5px_0_#b45309] active:translate-y-[5px] active:shadow-none transition-all">次へ進む</button>
+                        <button data-action="finish-rival" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black text-lg md:text-xl font-black py-3 md:py-4 rounded-full shadow-[0_5px_0_#b45309] active:translate-y-[5px] active:shadow-none transition-all">次へ進む</button>
                     </div>
                 </div>
             `;
@@ -1341,16 +1343,16 @@ const renderApp = () => {
         };
 
         let shopHtml = `
-                <div class="h-full w-full bg-slate-50 flex flex-col p-4 md:p-6 overflow-hidden">
-                    <header class="flex justify-between items-center mb-2 gap-2 border-b-2 border-slate-200 pb-2">
-                        <h2 class="text-2xl font-black text-slate-800">メガ・ショップ</h2>
-                        <div class="flex gap-2">
-                            <div class="text-md font-black bg-slate-800 text-white px-3 py-1 rounded-full shadow">💰 ${formatMoney(state.money)}</div>
-                            <div class="text-md font-black bg-yellow-500 text-white px-3 py-1 rounded-full shadow" title="スキルポイント">🌟 ${state.skillPoints} SP</div>
+                <div class="h-full w-full bg-slate-50 flex flex-col p-2 md:p-6 overflow-hidden">
+                    <header class="flex flex-col md:flex-row justify-between items-center mb-2 gap-2 border-b-2 border-slate-200 pb-2">
+                        <h2 class="text-xl md:text-2xl font-black text-slate-800 w-full md:w-auto text-center md:text-left">メガ・ショップ</h2>
+                        <div class="flex gap-2 text-xs md:text-md">
+                            <div class="font-black bg-slate-800 text-white px-2 py-1 md:px-3 md:py-1 rounded-full shadow">💰 ${formatMoney(state.money)}</div>
+                            <div class="font-black bg-yellow-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full shadow" title="スキルポイント">🌟 ${state.skillPoints} SP</div>
                         </div>
                     </header>
                     ${tabHtml}
-                    <div class="flex-1 overflow-y-auto pr-2 no-scrollbar flex flex-col pb-24"><div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="flex-1 overflow-y-auto pr-1 md:pr-2 no-scrollbar flex flex-col pb-24"><div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 px-1 md:px-0">
             `;
 
         if (state.shopTab === 'menu') {
