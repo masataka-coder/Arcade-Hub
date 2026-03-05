@@ -351,7 +351,7 @@ const gameTick = () => {
         if (state.troubles.broken && state.troubles.broken.recipeId === recipeId) continue;
         if (!prepData.waitingNextTap) {
             const recipe = state.recipes[recipeId];
-            if (recipe.isGiant) {
+            if (recipe && recipe.isGiant) {
                 const currentDayProg = (prepData.daysSpent || 0) + 1;
                 const target = prepData.duration * Math.min(1, currentDayProg / recipe.requiredDays);
                 if (prepData.elapsed < target) {
