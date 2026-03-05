@@ -43,9 +43,9 @@ const RECIPES = {
 };
 
 const VIP_CHARS = {
-    mika: { id: 'mika', name: 'インフルエンサー ミカ', face: '📸', desc: '満足させると翌日客足1.5倍', reqLevel: 2, reqFranchise: 1 },
-    gordon: { id: 'gordon', name: '市長 ゴードン', face: '🏢', desc: '大食いだがチップが桁違い', reqLevel: 3, reqFranchise: 1 },
-    aloha: { id: 'aloha', name: 'アロハおじさん', face: '🏄‍♂️', desc: 'ハワイ店限定。怒らない超優良客', reqLevel: 1, reqFranchise: 2 },
+    mika: { id: 'mika', name: 'インフルエンサー ミカ', face: '<img src="../../assets/images/cafe/vips/mika.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="ミカ">', desc: '満足させると翌日客足1.5倍', reqLevel: 2, reqFranchise: 1 },
+    gordon: { id: 'gordon', name: '市長 ゴードン', face: '<img src="../../assets/images/cafe/vips/godon.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="ゴードン">', desc: '大食いだがチップが桁違い', reqLevel: 3, reqFranchise: 1 },
+    aloha: { id: 'aloha', name: 'アロハおじさん', face: '<img src="../../assets/images/cafe/vips/aroha.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="アロハおじさん">', desc: 'ハワイ店限定。怒らない超優良客', reqLevel: 1, reqFranchise: 2 },
     alien: { id: 'alien', name: '銀河連邦使者', face: '👽', desc: '宇宙店限定。超高額チップ＆要求大', reqLevel: 1, reqFranchise: 3 },
     t_rex: { id: 't_rex', name: 'ティラノサウルス', face: '🦖', desc: '恐竜時代限定。大食いで気性が荒い', reqLevel: 2, reqFranchise: 4 },
     tricera: { id: 'tricera', name: 'トリケラトプス', face: '🦕', desc: '恐竜時代限定。草食系でまったり待つ', reqLevel: 1, reqFranchise: 4 },
@@ -54,10 +54,11 @@ const VIP_CHARS = {
 };
 
 const MASTER_CHARS = {
-    master_coffee: { id: 'master_coffee', name: '珈琲の仙人', face: '🧙‍♂️', target: 'coffee' },
-    master_sandwich: { id: 'master_sandwich', name: 'パン職人', face: '👨‍🍳', target: 'sandwich' },
-    master_smoothie: { id: 'master_smoothie', name: '果実の魔女', face: '🧝‍♀️', target: 'smoothie' },
-    master_cake: { id: 'master_cake', name: '伝説のパティシエ', face: '🤴', target: 'cake' }
+    master_coffee: { id: 'master_coffee', name: '珈琲の仙人', face: '<img src="../../assets/images/cafe/masters/coffee.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="珈琲の仙人">', target: 'coffee' },
+    master_sandwich: { id: 'master_sandwich', name: 'パン職人', face: '<img src="../../assets/images/cafe/masters/sandwhich.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="パン職人">', target: 'sandwich' },
+    master_smoothie: { id: 'master_smoothie', name: '果実の魔女', face: '<img src="../../assets/images/cafe/masters/smuji.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="果実の魔女">', target: 'smoothie' },
+    master_cake: { id: 'master_cake', name: '伝説のパティシエ', face: '🤴', target: 'cake' },
+    master_burger: { id: 'master_burger', name: 'バーガー職人', face: '<img src="../../assets/images/cafe/masters/humberger.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="バーガー職人">', target: 'burger' }
 };
 
 const TRENDS = [
@@ -289,7 +290,7 @@ const spawnCustomer = (slotIndex) => {
     basePatience += (state.upgrades.interior - 1) * 2000;
     if (state.trend && state.trend.type === 'speed') basePatience *= 0.7;
 
-    let faceList = ['👨', '👩', '👦', '👧', '👵', '👴'];
+    let faceList = ['👨', '👩', '👦', '👧', '👵', '👴', '<img src="../../assets/images/cafe/normals/nomal1.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="客1">', '<img src="../../assets/images/cafe/normals/nomal2.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="客2">'];
     if (state.franchise === 4) faceList = ['🦖', '🦕', '🐊', '🦎'];
     if (state.franchise === 5) faceList = ['🤖', '🦾', '👾', '👽'];
 
