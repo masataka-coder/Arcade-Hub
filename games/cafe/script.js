@@ -53,6 +53,13 @@ const VIP_CHARS = {
     android: { id: 'android', name: '高級アンドロイド', face: '🦾', desc: '未来支店限定。超高額チップを払う', reqLevel: 2, reqFranchise: 5 }
 };
 
+const MASTER_CHARS = {
+    master_coffee: { id: 'master_coffee', name: '珈琲の仙人', face: '🧙‍♂️', target: 'coffee' },
+    master_sandwich: { id: 'master_sandwich', name: 'パン職人', face: '👨‍🍳', target: 'sandwich' },
+    master_smoothie: { id: 'master_smoothie', name: '果実の魔女', face: '🧝‍♀️', target: 'smoothie' },
+    master_cake: { id: 'master_cake', name: '伝説のパティシエ', face: '🤴', target: 'cake' }
+};
+
 const TRENDS = [
     { type: 'target', target: 'coffee', text: '朝活ブーム！コーヒーの売上1.5倍', mult: 1.5 },
     { type: 'target', target: 'cake', text: 'スイーツ特集！ケーキの売上1.5倍', mult: 1.5 },
@@ -101,9 +108,9 @@ const getInitialState = () => ({
     money: 500, day: 1, timeRemaining: 0,
     earnedToday: 0, satisfiedToday: 0, lostToday: 0,
     reputation: 3.0, candies: 3,
-    upgrades: { interior: 1, equipment: 1, traySize: 3 },
+    upgrades: { interior: 1, equipment: 1, traySize: 3, dualMachine: false },
     recipes: JSON.parse(JSON.stringify(RECIPES)),
-    staff: { barista: 0, server: 0 },
+    staff: { barista: 0, server: 0, cook: 0, cleaner: 0 },
     unlockedThemes: ['default'], currentTheme: 'default',
     activeRecipes: ['coffee'], trend: null, mikaBoost: false,
     affinities: { mika: 0, gordon: 0, aloha: 0, alien: 0 },
@@ -250,6 +257,14 @@ const spawnCustomer = (slotIndex) => {
     if (Math.random() < specialChance) {
         const availableVips = Object.keys(VIP_CHARS).filter(k => state.day >= VIP_CHARS[k].reqLevel && VIP_CHARS[k].reqFranchise <= state.franchise);
         if (availableVips.length > 0) { charId = randomChoice(availableVips); type = charId; isSpecial = true; }
+    } else if (state.day >= 5 && Math.random() < 0.05) {
+        const availableMasters = Object.values(MASTER_CHARS).filter(m => state.activeRecipes.includes(m.target) && !state.recipes[m.target].isMastered);
+        if (availableMasters.length > 0) {
+            const m = randomChoice(availableMasters);
+            charId = m.id;
+            type = 'master';
+            isSpecial = true;
+        }
     }
 
     if (!isSpecial) {
@@ -259,11 +274,15 @@ const spawnCustomer = (slotIndex) => {
     }
 
     let orders = []; let orderCount = 1;
-    if (type === 'gordon' || type === 'alien') orderCount = 3;
-    else if (type === 'mika' || type === 'aloha') orderCount = 2;
-    else if (state.day > 3) orderCount = Math.floor(Math.random() * 2) + 1;
+    if (type === 'master') {
+        orders = [MASTER_CHARS[charId].target];
+    } else {
+        if (type === 'gordon' || type === 'alien') orderCount = 3;
+        else if (type === 'mika' || type === 'aloha') orderCount = 2;
+        else if (state.day > 3) orderCount = Math.floor(Math.random() * 2) + 1;
 
-    for (let i = 0; i < orderCount; i++) orders.push(randomChoice(state.activeRecipes));
+        for (let i = 0; i < orderCount; i++) orders.push(randomChoice(state.activeRecipes));
+    }
 
     let basePatience = (type === 'fast' ? 12000 : type === 'vip' ? 16000 : 20000) + (orders.length - 1) * 3000;
     if (type === 'aloha') basePatience = 99999;
@@ -274,9 +293,10 @@ const spawnCustomer = (slotIndex) => {
     if (state.franchise === 4) faceList = ['🦖', '🦕', '🐊', '🦎'];
     if (state.franchise === 5) faceList = ['🤖', '🦾', '👾', '👽'];
 
-    const face = isSpecial ? VIP_CHARS[charId].face :
-        type === 'fast' && state.franchise < 4 ? randomChoice(['🏃‍♂️', '🏃‍♀️']) : type === 'vip' && state.franchise < 4 ? randomChoice(['🕴️', '👑']) :
-            randomChoice(faceList);
+    const face = type === 'master' ? MASTER_CHARS[charId].face :
+        isSpecial ? VIP_CHARS[charId].face :
+            type === 'fast' && state.franchise < 4 ? randomChoice(['🏃‍♂️', '🏃‍♀️']) : type === 'vip' && state.franchise < 4 ? randomChoice(['🕴️', '👑']) :
+                randomChoice(faceList);
 
     state.slots[slotIndex] = {
         id: Date.now() + Math.random().toString(36).substr(2, 5),
@@ -325,7 +345,8 @@ const gameTick = () => {
     }
 
     // 調理プロセス
-    for (const [recipeId, prepData] of Object.entries(state.preparing)) {
+    for (const [prepId, prepData] of Object.entries(state.preparing)) {
+        const recipeId = prepData.recipeId;
         if (state.troubles.broken && state.troubles.broken.recipeId === recipeId) continue;
         if (!prepData.waitingNextTap) {
             const recipe = state.recipes[recipeId];
@@ -339,7 +360,7 @@ const gameTick = () => {
                         if (currentDayProg >= recipe.requiredDays) {
                             state.tray.push(recipeId);
                             if (state.franchise === 3) state.trayTimers.push(10000);
-                            delete state.preparing[recipeId]; needsRender = true;
+                            delete state.preparing[prepId]; needsRender = true;
                         }
                     }
                 }
@@ -351,7 +372,7 @@ const gameTick = () => {
                     } else {
                         state.tray.push(recipeId);
                         if (state.franchise === 3) state.trayTimers.push(10000); // 10秒で消える
-                        delete state.preparing[recipeId]; needsRender = true;
+                        delete state.preparing[prepId]; needsRender = true;
                     }
                 }
             }
@@ -411,7 +432,8 @@ const gameTick = () => {
 
     // ハプニング：機材故障
     if (!state.troubles.broken && Math.random() < 0.001 * (delta / 100) && Object.keys(state.preparing).length > 0) {
-        state.troubles.broken = { recipeId: randomChoice(Object.keys(state.preparing)), tapsRemaining: 5 };
+        const brokenPrepId = randomChoice(Object.keys(state.preparing));
+        state.troubles.broken = { recipeId: state.preparing[brokenPrepId].recipeId, tapsRemaining: 5 };
         needsRender = true;
     }
 
@@ -479,14 +501,58 @@ const gameTick = () => {
                 : state.slots.filter(s => s && s.type === 'customer' && s.state === 'waiting').flatMap(s => s.orders).filter(id => state.recipes[id].type === 'drink');
 
             let pCount = state.staff.barista;
-            for (let id of drinkReqs) {
+            for (let rId of drinkReqs) {
                 if (pCount <= 0) break;
-                if (!state.preparing[id] && state.tray.length + Object.keys(state.preparing).length < state.upgrades.traySize) {
-                    if (startPrep(id, true)) pCount--; // true = staff auto prep (no ingredient cost for simplicity, or cost it)
+                const loopCount = state.upgrades.dualMachine ? 2 : 1;
+                for (let i = 0; i < loopCount; i++) {
+                    const prepId = rId + (state.upgrades.dualMachine ? '_' + i : '');
+                    const prepData = state.preparing[prepId];
+                    if (prepData && prepData.waitingNextTap) {
+                        prepData.step++; prepData.elapsed = 0; prepData.waitingNextTap = false; pCount--;
+                        if (pCount <= 0) break;
+                    } else if (!prepData && state.tray.length + Object.keys(state.preparing).length < state.upgrades.traySize) {
+                        if (startPrep(rId, prepId, true)) pCount--;
+                        if (pCount <= 0) break;
+                    }
                 }
             }
             needsRender = true;
         }
+
+        if (state.staff.cook > 0) {
+            const foodReqs = state.isPartyDay
+                ? state.party.reqs.filter(r => state.recipes[r.id].type === 'food' && r.curr < r.max).map(r => r.id)
+                : state.slots.filter(s => s && s.type === 'customer' && s.state === 'waiting').flatMap(s => s.orders).filter(id => state.recipes[id].type === 'food');
+
+            let pCount = state.staff.cook;
+            for (let rId of foodReqs) {
+                if (pCount <= 0) break;
+                const loopCount = state.upgrades.dualMachine ? 2 : 1;
+                for (let i = 0; i < loopCount; i++) {
+                    const prepId = rId + (state.upgrades.dualMachine ? '_' + i : '');
+                    const prepData = state.preparing[prepId];
+                    if (prepData && prepData.waitingNextTap) {
+                        prepData.step++; prepData.elapsed = 0; prepData.waitingNextTap = false; pCount--;
+                        if (pCount <= 0) break;
+                    } else if (!prepData && state.tray.length + Object.keys(state.preparing).length < state.upgrades.traySize) {
+                        if (startPrep(rId, prepId, true)) pCount--;
+                        if (pCount <= 0) break;
+                    }
+                }
+            }
+            needsRender = true;
+        }
+
+        if (state.staff.cleaner > 0 && !state.isPartyDay) {
+            let pCount = state.staff.cleaner;
+            for (let i = 0; i < state.slots.length; i++) {
+                if (pCount <= 0) break;
+                if (state.slots[i] && state.slots[i].type === 'dirt') {
+                    state.slots[i] = null; pCount--; needsRender = true;
+                }
+            }
+        }
+
         if (state.staff.server > 0 && !state.isPartyDay) {
             const serveSlotIdx = state.slots.findIndex(s => s && s.type === 'customer' && s.state === 'waiting' && canServe(s));
             if (serveSlotIdx !== -1) serveCustomer(serveSlotIdx, null);
@@ -613,12 +679,12 @@ const endDay = () => {
 };
 
 // --- インタラクション ---
-const startPrep = (id, isAuto = false) => {
-    if (state.preparing[id]) return false;
-    if (state.troubles.broken && state.troubles.broken.recipeId === id) return false;
+const startPrep = (recipeId, prepId, isAuto = false) => {
+    if (state.preparing[prepId]) return false;
+    if (state.troubles.broken && state.troubles.broken.recipeId === recipeId) return false;
     if (state.tray.length + Object.keys(state.preparing).length >= state.upgrades.traySize) return false;
 
-    const recipe = state.recipes[id];
+    const recipe = state.recipes[recipeId];
 
     // 食材消費チェック
     let canCook = true;
@@ -633,7 +699,7 @@ const startPrep = (id, isAuto = false) => {
     }
 
     let duration = recipe.baseTime * Math.pow(0.85, state.upgrades.equipment - 1);
-    state.preparing[id] = { elapsed: 0, duration: duration, step: 1, maxSteps: recipe.steps, waitingNextTap: false, daysSpent: 0 };
+    state.preparing[prepId] = { recipeId: recipeId, elapsed: 0, duration: duration, step: 1, maxSteps: recipe.steps, waitingNextTap: false, daysSpent: 0 };
     return true;
 };
 
@@ -704,6 +770,18 @@ const serveCustomer = (slotIndex, btnEl) => {
         }
 
         if (state.affinities.gordon >= 5 && slot.custType === 'gordon') tipMult *= 1.5;
+
+        if (slot.custType === 'master') {
+            if (isPerfect) {
+                const trId = MASTER_CHARS[slot.charId].target;
+                state.recipes[trId].isMastered = true;
+                state.recipes[trId].basePrice *= 5; // 大幅強化
+                state.recipes[trId].name = `【究極】${state.recipes[trId].name}`;
+                showFloatingText(`✨ ${MASTER_CHARS[slot.charId].name}から免許皆伝!!`, window.innerWidth / 2 - 100, window.innerHeight / 2, 'text-yellow-400 font-black text-3xl');
+            } else {
+                showFloatingText(`「修行の道は険しいぞ…」`, window.innerWidth / 2 - 100, window.innerHeight / 2, 'text-gray-400 font-bold text-xl');
+            }
+        }
 
         const earned = Math.floor(price * tipMult);
         state.money += earned; state.earnedToday += earned; state.satisfiedToday++;
@@ -789,7 +867,9 @@ const handleAction = (e) => {
     }
 
     else if (action === 'prep-item') {
-        if (state.troubles.broken && state.troubles.broken.recipeId === id) {
+        const recipeId = id;
+        const prepId = btn.dataset.prepId || recipeId;
+        if (state.troubles.broken && state.troubles.broken.recipeId === recipeId) {
             state.troubles.broken.tapsRemaining--;
             if (state.troubles.broken.tapsRemaining <= 0) {
                 state.troubles.broken = null;
@@ -797,11 +877,11 @@ const handleAction = (e) => {
             }
             renderGameUI(); return;
         }
-        const prepData = state.preparing[id];
+        const prepData = state.preparing[prepId];
         if (prepData && prepData.waitingNextTap) {
             prepData.step++; prepData.elapsed = 0; prepData.waitingNextTap = false; renderGameUI();
         } else if (!prepData) {
-            if (!startPrep(id)) { btn.classList.add('bg-red-300'); setTimeout(() => btn.classList.remove('bg-red-300'), 200); }
+            if (!startPrep(recipeId, prepId)) { btn.classList.add('bg-red-300'); setTimeout(() => btn.classList.remove('bg-red-300'), 200); }
             else renderGameUI();
         }
     }
@@ -895,7 +975,8 @@ const handleAction = (e) => {
         } else if (itemType === 'fertilizer' && state.money >= 2000) {
             state.money -= 2000; state.fertilizer++; updated = true;
         } else if (itemType === 'staff') {
-            const currentLv = state.staff[id]; const cost = currentLv === 0 ? 10000 : 20000;
+            const currentLv = state.staff[id];
+            const cost = currentLv === 0 ? (id === 'cleaner' ? 8000 : id === 'cook' ? 12000 : 10000) : (id === 'cleaner' ? 15000 : 20000);
             if (state.money >= cost && currentLv < 2) { state.money -= cost; state.staff[id]++; updated = true; }
         } else if (itemType === 'pet') {
             const cost = PETS[id].cost;
@@ -962,8 +1043,8 @@ const updateDynamicUI = () => {
         timeEl.innerHTML = `⏱ 残り ${Math.ceil(state.timeRemaining)}秒`;
         state.isFever ? timeEl.classList.add('text-yellow-300', 'animate-pulse') : timeEl.classList.remove('text-yellow-300', 'animate-pulse');
     }
-    for (const [recipeId, pData] of Object.entries(state.preparing)) {
-        const bar = $(`prep-bar-${recipeId}`);
+    for (const [prepId, pData] of Object.entries(state.preparing)) {
+        const bar = $(`prep-bar-${prepId}`);
         if (bar && !pData.waitingNextTap) bar.style.width = `${(pData.elapsed / pData.duration) * 100}%`;
     }
     if (!state.isPartyDay) {
@@ -1020,36 +1101,40 @@ const renderGameUI = () => {
     // キッチン
     let kitchenHtml = '';
     state.activeRecipes.forEach(rId => {
-        const r = state.recipes[rId];
-        const pData = state.preparing[r.id];
-        const isBroken = state.troubles.broken && state.troubles.broken.recipeId === r.id;
-        const isPrep = !!pData; const waitingTap = isPrep && pData.waitingNextTap;
+        const loopCount = state.upgrades.dualMachine ? 2 : 1;
+        for (let i = 0; i < loopCount; i++) {
+            const prepId = rId + (state.upgrades.dualMachine ? '_' + i : '');
+            const r = state.recipes[rId];
+            const pData = state.preparing[prepId];
+            const isBroken = state.troubles.broken && state.troubles.broken.recipeId === r.id;
+            const isPrep = !!pData; const waitingTap = isPrep && pData.waitingNextTap;
 
-        let displayIcon = r.icon; let stepText = '';
-        if (r.isGiant) {
-            stepText = `<div class="text-xs text-purple-600 font-bold bg-purple-100 rounded-full px-2 mt-1">${(pData ? pData.daysSpent || 0 : 0) + 1}日目 仕込中</div>`;
-        } else if (r.steps > 1) {
-            const step = isPrep ? pData.step : 1; displayIcon = r.stepIcons[step - 1];
-            stepText = `<div class="text-xs text-blue-600 font-bold bg-blue-100 rounded-full px-2 mt-1">工程 ${step}/${r.steps}</div>`;
+            let displayIcon = r.icon; let stepText = '';
+            if (r.isGiant) {
+                stepText = `<div class="text-xs text-purple-600 font-bold bg-purple-100 rounded-full px-2 mt-1">${(pData ? pData.daysSpent || 0 : 0) + 1}日目 仕込中</div>`;
+            } else if (r.steps > 1) {
+                const step = isPrep ? pData.step : 1; displayIcon = r.stepIcons[step - 1];
+                stepText = `<div class="text-xs text-blue-600 font-bold bg-blue-100 rounded-full px-2 mt-1">工程 ${step}/${r.steps}</div>`;
+            }
+
+            // 食材チェック
+            let canCook = true;
+            for (let key in r.reqs) { if (state.inventory[key] < r.reqs[key]) canCook = false; }
+            const outOfStock = !canCook && !isPrep;
+
+            kitchenHtml += `
+                    <div class="relative bg-white/90 backdrop-blur p-2 md:p-4 rounded-xl md:rounded-2xl shadow-md border-b-2 md:border-b-4 border-amber-300 cursor-pointer hover:bg-white active:translate-y-1 transition-all flex flex-col items-center justify-center ${isPrep && !waitingTap && !isBroken ? 'is-preparing' : ''} ${waitingTap ? 'waiting-tap' : ''} ${isBroken ? 'broken-machine' : ''} ${outOfStock ? 'grayscale opacity-50' : ''}"
+                         data-action="prep-item" data-id="${r.id}" data-prep-id="${prepId}">
+                        <div class="text-2xl md:text-4xl mb-1 ${isBroken ? 'opacity-50' : ''}">${displayIcon}</div>
+                        <div class="font-bold text-gray-700 text-[10px] md:text-sm text-center leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">${r.name}${state.upgrades.dualMachine ? ` (${i + 1})` : ''}</div>
+                        ${stepText}
+                        ${waitingTap && !isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-white/50 font-black text-red-500 rounded-xl md:rounded-2xl text-xs md:text-base">TAP!</div>` : ''}
+                        ${isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center leading-tight">故障!<br>連打<br>(${state.troubles.broken.tapsRemaining})</div>` : ''}
+                        ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center">不足</div>` : ''}
+                        ${isPrep && !waitingTap && !isBroken ? `<div class="absolute bottom-1 md:bottom-2 left-1 md:left-2 right-1 md:right-2 h-1.5 md:h-2 bg-gray-200 rounded-full overflow-hidden"><div id="prep-bar-${prepId}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pData.elapsed / pData.duration) * 100}%"></div></div>` : ''}
+                    </div>
+                `;
         }
-
-        // 食材チェック
-        let canCook = true;
-        for (let key in r.reqs) { if (state.inventory[key] < r.reqs[key]) canCook = false; }
-        const outOfStock = !canCook && !isPrep;
-
-        kitchenHtml += `
-                <div class="relative bg-white/90 backdrop-blur p-2 md:p-4 rounded-xl md:rounded-2xl shadow-md border-b-2 md:border-b-4 border-amber-300 cursor-pointer hover:bg-white active:translate-y-1 transition-all flex flex-col items-center justify-center ${isPrep && !waitingTap && !isBroken ? 'is-preparing' : ''} ${waitingTap ? 'waiting-tap' : ''} ${isBroken ? 'broken-machine' : ''} ${outOfStock ? 'grayscale opacity-50' : ''}"
-                     data-action="prep-item" data-id="${r.id}">
-                    <div class="text-2xl md:text-4xl mb-1 ${isBroken ? 'opacity-50' : ''}">${displayIcon}</div>
-                    <div class="font-bold text-gray-700 text-[10px] md:text-sm text-center leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">${r.name}</div>
-                    ${stepText}
-                    ${waitingTap && !isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-white/50 font-black text-red-500 rounded-xl md:rounded-2xl text-xs md:text-base">TAP!</div>` : ''}
-                    ${isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center leading-tight">故障!<br>連打<br>(${state.troubles.broken.tapsRemaining})</div>` : ''}
-                    ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center">不足</div>` : ''}
-                    ${isPrep && !waitingTap && !isBroken ? `<div class="absolute bottom-1 md:bottom-2 left-1 md:left-2 right-1 md:right-2 h-1.5 md:h-2 bg-gray-200 rounded-full overflow-hidden"><div id="prep-bar-${r.id}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pData.elapsed / pData.duration) * 100}%"></div></div>` : ''}
-                </div>
-            `;
     });
     $('ui-kitchen').innerHTML = kitchenHtml;
 
@@ -1078,7 +1163,7 @@ const renderGameUI = () => {
                         <div class="customer-card relative bg-white/95 backdrop-blur rounded-xl md:rounded-2xl p-2 md:p-3 shadow-lg border-2 ${s.custType === 'vip' || s.charId ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-white' : 'border-white/50'} flex flex-col md:flex-row items-center gap-1 md:gap-3 cursor-pointer shrink-0 w-24 h-full md:w-full md:h-auto ${canComplete ? 'ring-2 md:ring-4 ring-green-400 animate-pulse' : ''}" data-action="serve-customer" data-index="${i}">
                             <div class="text-3xl md:text-5xl bg-black/5 rounded-full w-10 h-10 md:w-14 md:h-14 flex flex-col items-center justify-center shadow-inner relative shrink-0">
                                 ${s.face}
-                                ${s.charId ? `<div class="absolute -bottom-2 text-[8px] md:text-xs font-black bg-yellow-400 text-white px-1 md:px-2 rounded-full whitespace-nowrap scale-90 md:scale-100">${VIP_CHARS[s.charId].name}</div>` : ''}
+                                ${s.charId ? `<div class="absolute -bottom-2 text-[8px] md:text-xs font-black bg-yellow-400 text-white px-1 md:px-2 rounded-full whitespace-nowrap scale-90 md:scale-100">${s.custType === 'master' ? MASTER_CHARS[s.charId].name : VIP_CHARS[s.charId].name}</div>` : ''}
                             </div>
                             <div class="flex-1 pointer-events-none mt-1 md:mt-2 w-full flex flex-col justify-center">
                                 <div class="bg-blue-50/80 border bg-blue-100/50 md:border-2 border-blue-200 rounded-lg md:rounded-xl p-1 mb-1 md:mb-1.5 relative flex-1 flex flex-col justify-center min-h-[30px] md:min-h-[40px]"><div class="text-center font-bold text-xs md:text-lg flex flex-wrap items-center justify-center gap-0.5 md:gap-1 line-clamp-2 leading-tight">${orderIcons}</div></div>
@@ -1406,10 +1491,16 @@ const renderApp = () => {
             shopHtml += genItemHtml(`キャンディ (所持:${state.candies})`, '客の怒りを鎮める', 500, false, 'candy', 'candy', '🍬', '');
 
             const bLv = state.staff.barista;
-            shopHtml += genItemHtml(`バリスタ Lv.${bLv}`, bLv === 0 ? '自動作成機能' : 'ドリンク2個同時作成', bLv === 0 ? 10000 : 20000, bLv >= 2, 'staff', 'barista', '🧑‍🍳', bLv >= 2 ? 'MAX' : '育成');
+            shopHtml += genItemHtml(`バリスタ Lv.${bLv}`, bLv === 0 ? 'ドリンク自動作成' : '対応速度UP', bLv === 0 ? 10000 : 20000, bLv >= 2, 'staff', 'barista', '🧑‍🍳', bLv >= 2 ? 'MAX' : '育成');
 
             const sLv = state.staff.server;
             shopHtml += genItemHtml(`ウェイトレス Lv.${sLv}`, sLv === 0 ? '自動提供機能' : '自動提供のチップ+20%', sLv === 0 ? 15000 : 20000, sLv >= 2, 'staff', 'server', '👩‍💼', sLv >= 2 ? 'MAX' : '育成');
+
+            const cLv = state.staff.cook || 0;
+            shopHtml += genItemHtml(`コック Lv.${cLv}`, cLv === 0 ? 'フード自動作成' : '対応速度UP', cLv === 0 ? 12000 : 20000, cLv >= 2, 'staff', 'cook', '👨‍🍳', cLv >= 2 ? 'MAX' : '育成');
+
+            const clLv = state.staff.cleaner || 0;
+            shopHtml += genItemHtml(`掃除夫 Lv.${clLv}`, clLv === 0 ? '自動清掃機能' : '対応速度UP', clLv === 0 ? 8000 : 15000, clLv >= 2, 'staff', 'cleaner', '🧹', clLv >= 2 ? 'MAX' : '育成');
 
             Object.values(PETS).forEach(p => {
                 const isOwned = state.pets[p.id];
@@ -1424,6 +1515,8 @@ const renderApp = () => {
             shopHtml += genItemHtml(`最新調理器具 Lv.${state.upgrades.equipment}`, '調理時間を短縮', eqCost, state.upgrades.equipment >= 5, 'system', 'equipment', '⚡', 'MAX');
             const trayCost = 3000 * (state.upgrades.traySize - 2);
             shopHtml += genItemHtml(`トレイ枠 (現在:${state.upgrades.traySize})`, '一度に置ける完成品が増加', trayCost, state.upgrades.traySize >= 6, 'system', 'traySize', '🍽', 'MAX');
+
+            shopHtml += genItemHtml('デュアルマシン', '1つのメニューを同時に2個まで調理可能に', 30000, state.upgrades.dualMachine, 'system', 'dualMachine', '📠', '導入済');
 
             if (state.franchise === 1) shopHtml += genItemHtml('ハワイアンビーチ出店', '南国の新客と新メニュー！', 100000, false, 'system', 'franchise2', '🌴', '');
             else if (state.franchise === 2) shopHtml += genItemHtml('宇宙ステーション出店', '無重力トレイと宇宙人襲来！', 300000, false, 'system', 'franchise3', '🚀', '');
