@@ -46,11 +46,11 @@ const VIP_CHARS = {
     mika: { id: 'mika', name: 'インフルエンサー ミカ', face: '<img src="../../assets/images/cafe/vips/mika.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="ミカ">', desc: '満足させると翌日客足1.5倍', reqLevel: 2, reqFranchise: 1 },
     gordon: { id: 'gordon', name: '市長 ゴードン', face: '<img src="../../assets/images/cafe/vips/godon.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="ゴードン">', desc: '大食いだがチップが桁違い', reqLevel: 3, reqFranchise: 1 },
     aloha: { id: 'aloha', name: 'アロハおじさん', face: '<img src="../../assets/images/cafe/vips/aroha.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="アロハおじさん">', desc: 'ハワイ店限定。怒らない超優良客', reqLevel: 1, reqFranchise: 2 },
-    alien: { id: 'alien', name: '銀河連邦使者', face: '👽', desc: '宇宙店限定。超高額チップ＆要求大', reqLevel: 1, reqFranchise: 3 },
-    t_rex: { id: 't_rex', name: 'ティラノサウルス', face: '🦖', desc: '恐竜時代限定。大食いで気性が荒い', reqLevel: 2, reqFranchise: 4 },
-    tricera: { id: 'tricera', name: 'トリケラトプス', face: '🦕', desc: '恐竜時代限定。草食系でまったり待つ', reqLevel: 1, reqFranchise: 4 },
+    alien: { id: 'alien', name: '銀河連邦使者', face: '<img src="../../assets/images/cafe/messenger.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="銀河連邦使者">', desc: '宇宙店限定。超高額チップ＆要求大', reqLevel: 1, reqFranchise: 3 },
+    t_rex: { id: 't_rex', name: 'ティラノサウルス', face: '<img src="../../assets/images/cafe/t-rex.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="ティラノサウルス">', desc: '恐竜時代限定。大食いで気性が荒い', reqLevel: 2, reqFranchise: 4 },
+    tricera: { id: 'tricera', name: 'トリケラトプス', face: '<img src="../../assets/images/cafe/triceratops.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="トリケラトプス">', desc: '恐竜時代限定。草食系でまったり待つ', reqLevel: 1, reqFranchise: 4 },
     cyborg: { id: 'cyborg', name: '試作サイボーグ', face: '🤖', desc: '未来支店限定。効率重視で待てない', reqLevel: 1, reqFranchise: 5 },
-    android: { id: 'android', name: '高級アンドロイド', face: '🦾', desc: '未来支店限定。超高額チップを払う', reqLevel: 2, reqFranchise: 5 }
+    android: { id: 'android', name: '高級アンドロイド', face: '<img src="../../assets/images/cafe/android.png" class="w-full h-full object-cover p-0.5 drop-shadow-md max-w-[90%] max-h-[90%] pointer-events-none" alt="高級アンドロイド">', desc: '未来支店限定。超高額チップを払う', reqLevel: 2, reqFranchise: 5 }
 };
 
 const MASTER_CHARS = {
@@ -89,15 +89,17 @@ const ACHIEVEMENTS = [
 ];
 
 const SKILLS = {
-    feverTime: { id: 'feverTime', name: 'フィーバー延長', desc: 'フィーバー開始時間を早める(Lv1:18秒, Lv2:21秒, Lv3:25秒)', maxLv: 3, costs: [1, 2, 3] },
+    feverTime: { id: 'feverTime', name: 'フィーバー延長', desc: 'フィーバーの持続時間を20%延長する(Lvにつき+20%)', maxLv: 3, costs: [1, 2, 3] },
     charisma: { id: 'charisma', name: 'カリスマ', desc: 'VIP・固有キャラの来店確率UP', maxLv: 3, costs: [1, 2, 3] },
     security: { id: 'security', name: '防犯対策', desc: '泥棒の移動速度ダウン', maxLv: 3, costs: [1, 2, 3] },
-    petPower: { id: 'petPower', name: 'ペットの癒やし', desc: 'ペットのスキル発動頻度UP', maxLv: 3, costs: [2, 3, 5] }
+    petPower: { id: 'petPower', name: 'ペットの癒やし', desc: 'ペットのスキル発動頻度UP', maxLv: 3, costs: [2, 3, 5] },
+    luckyChance: { id: 'luckyChance', name: 'ラッキーチャンス', desc: '10%の確率で売上が2倍になる(Lvにつき確率+5%)', maxLv: 3, costs: [3, 5, 8] },
+    patienceBreath: { id: 'patienceBreath', name: '忍耐の呼吸', desc: '客の忍耐力の減少速度を15%緩和する(Lvにつき+15%)', maxLv: 3, costs: [3, 5, 8] }
 };
 
 const PETS = {
-    cat: { id: 'cat', name: '看板ネコ', icon: '🐈', cost: 30000, desc: '時々全員の忍耐力を回復させる' },
-    owl: { id: 'owl', name: '看板フクロウ', icon: '🦉', cost: 50000, desc: '時々チップを拾ってくる(少額)' }
+    cat: { id: 'cat', name: '看板ネコ', icon: '<img src="../../assets/images/cafe/cat.png" class="w-full h-full object-cover p-1" alt="ネコ">', desc: '時々全員の忍耐力を回復させる' },
+    owl: { id: 'owl', name: '看板フクロウ', icon: '<img src="../../assets/images/cafe/owl.png" class="w-full h-full object-cover p-1" alt="フクロウ">', desc: '時々チップを拾ってくる(少額)' }
 };
 
 const GAME_CONFIG = { dayDuration: 60, fps: 10, maxSlots: 5, maxMenuSelection: 4 };
@@ -230,11 +232,31 @@ const showFloatingText = (text, x, y, colorClass) => {
 
 const checkAchievements = () => {
     ACHIEVEMENTS.forEach(a => {
-        if (!state.achievements.includes(a.id) && state.stats[a.type] >= a.target) {
-            state.achievements.push(a.id); state.skillPoints += a.rewardSP;
-            showFloatingText(`🏆 実績解除: ${a.title} (+${a.rewardSP}SP)`, window.innerWidth / 2 - 100, 100, 'text-yellow-500 font-black text-2xl');
+        if (!state.achievements.includes(a.id)) {
+            let currentVal = state.stats[a.type] || 0;
+            if (currentVal >= a.target) {
+                state.achievements.push(a.id);
+                state.skillPoints += a.rewardSP;
+                saveGame();
+                showSystemNotification(`🏆 実績解除: ${a.title}`, `報酬: +${a.rewardSP} SP<br><small>${a.desc}</small>`, 'bg-yellow-500');
+            }
         }
     });
+};
+
+const showSystemNotification = (title, message, bgColor = 'bg-blue-600') => {
+    const container = $('ui-notification-container');
+    if (!container) return;
+
+    const el = document.createElement('div');
+    el.className = `${bgColor} text-white p-4 rounded-2xl shadow-2xl mb-4 border-4 border-white/30 animate-bounce-in min-w-[280px] text-center transform hover:scale-105 transition-transform cursor-pointer`;
+    el.innerHTML = `
+        <div class="text-xl font-black mb-1">${title}</div>
+        <div class="font-bold text-sm">${message}</div>
+    `;
+    el.onclick = () => el.remove();
+    container.appendChild(el);
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 4000);
 };
 
 const updateMarket = () => {
@@ -412,7 +434,7 @@ const gameTick = () => {
     // 衛生検査員
     if (!state.troubles.inspector.active && Math.random() < 0.0002 * (delta / 100) && !state.isPartyDay) {
         state.troubles.inspector = { active: true, time: 5000 };
-        showFloatingText('🕵️‍♂️ 衛生検査員がチェック中…', window.innerWidth / 2, 200, 'text-blue-800 font-black text-2xl');
+        showSystemNotification('🕵️‍♂️ 衛生検査！', '5秒間、お店が清潔かチェックされます…', 'bg-indigo-600');
         needsRender = true;
     }
     if (state.troubles.inspector.active) {
@@ -421,11 +443,11 @@ const gameTick = () => {
             state.troubles.inspector.active = false;
             let dirtCount = state.slots.filter(s => s && s.type === 'dirt').length;
             if (dirtCount === 0) {
-                state.money += 1000; state.stats.totalEarned += 1000;
-                showFloatingText('✨ 衛生評価満点! +¥1000', window.innerWidth / 2, 200, 'text-green-600 font-black text-2xl');
+                state.money += 1000; state.stats.totalEarned += 1000; state.skillPoints += 1;
+                showSystemNotification('✨ 検査合格！', '評価満点！報酬 +¥1000 & +1 SP', 'bg-green-600');
             } else {
                 let penalty = dirtCount * 500; state.money = Math.max(0, state.money - penalty); resetChain();
-                showFloatingText(`💦 衛生指導! 罰金 -¥${penalty}`, window.innerWidth / 2, 200, 'text-red-600 font-black text-2xl');
+                showSystemNotification('💦 衛生改善命令', `ゴミを放置しすぎです！罰金 -¥${penalty}`, 'bg-red-600');
             }
             needsRender = true;
         }
@@ -446,7 +468,7 @@ const gameTick = () => {
         if (state.troubles.thief.x > 110 || state.troubles.thief.x < -20) {
             state.troubles.thief.active = false;
             const penalty = Math.min(state.money, 1000); state.money -= penalty; resetChain();
-            showFloatingText(`-¥${penalty} 盗まれた!!`, window.innerWidth / 2, window.innerHeight - 100, 'text-red-600 font-black text-4xl');
+            showSystemNotification('😱 強盗成功逃亡', `お金を ¥${penalty} 盗まれました！`, 'bg-red-800');
             needsRender = true;
         } else if (el) el.style.left = `${state.troubles.thief.x}vw`;
     } else if (Math.random() < 0.0005 * (delta / 100) && state.money > 0 && !state.isPartyDay) {
@@ -472,7 +494,8 @@ const gameTick = () => {
                     slot.thinkTime -= delta;
                     if (slot.thinkTime <= 0) { slot.state = 'waiting'; needsRender = true; }
                 } else if (slot.state === 'waiting') {
-                    slot.patience -= delta;
+                    const patienceDecayMult = 1 - (state.skills.patienceBreath || 0) * 0.15;
+                    slot.patience -= delta * (state.isFever ? 0.3 : 1) * patienceDecayMult;
                     if (slot.patience <= 0) {
                         state.lostToday++; state.reputation = clamp(state.reputation - 0.2, 1.0, 5.0);
                         const rect = document.getElementById(`slot-${i}`)?.getBoundingClientRect();
@@ -784,10 +807,20 @@ const serveCustomer = (slotIndex, btnEl) => {
             }
         }
 
-        const earned = Math.floor(price * tipMult);
+        // 売上加算
+        const luckyChanceProb = 0.1 + (state.skills.luckyChance || 0) * 0.05;
+        let finalPrice = price * tipMult;
+        if (Math.random() < luckyChanceProb) {
+            finalPrice *= 2;
+            showFloatingText('✨ LUCKY! x2 ✨', window.innerWidth / 2 - 50, 150, 'text-yellow-400 font-black text-3xl');
+        }
+
+        const earned = Math.floor(finalPrice);
         state.money += earned; state.earnedToday += earned; state.satisfiedToday++;
         state.stats.totalEarned += earned;
+        state.stats.maxChain = Math.max(state.stats.maxChain || 0, state.chain);
         if (isPerfect) state.stats.perfectServes++;
+        checkAchievements();
 
         state.reputation = clamp(state.reputation + (isPerfect ? 0.05 : 0.01), 1.0, 5.0);
 
@@ -991,13 +1024,15 @@ const handleAction = (e) => {
             const cost = FARM_ITEMS[id].cost * Math.pow(1.5, currentLv);
             if (state.money >= cost) { state.money -= cost; state.farm[id]++; updated = true; }
         } else if (itemType === 'manager') {
-            if (state.staff.barista === 2 && state.staff.server === 2 && state.money >= 50000 && !state.managers[id]) {
-                state.money -= 50000; state.managers[id] = true; updated = true;
+            const cost = parseInt(btn.dataset.cost) || 50000;
+            if (state.staff.barista === 2 && state.staff.server === 2 && state.money >= cost && !state.managers[id]) {
+                state.money -= cost; state.managers[id] = true; updated = true;
             }
         } else if (itemType === 'system') {
             if (id === 'interior') { const c = 1000 * Math.pow(1.5, state.upgrades.interior - 1); if (state.money >= c && state.upgrades.interior < 5) { state.money -= c; state.upgrades.interior++; updated = true; } }
             if (id === 'equipment') { const c = 1500 * Math.pow(1.5, state.upgrades.equipment - 1); if (state.money >= c && state.upgrades.equipment < 5) { state.money -= c; state.upgrades.equipment++; updated = true; } }
             if (id === 'traySize') { const c = 3000 * (state.upgrades.traySize - 2); if (state.money >= c && state.upgrades.traySize < 6) { state.money -= c; state.upgrades.traySize++; updated = true; } }
+            if (id === 'dualMachine') { if (state.money >= 30000 && !state.upgrades.dualMachine) { state.money -= 30000; state.upgrades.dualMachine = true; updated = true; } }
             if (id.startsWith('franchise')) {
                 const fId = parseInt(id.replace('franchise', ''));
                 let cost = 0; let t = '';
@@ -1203,8 +1238,13 @@ const renderGameUI = () => {
     const thiefWrapper = $('thief-wrapper');
     let overlayHtml = '';
     if (state.troubles.thief.active) overlayHtml += `<div id="thief-el" class="thief-running" data-action="catch-thief" style="left:${state.troubles.thief.x}vw">🦹‍♂️</div>`;
-    if (state.activePet) overlayHtml += `<div id="pet-element" class="absolute bottom-10 left-10 text-5xl filter drop-shadow-md pointer-events-none transition-transform">${PETS[state.activePet].icon}</div>`;
-    if (state.hasAceManager) overlayHtml += `<button data-action="use-ace" class="absolute bottom-5 right-5 w-20 h-20 rounded-full shadow-2xl ${state.aceManagerUsed ? 'bg-gray-700 opacity-60 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 hover:scale-110 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.7)]'} text-white font-black text-4xl transition-all z-40 border-4 border-purple-300 flex items-center justify-center flex-col leading-none">🦸‍♀️<span class="text-[10px] mt-1">HELP</span></button>`;
+    if (state.activePet) overlayHtml += `<div id="pet-element" class="absolute bottom-10 left-10 w-20 h-20 md:w-32 md:h-32 filter drop-shadow-xl pointer-events-none transition-transform z-[60]">${PETS[state.activePet].icon}</div>`;
+    if (state.hasAceManager) {
+        overlayHtml += `
+            <button data-action="use-ace" class="fixed bottom-5 right-5 w-20 h-20 rounded-full shadow-2xl ${state.aceManagerUsed ? 'bg-gray-700 opacity-60 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 hover:scale-110 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.7)]'} text-white font-black text-4xl transition-all z-[9999] border-4 border-purple-300 flex items-center justify-center flex-col leading-none">
+                🦸‍♀️<span class="text-[10px] mt-1">HELP</span>
+            </button>`;
+    }
     thiefWrapper.innerHTML = overlayHtml;
 };
 
@@ -1376,6 +1416,7 @@ const renderApp = () => {
                     </div>
                     <div id="ui-delivery" class="absolute right-0 top-10 md:top-20 z-30 scale-75 md:scale-100 origin-top-right" style="display:none;"></div>
                     <div id="thief-wrapper" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
+                    <div id="ui-notification-container" class="absolute top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center pointer-events-none children:pointer-events-auto"></div>
                 </div>
             `;
         renderGameUI();
