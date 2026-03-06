@@ -98,8 +98,8 @@ const SKILLS = {
 };
 
 const PETS = {
-    cat: { id: 'cat', name: '看板ネコ', icon: '<img src="../../assets/images/cafe/cat.png" class="w-full h-full object-cover p-1" alt="ネコ">', desc: '時々全員の忍耐力を回復させる' },
-    owl: { id: 'owl', name: '看板フクロウ', icon: '<img src="../../assets/images/cafe/owl.png" class="w-full h-full object-cover p-1" alt="フクロウ">', desc: '時々チップを拾ってくる(少額)' }
+    cat: { id: 'cat', name: '看板ネコ', icon: '<img src="../../assets/images/cafe/cat.png" class="w-full h-full object-cover p-1" alt="ネコ">', cost: 30000, desc: '時々全員の忍耐力を回復させる' },
+    owl: { id: 'owl', name: '看板フクロウ', icon: '<img src="../../assets/images/cafe/owl.png" class="w-full h-full object-cover p-1" alt="フクロウ">', cost: 50000, desc: '時々チップを拾ってくる(少額)' }
 };
 
 const GAME_CONFIG = { dayDuration: 60, fps: 10, maxSlots: 5, maxMenuSelection: 4 };
@@ -217,8 +217,16 @@ const hasSaveData = () => !!localStorage.getItem(SAVE_KEY);
 
 // --- ユーティリティ ---
 const $ = id => document.getElementById(id);
-const formatMoney = amount => `¥${amount.toLocaleString()}`;
+const formatMoney = (amount) => `¥${(amount || 0).toLocaleString()}`;
 const randomChoice = arr => arr[Math.floor(Math.random() * arr.length)];
+const shuffleArray = (arr) => {
+    const res = [...arr];
+    for (let i = res.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [res[i], res[j]] = [res[j], res[i]];
+    }
+    return res;
+};
 const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
 const showFloatingText = (text, x, y, colorClass) => {
@@ -249,7 +257,7 @@ const showSystemNotification = (title, message, bgColor = 'bg-blue-600') => {
     if (!container) return;
 
     const el = document.createElement('div');
-    el.className = `${bgColor} text-white p-4 rounded-2xl shadow-2xl mb-4 border-4 border-white/30 animate-bounce-in min-w-[280px] text-center transform hover:scale-105 transition-transform cursor-pointer`;
+    el.className = `${bgColor} text-white p-4 rounded-2xl shadow-2xl mb-4 border-4 border-white/30 animate-bounce-in min-w-[280px] text-center transform hover:scale-105 transition-transform cursor-pointer pointer-events-auto`;
     el.innerHTML = `
         <div class="text-xl font-black mb-1">${title}</div>
         <div class="font-bold text-sm">${message}</div>
@@ -519,51 +527,58 @@ const gameTick = () => {
     state.staffTimer += delta;
     if (state.staffTimer >= 1000) {
         state.staffTimer = 0;
-        if (state.staff.barista > 0) {
-            const drinkReqs = state.isPartyDay
-                ? state.party.reqs.filter(r => state.recipes[r.id].type === 'drink' && r.curr < r.max).map(r => r.id)
-                : state.slots.filter(s => s && s.type === 'customer' && s.state === 'waiting').flatMap(s => s.orders).filter(id => state.recipes[id].type === 'drink');
+        if (state.staff.barista > 0 || state.staff.cook > 0) {
+            const getReqs = (type) => {
+                const reqs = state.isPartyDay
+                    ? state.party.reqs.filter(r => state.recipes[r.id].type === type && r.curr < r.max).flatMap(r => Array(r.max - r.curr).fill(r.id))
+                    : state.slots.filter(s => s && s.type === 'customer' && s.state === 'waiting').flatMap(s => s.orders).filter(id => state.recipes[id].type === type);
+                
+                // 必要数から、すでにトレイにある分と調理中の分を差し引く
+                const counts = {};
+                reqs.forEach(id => counts[id] = (counts[id] || 0) + 1);
+                
+                const finalReqs = [];
+                for (const [id, needed] of Object.entries(counts)) {
+                    const onTray = state.tray.filter(tid => tid === id).length;
+                    const inPrep = [id, id + '_0', id + '_1'].filter(pid => state.preparing[pid]).length;
+                    const toMake = needed - (onTray + inPrep);
+                    for (let i = 0; i < toMake; i++) finalReqs.push(id);
+                }
+                return shuffleArray(finalReqs); // ランダム化
+            };
 
-            let pCount = state.staff.barista;
-            for (let rId of drinkReqs) {
-                if (pCount <= 0) break;
-                const loopCount = state.upgrades.dualMachine ? 2 : 1;
-                for (let i = 0; i < loopCount; i++) {
-                    const prepId = rId + (state.upgrades.dualMachine ? '_' + i : '');
-                    const prepData = state.preparing[prepId];
-                    if (prepData && prepData.waitingNextTap) {
-                        prepData.step++; prepData.elapsed = 0; prepData.waitingNextTap = false; pCount--;
-                        if (pCount <= 0) break;
-                    } else if (!prepData && state.tray.length + Object.keys(state.preparing).length < state.upgrades.traySize) {
-                        if (startPrep(rId, prepId, true)) pCount--;
-                        if (pCount <= 0) break;
+            const processStaff = (type, power) => {
+                const reqs = getReqs(type);
+                let pCount = power;
+                for (let rId of reqs) {
+                    if (pCount <= 0) break;
+                    
+                    const pIds = state.upgrades.dualMachine ? [rId + '_0', rId + '_1'] : [rId];
+                    let acted = false;
+
+                    // 1. 完了タップや修理を優先
+                    for (const pid of pIds) {
+                        const pData = state.preparing[pid];
+                        if (pData && pData.waitingNextTap) {
+                            pData.step++; pData.elapsed = 0; pData.waitingNextTap = false; pCount--; acted = true; break;
+                        }
+                    }
+                    if (acted) continue;
+
+                    // 2. 修理が必要な場合はスタッフは手を出せない（プレイヤーがやるべき）
+                    if (state.troubles.broken && state.troubles.broken.recipeId === rId) continue;
+
+                    // 3. 新規開始
+                    for (const pid of pIds) {
+                        if (!state.preparing[pid] && state.tray.length + Object.keys(state.preparing).length < state.upgrades.traySize) {
+                            if (startPrep(rId, pid, true)) { pCount--; acted = true; break; }
+                        }
                     }
                 }
-            }
-            needsRender = true;
-        }
+            };
 
-        if (state.staff.cook > 0) {
-            const foodReqs = state.isPartyDay
-                ? state.party.reqs.filter(r => state.recipes[r.id].type === 'food' && r.curr < r.max).map(r => r.id)
-                : state.slots.filter(s => s && s.type === 'customer' && s.state === 'waiting').flatMap(s => s.orders).filter(id => state.recipes[id].type === 'food');
-
-            let pCount = state.staff.cook;
-            for (let rId of foodReqs) {
-                if (pCount <= 0) break;
-                const loopCount = state.upgrades.dualMachine ? 2 : 1;
-                for (let i = 0; i < loopCount; i++) {
-                    const prepId = rId + (state.upgrades.dualMachine ? '_' + i : '');
-                    const prepData = state.preparing[prepId];
-                    if (prepData && prepData.waitingNextTap) {
-                        prepData.step++; prepData.elapsed = 0; prepData.waitingNextTap = false; pCount--;
-                        if (pCount <= 0) break;
-                    } else if (!prepData && state.tray.length + Object.keys(state.preparing).length < state.upgrades.traySize) {
-                        if (startPrep(rId, prepId, true)) pCount--;
-                        if (pCount <= 0) break;
-                    }
-                }
-            }
+            if (state.staff.barista > 0) processStaff('drink', state.staff.barista);
+            if (state.staff.cook > 0) processStaff('food', state.staff.cook);
             needsRender = true;
         }
 
@@ -627,7 +642,7 @@ const startDay = () => {
     state.slots = [null, null, null, null, null];
     const preserved = {};
     for (const [id, pData] of Object.entries(state.preparing)) {
-        if (state.recipes[id].isGiant) preserved[id] = pData;
+        if (state.recipes[pData.recipeId] && state.recipes[pData.recipeId].isGiant) preserved[id] = pData;
     }
     state.tray = []; state.trayTimers = []; state.preparing = preserved;
     state.troubles = { broken: null, thief: { active: false, x: 0, direction: 1 }, inspector: { active: false, time: 0 } };
@@ -649,8 +664,9 @@ const endDay = () => {
 
     // 巨大レシピの日数経過
     for (const id in state.preparing) {
-        if (state.recipes[id].isGiant) {
-            state.preparing[id].daysSpent = (state.preparing[id].daysSpent || 0) + 1;
+        const pData = state.preparing[id];
+        if (state.recipes[pData.recipeId] && state.recipes[pData.recipeId].isGiant) {
+            pData.daysSpent = (pData.daysSpent || 0) + 1;
         }
     }
 
@@ -902,7 +918,9 @@ const handleAction = (e) => {
 
     else if (action === 'prep-item') {
         const recipeId = id;
-        const prepId = btn.dataset.prepId || recipeId;
+        const pIds = state.upgrades.dualMachine ? [recipeId + '_0', recipeId + '_1'] : [recipeId];
+        
+        // 修理優先
         if (state.troubles.broken && state.troubles.broken.recipeId === recipeId) {
             state.troubles.broken.tapsRemaining--;
             if (state.troubles.broken.tapsRemaining <= 0) {
@@ -911,12 +929,28 @@ const handleAction = (e) => {
             }
             renderGameUI(); return;
         }
-        const prepData = state.preparing[prepId];
-        if (prepData && prepData.waitingNextTap) {
-            prepData.step++; prepData.elapsed = 0; prepData.waitingNextTap = false; renderGameUI();
-        } else if (!prepData) {
-            if (!startPrep(recipeId, prepId)) { btn.classList.add('bg-red-300'); setTimeout(() => btn.classList.remove('bg-red-300'), 200); }
-            else renderGameUI();
+
+        // 完了タップ優先
+        let targetId = null;
+        for(const pid of pIds) {
+            if (state.preparing[pid] && state.preparing[pid].waitingNextTap) {
+                targetId = pid; break;
+            }
+        }
+
+        if (targetId) {
+            const pData = state.preparing[targetId];
+            pData.step++; pData.elapsed = 0; pData.waitingNextTap = false; renderGameUI();
+        } else {
+            // 新規開始（空いているスロットを探す）
+            let emptyId = pIds.find(pid => !state.preparing[pid]);
+            if (emptyId) {
+                if (!startPrep(recipeId, emptyId)) { btn.classList.add('bg-red-300'); setTimeout(() => btn.classList.remove('bg-red-300'), 200); }
+                else renderGameUI();
+            } else {
+                // 両方埋まっている場合
+                btn.classList.add('bg-red-300'); setTimeout(() => btn.classList.remove('bg-red-300'), 200);
+            }
         }
     }
     else if (action === 'serve-customer') serveCustomer(parseInt(index), btn);
@@ -1010,7 +1044,7 @@ const handleAction = (e) => {
             state.money -= 2000; state.fertilizer++; updated = true;
         } else if (itemType === 'staff') {
             const currentLv = state.staff[id];
-            const cost = currentLv === 0 ? (id === 'cleaner' ? 8000 : id === 'cook' ? 12000 : 10000) : (id === 'cleaner' ? 15000 : 20000);
+            const cost = currentLv === 0 ? (id === 'cleaner' ? 8000 : id === 'cook' ? 12000 : id === 'server' ? 15000 : 10000) : (id === 'cleaner' ? 15000 : 20000);
             if (state.money >= cost && currentLv < 2) { state.money -= cost; state.staff[id]++; updated = true; }
         } else if (itemType === 'pet') {
             const cost = PETS[id].cost;
@@ -1137,41 +1171,67 @@ const renderGameUI = () => {
     // キッチン
     let kitchenHtml = '';
     state.activeRecipes.forEach(rId => {
-        const loopCount = state.upgrades.dualMachine ? 2 : 1;
-        for (let i = 0; i < loopCount; i++) {
-            const prepId = rId + (state.upgrades.dualMachine ? '_' + i : '');
-            const r = state.recipes[rId];
-            const pData = state.preparing[prepId];
-            const isBroken = state.troubles.broken && state.troubles.broken.recipeId === r.id;
-            const isPrep = !!pData; const waitingTap = isPrep && pData.waitingNextTap;
+        const r = state.recipes[rId];
+        const pIds = state.upgrades.dualMachine ? [rId + '_0', rId + '_1'] : [rId];
+        
+        // 表示用の状態（スロットが複数ある場合は優先度の高いものをメインに表示）
+        let mainPid = pIds.find(pid => state.preparing[pid]?.waitingNextTap) || pIds.find(pid => state.preparing[pid]) || pIds[0];
+        const pData = state.preparing[mainPid];
+        const isBroken = state.troubles.broken && state.troubles.broken.recipeId === r.id;
+        const isPrep = !!pData;
+        const waitingTap = isPrep && pData.waitingNextTap;
 
-            let displayIcon = r.icon; let stepText = '';
-            if (r.isGiant) {
-                stepText = `<div class="text-xs text-purple-600 font-bold bg-purple-100 rounded-full px-2 mt-1">${(pData ? pData.daysSpent || 0 : 0) + 1}日目 仕込中</div>`;
-            } else if (r.steps > 1) {
-                const step = isPrep ? pData.step : 1; displayIcon = r.stepIcons[step - 1];
-                stepText = `<div class="text-xs text-blue-600 font-bold bg-blue-100 rounded-full px-2 mt-1">工程 ${step}/${r.steps}</div>`;
-            }
-
-            // 食材チェック
-            let canCook = true;
-            for (let key in r.reqs) { if (state.inventory[key] < r.reqs[key]) canCook = false; }
-            const outOfStock = !canCook && !isPrep;
-
-            kitchenHtml += `
-                    <div class="relative bg-white/90 backdrop-blur p-2 md:p-4 rounded-xl md:rounded-2xl shadow-md border-b-2 md:border-b-4 border-amber-300 cursor-pointer hover:bg-white active:translate-y-1 transition-all flex flex-col items-center justify-center ${isPrep && !waitingTap && !isBroken ? 'is-preparing' : ''} ${waitingTap ? 'waiting-tap' : ''} ${isBroken ? 'broken-machine' : ''} ${outOfStock ? 'grayscale opacity-50' : ''}"
-                         data-action="prep-item" data-id="${r.id}" data-prep-id="${prepId}">
-                        <div class="text-2xl md:text-4xl mb-1 ${isBroken ? 'opacity-50' : ''}">${displayIcon}</div>
-                        <div class="font-bold text-gray-700 text-[10px] md:text-sm text-center leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">${r.name}${state.upgrades.dualMachine ? ` (${i + 1})` : ''}</div>
-                        ${stepText}
-                        ${waitingTap && !isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-white/50 font-black text-red-500 rounded-xl md:rounded-2xl text-xs md:text-base">TAP!</div>` : ''}
-                        ${isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center leading-tight">故障!<br>連打<br>(${state.troubles.broken.tapsRemaining})</div>` : ''}
-                        ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-base text-center">不足</div>` : ''}
-                        ${isPrep && !waitingTap && !isBroken ? `<div class="absolute bottom-1 md:bottom-2 left-1 md:left-2 right-1 md:right-2 h-1.5 md:h-2 bg-gray-200 rounded-full overflow-hidden"><div id="prep-bar-${prepId}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pData.elapsed / pData.duration) * 100}%"></div></div>` : ''}
-                    </div>
-                `;
+        let displayIcon = r.icon;
+        let stepText = '';
+        if (r.isGiant) {
+            stepText = `<div class="text-[8px] md:text-xs text-purple-600 font-bold bg-purple-100 rounded-full px-2 mt-1 line-clamp-1">${(pData ? pData.daysSpent || 0 : 0) + 1}日目 仕込</div>`;
+        } else if (r.steps > 1) {
+            const step = isPrep ? pData.step : 1;
+            displayIcon = r.stepIcons[step - 1];
+            stepText = `<div class="text-[8px] md:text-xs text-blue-600 font-bold bg-blue-100 rounded-full px-2 mt-1">工程 ${step}/${r.steps}</div>`;
         }
+
+        // デュアルインジケーター
+        let slotDashes = '';
+        if (state.upgrades.dualMachine) {
+            const s1Busy = !!state.preparing[rId + '_0'];
+            const s2Busy = !!state.preparing[rId + '_1'];
+            slotDashes = `
+                <div class="absolute top-1 right-1 flex gap-0.5">
+                    <div class="w-1.5 h-1.5 rounded-full ${s1Busy ? 'bg-orange-500 animate-pulse' : 'bg-gray-200'}"></div>
+                    <div class="w-1.5 h-1.5 rounded-full ${s2Busy ? 'bg-orange-500 animate-pulse' : 'bg-gray-200'}"></div>
+                </div>
+            `;
+        }
+
+        // 食材チェック
+        let canCook = true;
+        for (let key in r.reqs) { if (state.inventory[key] < r.reqs[key]) canCook = false; }
+        const outOfStock = !canCook && !pIds.some(pid => state.preparing[pid]);
+
+        kitchenHtml += `
+            <div class="relative bg-white/90 backdrop-blur p-2 md:p-3 rounded-xl md:rounded-2xl shadow-md border-b-2 md:border-b-4 border-amber-300 cursor-pointer hover:bg-white active:translate-y-1 transition-all flex flex-col items-center justify-center ${isPrep && !waitingTap && !isBroken ? 'is-preparing' : ''} ${waitingTap ? 'waiting-tap' : ''} ${isBroken ? 'broken-machine' : ''} ${outOfStock ? 'grayscale opacity-50' : ''}"
+                 data-action="prep-item" data-id="${r.id}">
+                ${slotDashes}
+                <div class="text-2xl md:text-3xl mb-1 ${isBroken ? 'opacity-50' : ''}">${displayIcon}</div>
+                <div class="font-black text-gray-700 text-[8px] md:text-xs text-center leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1">${r.name}</div>
+                ${stepText}
+                ${waitingTap && !isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-white/40 font-black text-red-500 rounded-xl md:rounded-2xl text-[10px] md:text-sm animate-pulse">TAP!</div>` : ''}
+                ${isBroken ? `<div class="absolute inset-0 flex items-center justify-center bg-red-500/80 text-white font-black rounded-xl md:rounded-2xl text-[8px] md:text-xs text-center leading-tight">故障!<br>連打</div>` : ''}
+                ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-sm text-center">不足</div>` : ''}
+                ${isPrep && !waitingTap && !isBroken ? `<div class="absolute inset-x-1.5 bottom-1 flex flex-col gap-0.5">
+                    ${pIds.map(pid => {
+                        const pd = state.preparing[pid];
+                        if (pd && !pd.waitingNextTap) {
+                            return `<div class="h-1 bg-gray-200 rounded-full overflow-hidden w-full"><div id="prep-bar-${pid}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pd.elapsed / pd.duration) * 100}%"></div></div>`;
+                        }
+                        return '';
+                    }).join('')}
+                </div>` : ''}
+            </div>
+        `;
     });
+    $('ui-kitchen').innerHTML = kitchenHtml;
     $('ui-kitchen').innerHTML = kitchenHtml;
 
     // 顧客領域
@@ -1197,9 +1257,9 @@ const renderGameUI = () => {
 
                 customersHtml += `
                         <div class="customer-card relative bg-white/95 backdrop-blur rounded-xl md:rounded-2xl p-2 md:p-3 shadow-lg border-2 ${s.custType === 'vip' || s.charId ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-white' : 'border-white/50'} flex flex-col md:flex-row items-center gap-1 md:gap-3 cursor-pointer shrink-0 w-24 h-full md:w-full md:h-auto ${canComplete ? 'ring-2 md:ring-4 ring-green-400 animate-pulse' : ''}" data-action="serve-customer" data-index="${i}">
-                            <div class="text-3xl md:text-5xl bg-black/5 rounded-full w-10 h-10 md:w-14 md:h-14 flex flex-col items-center justify-center shadow-inner relative shrink-0">
+                            <div class="text-3xl md:text-5xl bg-black/5 rounded-full w-12 h-12 md:w-16 md:h-16 flex flex-col items-center justify-center shadow-inner relative shrink-0">
                                 ${s.face}
-                                ${s.charId ? `<div class="absolute -bottom-2 text-[8px] md:text-xs font-black bg-yellow-400 text-white px-1 md:px-2 rounded-full whitespace-nowrap scale-90 md:scale-100">${s.custType === 'master' ? MASTER_CHARS[s.charId].name : VIP_CHARS[s.charId].name}</div>` : ''}
+                                ${s.charId ? `<div class="absolute -bottom-2 md:-bottom-3 text-[7px] md:text-xs font-black bg-yellow-400 text-white px-1 md:px-2 rounded-full whitespace-nowrap scale-90 md:scale-100 z-10 border border-white shadow-sm">${s.custType === 'master' ? MASTER_CHARS[s.charId].name : VIP_CHARS[s.charId].name}</div>` : ''}
                             </div>
                             <div class="flex-1 pointer-events-none mt-1 md:mt-2 w-full flex flex-col justify-center">
                                 <div class="bg-blue-50/80 border bg-blue-100/50 md:border-2 border-blue-200 rounded-lg md:rounded-xl p-1 mb-1 md:mb-1.5 relative flex-1 flex flex-col justify-center min-h-[30px] md:min-h-[40px]"><div class="text-center font-bold text-xs md:text-lg flex flex-wrap items-center justify-center gap-0.5 md:gap-1 line-clamp-2 leading-tight">${orderIcons}</div></div>
@@ -1237,7 +1297,7 @@ const renderGameUI = () => {
     // 泥棒とペットとマネージャー
     const thiefWrapper = $('thief-wrapper');
     let overlayHtml = '';
-    if (state.troubles.thief.active) overlayHtml += `<div id="thief-el" class="thief-running" data-action="catch-thief" style="left:${state.troubles.thief.x}vw">🦹‍♂️</div>`;
+    if (state.troubles.thief.active) overlayHtml += `<div id="thief-el" class="thief-running pointer-events-auto" data-action="catch-thief" style="left:${state.troubles.thief.x}vw">🦹‍♂️</div>`;
     if (state.activePet) overlayHtml += `<div id="pet-element" class="absolute bottom-10 left-10 w-20 h-20 md:w-32 md:h-32 filter drop-shadow-xl pointer-events-none transition-transform z-[60]">${PETS[state.activePet].icon}</div>`;
     if (state.hasAceManager) {
         overlayHtml += `
@@ -1361,9 +1421,10 @@ const renderApp = () => {
         const tabBtnCls = "px-4 py-2 font-bold text-sm rounded-t-xl transition-colors w-1/2 text-center";
 
         app.innerHTML = `
-                <div class="m-auto bg-white/95 backdrop-blur p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-2xl max-w-2xl w-[90%] md:w-full border-t-4 md:border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'} flex flex-col max-h-[85dvh]">
+                <div class="m-auto bg-white/95 backdrop-blur p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-2xl max-w-2xl w-[95%] md:w-full border-t-4 md:border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'} flex flex-col max-h-[85dvh] relative">
+                    <button data-action="goto-title" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-sm">◀ タイトルへ</button>
                     <div class="flex flex-col md:flex-row justify-between items-center mb-2 md:mb-4 gap-2 md:gap-0 shrink-0">
-                        <h2 class="text-xl md:text-2xl font-black ${state.day % 7 === 0 ? 'text-pink-600' : 'text-amber-800'}">${state.day % 7 === 0 ? '🎉 パーティ準備' : '☀️ 営業準備'} <span class="text-base md:text-xl">(Day ${state.day})</span></h2>
+                        <h2 class="text-xl md:text-2xl font-black ${state.day % 7 === 0 ? 'text-pink-600' : 'text-amber-800'}">${state.day % 7 === 0 ? '🎉 パーティ準備' : '☀️ 営業準備'} <span class="text-base md:text-sm md:ml-2">(Day ${state.day})</span></h2>
                         <div class="bg-slate-800 text-white font-black px-3 md:px-4 py-1 rounded-full text-sm md:text-base shadow">💰 ${formatMoney(state.money)}</div>
                     </div>
                     
@@ -1416,7 +1477,7 @@ const renderApp = () => {
                     </div>
                     <div id="ui-delivery" class="absolute right-0 top-10 md:top-20 z-30 scale-75 md:scale-100 origin-top-right" style="display:none;"></div>
                     <div id="thief-wrapper" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
-                    <div id="ui-notification-container" class="absolute top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center pointer-events-none children:pointer-events-auto"></div>
+                    <div id="ui-notification-container" class="absolute top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center pointer-events-none"></div>
                 </div>
             `;
         renderGameUI();
@@ -1486,10 +1547,10 @@ const renderApp = () => {
             { id: 'skills', icon: '🌟', name: 'スキル' }
         ];
 
-        let tabHtml = `<div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-2">`;
+        let tabHtml = `<div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-2 shrink-0">`;
         tabs.forEach(t => {
             const isActive = state.shopTab === t.id;
-            tabHtml += `<button data-action="change-shop-tab" data-id="${t.id}" class="px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors shadow-sm ${isActive ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border-2 border-slate-200 hover:bg-slate-100'}">${t.icon} ${t.name}</button>`;
+            tabHtml += `<button data-action="change-shop-tab" data-id="${t.id}" class="px-5 py-2.5 rounded-xl font-black text-sm md:text-base whitespace-nowrap transition-all shadow-md ${isActive ? 'bg-slate-800 text-white scale-105 ring-2 ring-slate-400' : 'bg-white text-slate-600 border-2 border-slate-200 hover:bg-slate-50'}">${t.icon} ${t.name}</button>`;
         });
         tabHtml += `</div>`;
 
@@ -1501,18 +1562,25 @@ const renderApp = () => {
             else if ((isSP && state.skillPoints >= cost) || (!isSP && state.money >= cost)) { buttonClass = isSP ? 'bg-yellow-500 text-white hover:bg-yellow-400' : 'bg-blue-500 text-white hover:bg-blue-400'; }
 
             return `
-                    <div class="bg-white p-3 rounded-2xl shadow-sm border-2 border-gray-100 flex items-center justify-between hover:border-blue-300 transition-colors">
+                    <div class="bg-white p-3 rounded-2xl shadow-md border-2 ${isDisabled ? 'border-gray-100 bg-gray-50 opacity-80' : 'border-gray-200 hover:border-blue-400 hover:shadow-lg'} flex items-center justify-between transition-all cursor-pointer group"
+                         data-action="buy-item" data-item-type="${actionType}" data-id="${id}" ${isDisabled ? 'data-disabled="true"' : ''}>
                         <div class="flex items-center gap-3">
-                            <div class="text-3xl bg-gray-50 p-2 rounded-xl">${icon}</div>
-                            <div><div class="font-bold text-gray-800 text-md">${title}</div><div class="text-xs text-gray-500">${desc}</div></div>
+                            <div class="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-xl group-hover:bg-blue-50 transition-colors flex items-center justify-center overflow-hidden shrink-0">
+                                <div class="w-full h-full flex items-center justify-center text-3xl p-1">${icon}</div>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="font-black text-gray-800 text-xs md:text-sm truncate">${title}</div>
+                                <div class="text-[9px] md:text-xs text-gray-500 leading-tight line-clamp-2">${desc}</div>
+                            </div>
                         </div>
-                        <button data-action="buy-item" data-item-type="${actionType}" data-id="${id}" ${isDisabled ? 'disabled' : ''} class="px-4 py-1.5 rounded-full font-bold shadow-sm text-sm transition-all whitespace-nowrap ${buttonClass}">${displayTxt}</button>
+                        <button class="px-4 py-2 rounded-full font-black shadow-sm text-[10px] md:text-sm transition-all whitespace-nowrap pointer-events-none ${buttonClass}">${displayTxt}</button>
                     </div>
                 `;
         };
 
         let shopHtml = `
-                <div class="h-full w-full bg-slate-50 flex flex-col p-2 md:p-6 overflow-hidden">
+                <div class="h-full w-full bg-slate-50 flex flex-col p-2 md:p-6 overflow-hidden relative">
+                    <button data-action="goto-title" class="absolute top-2 right-2 md:top-6 md:right-6 text-gray-400 hover:text-gray-600 font-bold text-xs md:text-sm z-10">◀ タイトルへ</button>
                     <header class="flex flex-col md:flex-row justify-between items-center mb-2 gap-2 border-b-2 border-slate-200 pb-2">
                         <h2 class="text-xl md:text-2xl font-black text-slate-800 w-full md:w-auto text-center md:text-left">メガ・ショップ</h2>
                         <div class="flex gap-2 text-xs md:text-md">
@@ -1609,7 +1677,7 @@ const renderApp = () => {
 
     // BGMボタンを追加 (すべての画面で表示)
     app.insertAdjacentHTML('beforeend', `
-        <button data-action="toggle-bgm" style="position: absolute; top: 1rem; right: 1rem; z-index: 9999; border-radius: 9999px; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background-color: rgba(0,0,0,0.5); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); backdrop-filter: blur(4px); border: 2px solid rgba(255,255,255,0.2); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(0,0,0,0.7)'" onmouseout="this.style.backgroundColor='rgba(0,0,0,0.5)'">
+        <button data-action="toggle-bgm" class="fixed top-4 right-4 z-[9999] w-12 h-12 flex items-center justify-center text-2xl bg-black/50 text-white rounded-full shadow-lg backdrop-blur-sm border-2 border-white/20 cursor-pointer transition-all hover:bg-black/70 hover:scale-105 active:scale-95">
             ${isBgmMuted ? '🔇' : '🔊'}
         </button>
     `);
