@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>惑星軌道ゴルフ</title>
+    <!-- p5.js: 描画とインタラクションの簡略化 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <!-- Matter.js: 2D物理演算エンジン -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0a0a1a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            letter-spacing: 2px;
+        }
+
+        p {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: #b0b0d0;
+            line-height: 1.4;
+        }
+
+        .controls {
+            pointer-events: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(30, 30, 60, 0.8);
+            color: white;
+            border: 1px solid rgba(100, 100, 255, 0.5);
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: rgba(60, 60, 100, 0.9);
+            border-color: rgba(150, 150, 255, 0.8);
+            box-shadow: 0 0 15px rgba(100, 100, 255, 0.4);
+        }
+
+        #message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            /* 背景を少し明るくしてエフェクトを見せる */
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 20;
+        }
+
+        #message-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #message-text {
+            font-size: 64px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transform: scale(0.8);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #message-overlay.visible #message-text {
+            transform: scale(1);
+        }
+
+        .text-clear {
+            color: #55ff55;
+            text-shadow: 0 0 30px rgba(85, 255, 85, 1) !important;
+        }
+
+        .text-gameover {
+            color: #ff5555;
+            text-shadow: 0 0 30px rgba(255, 85, 85, 1) !important;
+        }
+
+        .text-oob {
+            color: #ffff55;
+            text-shadow: 0 0 30px rgba(255, 255, 85, 1) !important;
+        }
+
+        /* タイトル画面 */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, rgba(20, 20, 60, 0.8) 0%, rgba(10, 10, 26, 1) 100%);
+            z-index: 30;
+            transition: all 0.8s ease;
+        }
+
+        #title-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.1);
+        }
+
+        .title-logo {
+            font-size: 80px;
+            font-weight: 900;
+            letter-spacing: 15px;
+            background: linear-gradient(to bottom, #fff, #00ffff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .title-sub {
+            font-size: 18px;
+            color: #a4b0be;
+            margin-bottom: 50px;
+            letter-spacing: 4px;
+        }
+
+        .btn-start {
+            padding: 15px 50px;
+            font-size: 24px;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #00ffff, #0066ff);
+            border: none;
+            color: white;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-start:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui-layer">
+        <h1>ORBITAL GOLF</h1>
+        <p>画面をドラッグしてボールを引っ張り、離して発射！<br>
+            惑星の重力を利用して、緑のブラックホールに導こう。<br>
+            惑星に衝突するか、画面外に消えると失敗。</p>
+        <div class="controls">
+            <button id="btn-reset">リトライ (R)</button>
+            <button id="btn-next" style="display: none;">次のステージ</button>
+        </div>
+        <p id="level-indicator" style="margin-top: 15px; font-weight: bold; color: #fff;">LEVEL: 1</p>
+    </div>
+
+    <div id="title-screen">
+        <div class="title-logo">ORBITAL GOLF</div>
+        <div class="title-sub">惑星軌道ゴルフ</div>
+        <button class="btn-start" id="btn-start">MISSION START</button>
+        <div style="margin-top: 50px;">
+            <a href="../../index.html" style="color: rgba(255,255,255,0.3); text-decoration: none; font-size: 14px;">◀ ArcadeHubに戻る</a>
+        </div>
+    </div>
+
+    <div id="message-overlay">
+        <div id="message-text">CLEAR!</div>
+        <button id="btn-overlay-action" style="font-size: 20px; padding: 15px 30px;">次のステージへ</button>
+    </div>
+
+    <script>
+        const Engine = Matter.Engine,
+            Render = Matter.Render,
+            Runner = Matter.Runner,
+            Bodies = Matter.Bodies,
+            Composite = Matter.Composite,
+            Vector = Matter.Vector,
+            Events = Matter.Events;
+
+        let engine, world, runner;
+        let ball, planets = [], goal;
+
+        let gameState = 'title'; // 'title', 'aiming', 'flying', 'clear', 'gameover'
+        let currentLevel = 0;
+
+        let dragStartPoint = null;
+        let dragCurrentPoint = null;
+        const MAX_DRAG_DIST = 200;
+        const POWER_MULTIPLIER = 0.00015;
+
+        let trail = [];
+        const MAX_TRAIL_LENGTH = 150;
+
+        // 演出用変数
+        let stars = [];
+        let shootingStars = [];
+        let particles = [];
+        let ripples = [];
+        let shakeIntensity = 0;
+        let ballAbsorbScale = 1.0; // クリア時にボールが吸い込まれるスケール
+
+        const GRAVITY_CONSTANT = 0.5;
+
+        const levels = [
+            {
+                ballStart: { x: 0.15, y: 0.5 },
+                goalPoint: { x: 0.85, y: 0.5, radius: 30 },
+                planetsData: [
+                    { x: 0.5, y: 0.5, radius: 60, mass: 150, color: '#ff6b6b' }
+                ]
+            },
+            {
+                ballStart: { x: 0.1, y: 0.8 },
+                goalPoint: { x: 0.9, y: 0.2, radius: 35 },
+                planetsData: [
+                    { x: 0.4, y: 0.35, radius: 40, mass: 100, color: '#4ecdc4' },
+                    { x: 0.6, y: 0.65, radius: 40, mass: 100, color: '#45b7d1' }
+                ]
+            },
+            {
+                ballStart: { x: 0.1, y: 0.5 },
+                goalPoint: { x: 0.9, y: 0.5, radius: 25 },
+                planetsData: [
+                    { x: 0.5, y: 0.3, radius: 80, mass: 250, color: '#feca57' },
+                    { x: 0.5, y: 0.8, radius: 30, mass: 60, color: '#ff9f43' },
+                    { x: 0.3, y: 0.6, radius: 20, mass: 40, color: '#c8d6e5' }
+                ]
+            },
+            {
+                ballStart: { x: 0.5, y: 0.9 },
+                goalPoint: { x: 0.5, y: 0.1, radius: 20 },
+                planetsData: [
+                    { x: 0.3, y: 0.5, radius: 45, mass: 100, color: '#9b59b6' },
+                    { x: 0.7, y: 0.5, radius: 45, mass: 100, color: '#8e44ad' },
+                    { x: 0.5, y: 0.3, radius: 25, mass: 50, color: '#e74c3c' }
+                ]
+            },
+            {
+                // レベル 5: スリングショット連続
+                ballStart: { x: 0.1, y: 0.8 },
+                goalPoint: { x: 0.9, y: 0.2, radius: 25 },
+                planetsData: [
+                    { x: 0.3, y: 0.6, radius: 25, mass: 60, color: '#ff7f50' },
+                    { x: 0.5, y: 0.4, radius: 30, mass: 80, color: '#2ed573' },
+                    { x: 0.7, y: 0.6, radius: 25, mass: 60, color: '#1e90ff' }
+                ]
+            },
+            {
+                // レベル 6: 巨大星の裏側
+                ballStart: { x: 0.15, y: 0.5 },
+                goalPoint: { x: 0.85, y: 0.5, radius: 30 },
+                planetsData: [
+                    { x: 0.5, y: 0.5, radius: 100, mass: 350, color: '#ff4757' },
+                    { x: 0.5, y: 0.15, radius: 20, mass: 40, color: '#a4b0be' },
+                    { x: 0.5, y: 0.85, radius: 20, mass: 40, color: '#a4b0be' }
+                ]
+            },
+            {
+                // レベル 7: 重力の海（迷宮）
+                ballStart: { x: 0.1, y: 0.9 },
+                goalPoint: { x: 0.9, y: 0.1, radius: 20 },
+                planetsData: [
+                    { x: 0.25, y: 0.5, radius: 40, mass: 90, color: '#7bed9f' },
+                    { x: 0.5, y: 0.7, radius: 50, mass: 120, color: '#70a1ff' },
+                    { x: 0.5, y: 0.3, radius: 50, mass: 120, color: '#ff6b81' },
+                    { x: 0.75, y: 0.5, radius: 40, mass: 90, color: '#eccc68' }
+                ]
+            },
+            {
+                // レベル 8: 双子星の公転
+                ballStart: { x: 0.1, y: 0.5 },
+                goalPoint: { x: 0.9, y: 0.5, radius: 25 },
+                planetsData: [
+                    { 
+                        x: 0.5, y: 0.5, radius: 40, mass: 100, color: '#ff9ff3',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 150, orbitSpeed: 0.02, orbitAngle: 0 
+                    },
+                    { 
+                        x: 0.5, y: 0.5, radius: 40, mass: 100, color: '#feca57',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 150, orbitSpeed: 0.02, orbitAngle: Math.PI 
+                    }
+                ]
+            },
+            {
+                // レベル 9: 重力のダンス
+                ballStart: { x: 0.5, y: 0.85 },
+                goalPoint: { x: 0.5, y: 0.15, radius: 25 },
+                planetsData: [
+                    { 
+                        x: 0.5, y: 0.5, radius: 50, mass: 120, color: '#48dbfb',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 200, orbitSpeed: -0.015, orbitAngle: 0 
+                    },
+                    { 
+                        x: 0.5, y: 0.5, radius: 30, mass: 80, color: '#1dd1a1',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 100, orbitSpeed: 0.03, orbitAngle: Math.PI / 2 
+                    }
+                ]
+            },
+            {
+                // レベル 10: 太陽系（最終試練）
+                ballStart: { x: 0.1, y: 0.9 },
+                goalPoint: { x: 0.9, y: 0.1, radius: 20 },
+                planetsData: [
+                    { x: 0.5, y: 0.5, radius: 80, mass: 300, color: '#ffcc00' }, // 中心星
+                    { 
+                        x: 0.5, y: 0.5, radius: 20, mass: 40, color: '#ff4dd2',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 130, orbitSpeed: 0.04, orbitAngle: 0 
+                    },
+                    { 
+                        x: 0.5, y: 0.5, radius: 25, mass: 50, color: '#33ccff',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 200, orbitSpeed: 0.02, orbitAngle: Math.PI * 0.5
+                    },
+                    { 
+                        x: 0.5, y: 0.5, radius: 30, mass: 60, color: '#cc66ff',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 280, orbitSpeed: 0.012, orbitAngle: Math.PI
+                    },
+                    { 
+                        x: 0.5, y: 0.5, radius: 35, mass: 70, color: '#ff6666',
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 360, orbitSpeed: 0.008, orbitAngle: Math.PI * 1.5
+                    }
+                ]
+            }
+        ];
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+
+            engine = Engine.create();
+            world = engine.world;
+            engine.gravity.y = 0;
+            engine.gravity.x = 0;
+
+            Events.on(engine, 'collisionStart', handleCollision);
+
+            runner = Runner.create();
+            Runner.run(runner, engine);
+
+            // 背景の星
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: random(width), y: random(height),
+                    size: random(1, 3), alpha: random(50, 255)
+                });
+            }
+
+            document.getElementById('btn-reset').addEventListener('click', () => loadLevel(currentLevel));
+            document.getElementById('btn-next').addEventListener('click', nextLevel);
+            document.getElementById('btn-overlay-action').addEventListener('click', handleOverlayAction);
+            document.getElementById('btn-start').addEventListener('click', startGame);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') loadLevel(currentLevel);
+            });
+
+            loadLevel(currentLevel);
+            gameState = 'title'; // 起動時はタイトル
+        }
+
+        function startGame() {
+            document.getElementById('title-screen').classList.add('hidden');
+            gameState = 'aiming';
+        }
+
+        function draw() {
+            background(10, 10, 26);
+
+            // スクリーンシェイクの適用
+            push();
+            if (shakeIntensity > 0) {
+                translate(random(-shakeIntensity, shakeIntensity), random(-shakeIntensity, shakeIntensity));
+                shakeIntensity *= 0.9;
+                if (shakeIntensity < 0.5) shakeIntensity = 0;
+            }
+
+            drawStars();
+            drawShootingStars();
+
+            // 公転惑星の更新
+            planets.forEach(p => {
+                if (p.plugin.isOrbiting) {
+                    p.plugin.orbitAngle += p.plugin.orbitSpeed;
+                    const newX = width * p.plugin.orbitCenter.x + cos(p.plugin.orbitAngle) * p.plugin.orbitRadius;
+                    const newY = height * p.plugin.orbitCenter.y + sin(p.plugin.orbitAngle) * p.plugin.orbitRadius;
+                    Matter.Body.setPosition(p, { x: newX, y: newY });
+                }
+            });
+
+            if (gameState === 'flying') {
+                applyCustomGravity();
+                recordTrail();
+                checkOutOfBounds();
+            }
+
+            if (gameState !== 'title') {
+                drawGoal();
+                drawPlanets();
+                drawTrail();
+                drawRipples();
+                drawBall();
+                drawParticles();
+            } else {
+                // タイトル画面用のデモ的な惑星
+                drawDemoPlanets();
+            }
+
+            pop();
+
+            if (gameState !== 'title') {
+                drawAimingUI();
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            loadLevel(currentLevel);
+        }
+
+        function mousePressed() {
+            if (mouseX < 250 && mouseY < 200) return;
+            if (gameState !== 'aiming') return;
+
+            let d = dist(mouseX, mouseY, ball.position.x, ball.position.y);
+            if (d < 50) {
+                dragStartPoint = createVector(ball.position.x, ball.position.y);
+                dragCurrentPoint = createVector(mouseX, mouseY);
+            }
+        }
+
+        function mouseDragged() {
+            if (gameState === 'aiming' && dragStartPoint) {
+                dragCurrentPoint = createVector(mouseX, mouseY);
+            }
+        }
+
+        function mouseReleased() {
+            if (gameState === 'aiming' && dragStartPoint && dragCurrentPoint) {
+                shootBall();
+            }
+            dragStartPoint = null;
+            dragCurrentPoint = null;
+        }
+
+        function touchStarted() {
+            if (touches.length > 0) {
+                mouseX = touches[0].x; mouseY = touches[0].y;
+                mousePressed();
+            }
+            return false;
+        }
+        function touchMoved() {
+            if (touches.length > 0) {
+                mouseX = touches[0].x; mouseY = touches[0].y;
+                mouseDragged();
+            }
+            return false;
+        }
+        function touchEnded() {
+            mouseReleased();
+            return false;
+        }
+
+        function loadLevel(levelIndex) {
+            Composite.clear(world);
+            Engine.clear(engine);
+            planets = [];
+            trail = [];
+            particles = [];
+            ripples = [];
+            dragStartPoint = null;
+            dragCurrentPoint = null;
+            gameState = 'aiming';
+            ballAbsorbScale = 1.0;
+            shakeIntensity = 0;
+
+            hideMessage();
+            document.getElementById('btn-next').style.display = 'none';
+            document.getElementById('level-indicator').innerText = `LEVEL: ${levelIndex + 1}`;
+
+            const levelData = levels[levelIndex];
+
+            const startX = width * levelData.ballStart.x;
+            const startY = height * levelData.ballStart.y;
+            ball = Bodies.circle(startX, startY, 10, {
+                restitution: 0.5,
+                frictionAir: 0,
+                label: 'ball',
+                render: { fillStyle: '#00ffff' }
+            });
+            Composite.add(world, ball);
+
+            goal = {
+                x: width * levelData.goalPoint.x,
+                y: height * levelData.goalPoint.y,
+                radius: levelData.goalPoint.radius
+            };
+
+            levelData.planetsData.forEach(pData => {
+                const px = width * pData.x;
+                const py = height * pData.y;
+                const planetBody = Bodies.circle(px, py, pData.radius, {
+                    isStatic: true,
+                    label: 'planet',
+                    plugin: {
+                        massForGravity: pData.mass,
+                        color: pData.color,
+                        isOrbiting: pData.isOrbiting || false,
+                        orbitCenter: pData.orbitCenter || null,
+                        orbitRadius: pData.orbitRadius || 0,
+                        orbitSpeed: pData.orbitSpeed || 0,
+                        orbitAngle: pData.orbitAngle || 0
+                    }
+                });
+                planets.push(planetBody);
+                Composite.add(world, planetBody);
+            });
+        }
+
+        function shootBall() {
+            let dragVec = p5.Vector.sub(dragStartPoint, dragCurrentPoint);
+            if (dragVec.mag() > MAX_DRAG_DIST) dragVec.setMag(MAX_DRAG_DIST);
+
+            const force = Vector.create(dragVec.x * POWER_MULTIPLIER, dragVec.y * POWER_MULTIPLIER);
+            Matter.Body.applyForce(ball, ball.position, force);
+
+            // 波紋エフェクトの追加
+            ripples.push({
+                x: ball.position.x, y: ball.position.y,
+                radius: 10, maxRadius: map(dragVec.mag(), 0, MAX_DRAG_DIST, 30, 100),
+                alpha: 255
+            });
+
+            gameState = 'flying';
+        }
+
+        function applyCustomGravity() {
+            planets.forEach(planet => {
+                let forceDir = createVector(planet.position.x - ball.position.x, planet.position.y - ball.position.y);
+                let distanceSq = forceDir.magSq();
+                if (distanceSq < 100) distanceSq = 100;
+
+                let forceMag = (GRAVITY_CONSTANT * planet.plugin.massForGravity) / distanceSq;
+                forceDir.normalize();
+                forceDir.mult(forceMag);
+                Matter.Body.applyForce(ball, ball.position, Vector.create(forceDir.x, forceDir.y));
+            });
+
+            let distToGoal = dist(ball.position.x, ball.position.y, goal.x, goal.y);
+            if (distToGoal < goal.radius * 3) {
+                let goalForceDir = createVector(goal.x - ball.position.x, goal.y - ball.position.y);
+                let forceMag = 0.0005 * (goal.radius * 3 - distToGoal);
+                goalForceDir.normalize();
+                goalForceDir.mult(forceMag);
+                Matter.Body.applyForce(ball, ball.position, Vector.create(goalForceDir.x, goalForceDir.y));
+
+                // ブラックホールに入った瞬間の判定（少し広げた）
+                if (distToGoal < goal.radius) {
+                    handleClear();
+                }
+            }
+        }
+
+        function handleCollision(event) {
+            if (gameState !== 'flying') return;
+
+            const pairs = event.pairs;
+            for (let i = 0; i < pairs.length; i++) {
+                const bodyA = pairs[i].bodyA;
+                const bodyB = pairs[i].bodyB;
+
+                let planetBody = null;
+                if (bodyA.label === 'ball' && bodyB.label === 'planet') planetBody = bodyB;
+                if (bodyB.label === 'ball' && bodyA.label === 'planet') planetBody = bodyA;
+
+                if (planetBody) {
+                    // 衝突時に爆発エフェクトとシェイクをトリガー
+                    createExplosion(ball.position.x, ball.position.y, planetBody.plugin.color);
+                    triggerShake(15);
+                    handleGameOver("CRASH!");
+                }
+            }
+        }
+
+        function checkOutOfBounds() {
+            const margin = 200;
+            if (ball.position.x < -margin || ball.position.x > width + margin ||
+                ball.position.y < -margin || ball.position.y > height + margin) {
+                handleGameOver("LOST IN SPACE");
+            }
+        }
+
+        function handleClear() {
+            if (gameState === 'clear') return;
+            gameState = 'clear';
+
+            // ボールを中心に持っていく
+            Matter.Body.setVelocity(ball, { x: 0, y: 0 });
+            // すぐに中心にスナップせず、draw関数内で吸い込まれるアニメーションを行う
+
+            triggerShake(5); // クリア時の軽い衝撃
+            createClearParticles(goal.x, goal.y); // クリア用キラキラエフェクト
+
+            showMessage("CLEAR!", "text-clear", currentLevel < levels.length - 1 ? "次のステージへ" : "最初から遊ぶ");
+            if (currentLevel < levels.length - 1) {
+                document.getElementById('btn-next').style.display = 'block';
+            }
+        }
+
+        function handleGameOver(msg) {
+            if (gameState === 'gameover') return;
+            gameState = 'gameover';
+            Matter.Body.setVelocity(ball, { x: 0, y: 0 }); // 動きを止める
+
+            let cssClass = msg === "CRASH!" ? "text-gameover" : "text-oob";
+            showMessage(msg, cssClass, "リトライ");
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel >= levels.length) currentLevel = 0;
+            loadLevel(currentLevel);
+        }
+
+        function handleOverlayAction() {
+            if (gameState === 'clear') {
+                nextLevel();
+            } else if (gameState === 'gameover') {
+                loadLevel(currentLevel);
+            }
+        }
+
+        // --- 演出用関数 ---
+
+        function triggerShake(intensity) {
+            shakeIntensity = intensity;
+        }
+
+        function createExplosion(x, y, baseColor) {
+            let c = color(baseColor);
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: random(-8, 8), vy: random(-8, 8),
+                    life: 255, size: random(2, 8),
+                    c: c
+                });
+            }
+        }
+
+        function createClearParticles(x, y) {
+            for (let i = 0; i < 30; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: random(-3, 3), vy: random(-3, 3),
+                    life: 255, size: random(3, 6),
+                    c: color('#55ff55')
+                });
+            }
+        }
+
+        function drawDemoPlanets() {
+            let t = frameCount * 0.01;
+            noStroke();
+            drawingContext.shadowBlur = 40;
+            
+            // 紫の惑星
+            let x1 = width * 0.5 + cos(t) * 200;
+            let y1 = height * 0.5 + sin(t) * 100;
+            drawingContext.shadowColor = '#8e44ad';
+            fill('#8e44ad');
+            circle(x1, y1, 80);
+            
+            // 青の惑星
+            let x2 = width * 0.5 + cos(t + PI) * 250;
+            let y2 = height * 0.5 + sin(t + PI) * 150;
+            drawingContext.shadowColor = '#2980b9';
+            fill('#2980b9');
+            circle(x2, y2, 60);
+
+            drawingContext.shadowBlur = 0;
+        }
+
+        // --- 描画関数 ---
+
+        function drawStars() {
+            noStroke();
+            for (let star of stars) {
+                fill(255, 255, 255, star.alpha);
+                circle(star.x, star.y, star.size);
+                star.alpha += random(-5, 5);
+                star.alpha = constrain(star.alpha, 50, 255);
+            }
+        }
+
+        function drawShootingStars() {
+            // たまに流れ星を生成
+            if (random(1) < 0.01) {
+                shootingStars.push({
+                    x: random(width), y: 0,
+                    vx: random(10, 20), vy: random(5, 10),
+                    length: random(50, 150), life: 255
+                });
+            }
+
+            strokeWeight(2);
+            for (let i = shootingStars.length - 1; i >= 0; i--) {
+                let ss = shootingStars[i];
+                ss.x += ss.vx;
+                ss.y += ss.vy;
+                ss.life -= 5;
+
+                let alpha = Math.max(0, ss.life);
+                stroke(255, 255, 255, alpha);
+                line(ss.x, ss.y, ss.x - ss.vx * (ss.length / 20), ss.y - ss.vy * (ss.length / 20));
+
+                if (ss.life <= 0 || ss.x > width || ss.y > height) {
+                    shootingStars.splice(i, 1);
+                }
+            }
+        }
+
+        function recordTrail() {
+            trail.push({ x: ball.position.x, y: ball.position.y });
+            if (trail.length > MAX_TRAIL_LENGTH) trail.shift();
+        }
+
+        function drawTrail() {
+            if (trail.length === 0) return;
+            noFill();
+            strokeCap(ROUND);
+            strokeJoin(ROUND);
+
+            beginShape();
+            for (let i = 0; i < trail.length; i++) {
+                let alpha = map(i, 0, trail.length, 0, 200);
+                stroke(0, 255, 255, alpha);
+                strokeWeight(map(i, 0, trail.length, 1, 6)); // 少し太くしてリッチに
+                vertex(trail[i].x, trail[i].y);
+            }
+            endShape();
+        }
+
+        function drawRipples() {
+            noFill();
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                let r = ripples[i];
+                r.radius += 3;
+                r.alpha -= 10;
+
+                strokeWeight(3);
+                stroke(0, 255, 255, Math.max(0, r.alpha));
+                circle(r.x, r.y, r.radius);
+
+                if (r.alpha <= 0 || r.radius > r.maxRadius) ripples.splice(i, 1);
+            }
+        }
+
+        function drawParticles() {
+            noStroke();
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 8; // 減衰スピード
+
+                p.c.setAlpha(Math.max(0, p.life));
+                fill(p.c);
+                circle(p.x, p.y, p.size);
+
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function drawGoal() {
+            noStroke();
+
+            // ブラックホールの事象の地平面（黒い中心）
+            fill(0);
+            circle(goal.x, goal.y, goal.radius * 2);
+
+            drawingContext.shadowBlur = 30;
+            drawingContext.shadowColor = '#55ff55';
+            stroke('#55ff55');
+            strokeWeight(3);
+            noFill();
+
+            push();
+            translate(goal.x, goal.y);
+            // 激しく回転する降着円盤
+            rotate(frameCount * 0.05);
+            arc(0, 0, goal.radius * 2.5, goal.radius * 2.5, 0, PI + HALF_PI);
+            rotate(PI);
+            arc(0, 0, goal.radius * 2.2, goal.radius * 2.2, 0, PI);
+            pop();
+
+            drawingContext.shadowBlur = 0;
+        }
+
+        function drawPlanets() {
+            noStroke();
+            // 呼吸するような拡縮アニメーション（サイン波を利用）
+            let breath = sin(frameCount * 0.05) * 5;
+
+            for (let planet of planets) {
+                const x = planet.position.x;
+                const y = planet.position.y;
+                const r = planet.circleRadius;
+                const color = planet.plugin.color;
+
+                // 重力圏の描画
+                fill(255, 255, 255, 8);
+                circle(x, y, planet.plugin.massForGravity * 3 + breath * 2);
+
+                // 惑星本体
+                drawingContext.shadowBlur = 25 + breath;
+                drawingContext.shadowColor = color;
+                fill(color);
+                circle(x, y, r * 2);
+
+                // ハイライト
+                drawingContext.shadowBlur = 0;
+                fill(255, 255, 255, 100);
+                circle(x - r * 0.3, y - r * 0.3, r * 0.8);
+            }
+        }
+
+        function drawBall() {
+            // 衝突時はボールを描画しない（パーティクルになるため）
+            if (gameState === 'gameover' && ball.position.x > -200 && ball.position.x < width + 200 && ball.position.y > -200 && ball.position.y < height + 200) {
+                return;
+            }
+
+            let x = ball.position.x;
+            let y = ball.position.y;
+            let r = ball.circleRadius;
+
+            // クリア時の吸い込みアニメーション
+            if (gameState === 'clear') {
+                ballAbsorbScale -= 0.05;
+                if (ballAbsorbScale < 0) ballAbsorbScale = 0;
+                r *= ballAbsorbScale;
+
+                // ゴール中心へ向かって吸い込まれる
+                x = lerp(x, goal.x, 0.1);
+                y = lerp(y, goal.y, 0.1);
+                Matter.Body.setPosition(ball, { x: x, y: y });
+            }
+
+            if (ballAbsorbScale <= 0) return;
+
+            drawingContext.shadowBlur = 15;
+            drawingContext.shadowColor = '#00ffff';
+            fill('#00ffff');
+            noStroke();
+            circle(x, y, r * 2);
+            drawingContext.shadowBlur = 0;
+        }
+
+        function drawAimingUI() {
+            if (gameState === 'aiming' && dragStartPoint && dragCurrentPoint) {
+                let dragVec = p5.Vector.sub(dragStartPoint, dragCurrentPoint);
+                if (dragVec.mag() > MAX_DRAG_DIST) dragVec.setMag(MAX_DRAG_DIST);
+
+                const ballX = ball.position.x;
+                const ballY = ball.position.y;
+
+                stroke(255, 255, 255, 150);
+                strokeWeight(2);
+                drawingContext.setLineDash([5, 5]);
+                line(dragCurrentPoint.x, dragCurrentPoint.y, ballX, ballY);
+                drawingContext.setLineDash([]);
+
+                stroke('#00ffff');
+                strokeWeight(3);
+                let predictLineLength = map(dragVec.mag(), 0, MAX_DRAG_DIST, 0, 150);
+                let predictDir = dragVec.copy().normalize();
+                let endX = ballX + predictDir.x * predictLineLength;
+                let endY = ballY + predictDir.y * predictLineLength;
+                line(ballX, ballY, endX, endY);
+
+                push();
+                translate(endX, endY);
+                rotate(predictDir.heading());
+                fill('#00ffff');
+                noStroke();
+                triangle(0, -5, 10, 0, 0, 5);
+                pop();
+            }
+        }
+
+        function showMessage(text, cssClass, buttonText) {
+            const overlay = document.getElementById('message-overlay');
+            const msgEl = document.getElementById('message-text');
+            const btn = document.getElementById('btn-overlay-action');
+
+            msgEl.innerText = text;
+            msgEl.className = cssClass;
+            btn.innerText = buttonText;
+
+            overlay.classList.add('visible');
+        }
+
+        function hideMessage() {
+            document.getElementById('message-overlay').classList.remove('visible');
+        }
+    </script>
+</body>
+
+</html>

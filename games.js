@@ -80,5 +80,20 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/village-cg.mp4",
         link: "games/village/index.html"
+    },
+    {
+        id: "golf",
+        ja: {
+            title: "惑星軌道ゴルフ",
+            description: "宇宙の重力を操り、ホールインワンを目指せ！惑星の引力を計算し、美しく神秘的な宇宙空間を駆け抜けよう。"
+        },
+        en: {
+            title: "Orbital Golf",
+            description: "Master the gravity of space and aim for a hole-in-one! Calculate planetary pull and soar through a beautiful, mysterious cosmos."
+        },
+        image: "assets/thumbnails/golf.png",
+        movie: null,
+        movie_cg: "assets/movies/golf-cg.mp4",
+        link: "games/golf/index.html"
     }
 ];

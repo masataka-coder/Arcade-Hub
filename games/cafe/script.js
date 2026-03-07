@@ -131,7 +131,7 @@ const getInitialState = () => ({
     activePet: null, hasAceManager: false, aceManagerUsed: false,
 
     stats: { totalEarned: 0, thiefCaught: 0, perfectServes: 0, partyCleared: 0, maxChain: 0 },
-    achievements: [], skills: { feverTime: 0, charisma: 0, security: 0, petPower: 0 }, skillPoints: 0,
+    achievements: [], skills: { feverTime: 0, charisma: 0, security: 0, petPower: 0, luckyChance: 0, patienceBreath: 0 }, skillPoints: 0,
 
     slots: [null, null, null, null, null],
     tray: [], trayTimers: [], preparing: {}, isFever: false, isPartyDay: false,
@@ -209,6 +209,10 @@ const loadGame = () => {
             state.inventory.oil_cyber = 0; state.inventory.chip = 0;
         }
         if (!state.trayTimers) state.trayTimers = [];
+        
+        // 追加スキル等の初期化
+        for (let key in SKILLS) { if (state.skills[key] === undefined) state.skills[key] = 0; }
+        
         return true;
     }
     return false;
@@ -1317,7 +1321,13 @@ const renderApp = () => {
         app.innerHTML = `
                 <div class="m-auto text-center bg-white/95 backdrop-blur p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl border-4 border-amber-300 max-w-lg w-[90%] md:w-full relative overflow-hidden">
                     <div class="absolute -top-10 -right-10 text-8xl md:text-9xl opacity-20">☕</div>
-                    <h1 class="text-3xl md:text-4xl font-black text-amber-800 mb-2 tracking-tight">ハッピーカフェ<br>神の領域エディション</h1>
+                    <button data-action="toggle-bgm" class="absolute top-4 left-4 w-10 h-10 flex items-center justify-center text-xl bg-gray-100 text-gray-600 rounded-xl shadow-sm border border-gray-200 hover:bg-white transition-all">
+                        ${isBgmMuted ? '🔇' : '🔊'}
+                    </button>
+                    <a href="../../index.html" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-xs md:text-sm flex items-center gap-1">
+                        🏠 ポータルへ
+                    </a>
+                    <h1 class="text-3xl md:text-4xl font-black text-amber-800 mb-2 tracking-tight mt-6 md:mt-2">ハッピーカフェ<br>神の領域エディション</h1>
                     <p class="text-gray-600 font-bold mb-4 md:mb-6 text-xs md:text-sm">市場仕入れ、チェイン、ペット、宇宙出店！<br>もはやカフェ経営の枠を超えた究極版！</p>
                     <div class="flex flex-col gap-2 md:gap-3">
                         ${canLoad ? `<button data-action="load-game" class="bg-blue-500 hover:bg-blue-400 text-white text-lg md:text-xl font-bold py-3 md:py-4 rounded-full shadow-[0_5px_0_#1e3a8a] active:translate-y-[5px] active:shadow-none transition-all">続きから遊ぶ</button>` : ''}
@@ -1349,7 +1359,12 @@ const renderApp = () => {
                 <div class="h-full w-full bg-slate-100 p-3 md:p-6 flex flex-col">
                     <header class="flex justify-between items-center mb-3 md:mb-6 shrink-0">
                         <h2 class="text-xl md:text-3xl font-black text-slate-800">📖 コレクション＆実績</h2>
-                        <button data-action="goto-title" class="bg-gray-500 hover:bg-gray-400 text-white px-4 py-1.5 md:px-6 md:py-2 rounded-full font-bold shadow text-sm md:text-base">戻る</button>
+                        <div class="flex gap-2">
+                            <button data-action="toggle-bgm" class="w-10 h-10 flex items-center justify-center text-xl bg-white text-gray-600 rounded-xl shadow-sm border border-gray-200">
+                                ${isBgmMuted ? '🔇' : '🔊'}
+                            </button>
+                            <button data-action="goto-title" class="bg-gray-500 hover:bg-gray-400 text-white px-4 py-1.5 md:px-6 md:py-2 rounded-full font-bold shadow text-sm md:text-base">戻る</button>
+                        </div>
                     </header>
                     <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 overflow-hidden">
                         <div class="bg-white rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-md overflow-y-auto no-scrollbar"><h3 class="text-lg md:text-xl font-black mb-3 md:mb-4 border-b-2 pb-2">🏆 実績一覧</h3><div class="flex flex-col gap-2 md:gap-3">${achHtml}</div></div>
@@ -1422,7 +1437,12 @@ const renderApp = () => {
 
         app.innerHTML = `
                 <div class="m-auto bg-white/95 backdrop-blur p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-2xl max-w-2xl w-[95%] md:w-full border-t-4 md:border-t-8 ${state.day % 7 === 0 ? 'border-pink-400' : 'border-amber-400'} flex flex-col max-h-[85dvh] relative">
-                    <button data-action="goto-title" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-sm">◀ タイトルへ</button>
+                    <div class="absolute top-4 right-4 flex items-center gap-2">
+                        <button data-action="toggle-bgm" class="w-8 h-8 flex items-center justify-center text-sm bg-gray-100 text-gray-500 rounded-lg border border-gray-200">
+                            ${isBgmMuted ? '🔇' : '🔊'}
+                        </button>
+                        <button data-action="goto-title" class="text-gray-400 hover:text-gray-600 font-bold text-sm">◀ タイトルへ</button>
+                    </div>
                     <div class="flex flex-col md:flex-row justify-between items-center mb-2 md:mb-4 gap-2 md:gap-0 shrink-0">
                         <h2 class="text-xl md:text-2xl font-black ${state.day % 7 === 0 ? 'text-pink-600' : 'text-amber-800'}">${state.day % 7 === 0 ? '🎉 パーティ準備' : '☀️ 営業準備'} <span class="text-base md:text-sm md:ml-2">(Day ${state.day})</span></h2>
                         <div class="bg-slate-800 text-white font-black px-3 md:px-4 py-1 rounded-full text-sm md:text-base shadow">💰 ${formatMoney(state.money)}</div>
@@ -1460,7 +1480,10 @@ const renderApp = () => {
                     </div>
                     <div class="flex items-center gap-2 md:gap-3 shrink-0 ml-auto">
                         <div class="text-xs md:text-sm font-bold text-amber-200 hidden sm:block">Day ${state.day}</div>
-                        <div id="ui-time" class="text-sm md:text-xl font-bold bg-white/20 px-2 md:px-4 py-0.5 md:py-1 rounded-full">⏱ <span class="hidden md:inline">残り</span> ${GAME_CONFIG.dayDuration}秒</div>
+                        <div id="ui-time" class="text-sm md:text-xl font-bold bg-white/20 px-2 md:px-4 py-0.5 md:py-1 rounded-full">⏱ <span class="hidden md:inline">残り</span> ${Math.ceil(state.timeRemaining)}秒</div>
+                        <button data-action="toggle-bgm" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-sm md:text-xl bg-white/10 text-white rounded-full border border-white/20 hover:bg-white/20 transition-all">
+                            ${isBgmMuted ? '🔇' : '🔊'}
+                        </button>
                     </div>
                 </header>
                 <div id="game-wrapper" class="flex-1 flex flex-col md:flex-row overflow-hidden relative transition-all duration-300">
@@ -1580,7 +1603,12 @@ const renderApp = () => {
 
         let shopHtml = `
                 <div class="h-full w-full bg-slate-50 flex flex-col p-2 md:p-6 overflow-hidden relative">
-                    <button data-action="goto-title" class="absolute top-2 right-2 md:top-6 md:right-6 text-gray-400 hover:text-gray-600 font-bold text-xs md:text-sm z-10">◀ タイトルへ</button>
+                    <div class="absolute top-2 right-2 md:top-6 md:right-6 flex items-center gap-2 z-10">
+                        <button data-action="toggle-bgm" class="w-8 h-8 flex items-center justify-center text-sm bg-white text-gray-500 rounded-lg border border-gray-200 shadow-sm">
+                            ${isBgmMuted ? '🔇' : '🔊'}
+                        </button>
+                        <button data-action="goto-title" class="text-gray-400 hover:text-gray-600 font-bold text-xs md:text-sm">◀ タイトルへ</button>
+                    </div>
                     <header class="flex flex-col md:flex-row justify-between items-center mb-2 gap-2 border-b-2 border-slate-200 pb-2">
                         <h2 class="text-xl md:text-2xl font-black text-slate-800 w-full md:w-auto text-center md:text-left">メガ・ショップ</h2>
                         <div class="flex gap-2 text-xs md:text-md">
@@ -1675,12 +1703,6 @@ const renderApp = () => {
         app.innerHTML = shopHtml;
     }
 
-    // BGMボタンを追加 (すべての画面で表示)
-    app.insertAdjacentHTML('beforeend', `
-        <button data-action="toggle-bgm" class="fixed top-4 right-4 z-[9999] w-12 h-12 flex items-center justify-center text-2xl bg-black/50 text-white rounded-full shadow-lg backdrop-blur-sm border-2 border-white/20 cursor-pointer transition-all hover:bg-black/70 hover:scale-105 active:scale-95">
-            ${isBgmMuted ? '🔇' : '🔊'}
-        </button>
-    `);
 };
 
 document.addEventListener('DOMContentLoaded', () => { document.body.addEventListener('click', handleAction); renderApp(); });
