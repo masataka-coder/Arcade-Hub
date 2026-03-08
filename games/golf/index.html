@@ -483,22 +483,25 @@
         }
 
         function touchStarted() {
+            if (gameState === 'title') return; // タイトル画面ではブラウザのデフォルト挙動（クリック等）を優先
             if (touches.length > 0) {
                 mouseX = touches[0].x; mouseY = touches[0].y;
                 mousePressed();
             }
-            return false;
+            if (gameState === 'aiming' || gameState === 'flying') return false;
         }
         function touchMoved() {
+            if (gameState === 'title') return;
             if (touches.length > 0) {
                 mouseX = touches[0].x; mouseY = touches[0].y;
                 mouseDragged();
             }
-            return false;
+            if (gameState === 'aiming' || gameState === 'flying') return false;
         }
         function touchEnded() {
+            if (gameState === 'title') return;
             mouseReleased();
-            return false;
+            if (gameState === 'aiming' || gameState === 'flying') return false;
         }
 
         function loadLevel(levelIndex) {
