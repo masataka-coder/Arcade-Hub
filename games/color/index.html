@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Fluid Alchemy</title>
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #111; overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; color: #fff;
+        }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+        /* 流体レイヤーにメタボール効果（ネバネバ）を適用するためのコンテナ */
+        #fluid-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            filter: url('#goo');
+        }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .header {
+            background: rgba(30, 30, 30, 0.9); padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5); border-bottom: 2px solid #444;
+            pointer-events: auto;
+        }
+        .level-info { font-size: 24px; font-weight: bold; color: #ddd; }
+        .target-box { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        .target-color-preview { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #666; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .ink-left { font-size: 18px; color: #aaa; font-weight: bold; }
+
+        .dispensers {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            width: 95%; max-width: 600px; 
+            display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; pointer-events: auto;
+        }
+        .dispenser-btn {
+            width: 65px; height: 65px; border-radius: 50%; border: 3px solid #333;
+            box-shadow: 0 0 15px rgba(255,255,255,0.1); cursor: pointer; transition: transform 0.1s;
+            display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            user-select: none;
+            touch-action: none; 
+            font-size: 14px;
+        }
+        .dispenser-btn:active { transform: scale(0.9); }
+        #btn-r { background-color: rgb(255, 0, 0); box-shadow: 0 0 20px rgba(255,0,0,0.5); }
+        #btn-g { background-color: rgb(0, 255, 0); box-shadow: 0 0 20px rgba(0,255,0,0.5); color: #000; text-shadow: none;}
+        #btn-b { background-color: rgb(0, 80, 255); box-shadow: 0 0 20px rgba(0,80,255,0.5); }
+        
+        #btn-c { background-color: rgb(0, 255, 255); box-shadow: 0 0 20px rgba(0,255,255,0.5); color: #000; text-shadow: none; }
+        #btn-m { background-color: rgb(255, 0, 255); box-shadow: 0 0 20px rgba(255,0,255,0.5); }
+        #btn-y { background-color: rgb(255, 255, 0); box-shadow: 0 0 20px rgba(255,255,0,0.5); color: #000; text-shadow: none;}
+
+        .progress-container {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 300px; background: #333; height: 20px; border-radius: 10px; overflow: hidden;
+            border: 2px solid #555; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        #progress-bar { height: 100%; width: 0%; background: #4CAF50; transition: width 0.3s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; top: 2px; font-size: 12px; font-weight: bold; color: #fff; text-shadow: 0 1px 2px #000; }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto;
+            background: rgba(10,10,10,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.5s; z-index: 100;
+        }
+        .overlay.active { opacity: 1; }
+        .overlay h1 { font-size: 48px; color: #fff; margin-bottom: 10px; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .overlay p { text-align: center; margin: 5px 20px; color: #ccc; }
+        .overlay button {
+            padding: 15px 40px; font-size: 20px; font-weight: bold; border: 2px solid #fff; border-radius: 30px;
+            background: transparent; color: white; cursor: pointer; box-shadow: 0 0 10px rgba(255,255,255,0.2); margin-top: 30px;
+            transition: all 0.2s;
+        }
+        .overlay button:hover { background: #fff; color: #000; }
+        .hidden { display: none !important; }
+
+        /* タイトル画面用の言語切り替えボタン */
+        .lang-btn-title {
+            padding: 10px 25px; font-size: 16px; font-weight: bold; border: 2px solid #666 !important; border-radius: 30px;
+            background: transparent; color: #aaa !important; cursor: pointer; margin-top: 20px !important;
+            transition: all 0.2s; box-shadow: none !important;
+        }
+        .lang-btn-title:hover { background: #333 !important; color: #fff !important; border-color: #888 !important; }
+
+        .help-btn {
+            font-size: 24px;
+            cursor: pointer;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+            transition: transform 0.2s;
+            user-select: none;
+            background: #333;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #666;
+            pointer-events: auto;
+        }
+        .help-btn:hover { transform: scale(1.1); background: #555; }
+        
+        /* 言語切り替えトグルボタンのスタイル */
+        .lang-btn {
+            font-size: 16px; font-weight: bold; cursor: pointer; background: #333; border: 2px solid #666;
+            border-radius: 20px; padding: 5px 12px; user-select: none; transition: background 0.2s, transform 0.2s;
+            pointer-events: auto; display: flex; align-items: center; justify-content: center; height: 22px;
+        }
+        .lang-btn:hover { background: #555; transform: scale(1.05); }
+
+        .help-content {
+            background: rgba(20, 20, 20, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            border: 2px solid #555;
+            max-width: 90%;
+            width: 400px;
+            text-align: left;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+        .help-content h2 {
+            margin-top: 0; color: #fff; text-align: center; border-bottom: 1px solid #444; padding-bottom: 15px; text-shadow: none;
+        }
+        .help-content ul { padding-left: 20px; line-height: 1.8; color: #ddd; }
+        .help-content li { margin-bottom: 10px; }
+        .help-content b { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <!-- メタボール効果を生み出すSVGフィルター -->
+    <svg style="position: absolute; width: 0; height: 0;">
+        <defs>
+            <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div id="game-container">
+        <!-- キャンバスを背景用と流体用に分割 -->
+        <canvas id="bgCanvas"></canvas>
+        <div id="fluid-container">
+            <canvas id="fluidCanvas"></canvas>
+        </div>
+
+        <div id="ui-layer">
+            <div class="header">
+                <div class="level-info"><span id="t-level">Level</span> <span id="level-display">1</span></div>
+                <div class="target-box">
+                    <span id="t-target">Target:</span>
+                    <div class="target-color-preview" id="target-preview"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="ink-left"><span id="t-drops">Drops</span>: <span id="ink-display">100</span></div>
+                    <div class="lang-btn" onclick="toggleLanguage()" id="lang-btn" title="言語切替 / Language">EN</div>
+                    <div class="help-btn" onclick="showHelp()" title="遊び方・ルール / Help">❓</div>
+                </div>
+            </div>
+
+            <div class="dispensers">
+                <div class="dispenser-btn" id="btn-r">Red</div>
+                <div class="dispenser-btn" id="btn-g">Green</div>
+                <div class="dispenser-btn" id="btn-b">Blue</div>
+                <div class="dispenser-btn" id="btn-c" style="display:none;">Cyan</div>
+                <div class="dispenser-btn" id="btn-m" style="display:none;">Mag</div>
+                <div class="dispenser-btn" id="btn-y" style="display:none;">Yel</div>
+            </div>
+
+            <div class="progress-container">
+                <div id="progress-bar"></div>
+                <div class="progress-text" id="t-progress">Mixing Match Rate</div>
+            </div>
+        </div>
+
+        <!-- 画面オーバーレイ -->
+        <div id="screen-start" class="overlay active">
+            <h1 id="t-main-title">Neon Fluid Alchemy</h1>
+            <p id="t-start1">ボタンを長押しして流体を落とし、色を調合しよう！</p>
+            <p id="t-start2" style="color:#ff0;">赤 + 緑 = 黄色</p>
+            <p id="t-start3" style="color:#0ff;">緑 + 青 = シアン（水色）</p>
+            <p id="t-start4" style="color:#f0f;">赤 + 青 = マゼンタ（紫）</p>
+            <button id="btn-start" onclick="startGame()">Start Game</button>
+            <button id="lang-btn-title" class="lang-btn-title" onclick="toggleLanguage()">🌍 English</button>
+        </div>
+        <div id="screen-clear" class="overlay hidden">
+            <h1 id="t-clear">Level Clear!</h1>
+            <button id="btn-next" onclick="nextLevel()">Next Level</button>
+        </div>
+        <div id="screen-gameover" class="overlay hidden">
+            <h1 id="t-over" style="color:#f44;">Out of Drops...</h1>
+            <p id="t-over-desc">流体が足りません</p>
+            <button id="btn-retry" onclick="retryLevel()">Retry Level</button>
+        </div>
+        <div id="screen-allclear" class="overlay hidden">
+            <h1 id="t-allclear">Congratulations!</h1>
+            <p id="t-allclear-desc">すべての調合を完了しました！</p>
+            <button id="btn-again" onclick="restartGame()">Play Again</button>
+        </div>
+
+        <!-- ヘルプ画面 -->
+        <div id="screen-help" class="overlay hidden">
+            <div class="help-content">
+                <h2 id="t-help-title">遊び方・クリア条件</h2>
+                <ul>
+                    <li id="t-help1">画面中央のボタンを長押しして流体を落とします。</li>
+                    <li id="t-help2">流体を一番下の「受け皿」に入れ、<b>Target（ターゲット）</b>と同じ色を作りましょう。</li>
+                    <li id="t-help3"><b>光の混色ルール：</b><br>
+                        <span style="color:#ff0; font-weight:bold;">赤 + 緑 = 黄色</span><br>
+                        <span style="color:#0ff; font-weight:bold;">緑 + 青 = シアン（水色）</span><br>
+                        <span style="color:#f0f; font-weight:bold;">赤 + 青 = マゼンタ（紫）</span><br>
+                        <span style="color:#fff; font-weight:bold;">赤 + 緑 + 青 = 白色</span>
+                    </li>
+                    <li id="t-help4">ステージ後半では、Cyan(水色)・Mag(紫)・Yel(黄色)の流体も追加されます。組み合わせを考えてみてください！</li>
+                    <li id="t-help5">正しい割合で色が混ざると、画面下の<b>ゲージ（Mixing Match Rate）</b>が徐々に上昇します。</li>
+                </ul>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="btn-help-close" onclick="hideHelp()" style="margin-top: 0; padding: 10px 30px; font-size: 18px;">閉じる / 再開</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
+        const fluidCanvas = document.getElementById('fluidCanvas');
+        const fluidCtx = fluidCanvas.getContext('2d', { willReadFrequently: true });
+
+        let width, height;
+        let particles = [];
+        let obstacles = [];
+        let targetBox = {};
+        
+        let currentLevel = 0;
+        let dropsLeft = 100;
+        let isPlaying = false;
+        let matchProgress = 0;
+        let wasPlayingBeforeHelp = false; 
+        let currentMixColor = null; 
+
+        // === 言語設定 (i18n) ===
+        let currentLang = 'ja';
+        const i18n = {
+            ja: {
+                mainTitle: "ネオン流体錬金術",
+                level: "レベル", target: "目標色:", drops: "残り滴数", progress: "調合一致率",
+                start1: "ボタンを長押しして流体を落とし、色を調合しよう！",
+                start2: "赤 + 緑 = 黄色", start3: "緑 + 青 = シアン（水色）", start4: "赤 + 青 = マゼンタ（紫）",
+                btnStart: "ゲーム開始", clearTitle: "ステージクリア！", btnNext: "次のステージへ",
+                overTitle: "インク切れ...", overDesc: "流体が足りません", btnRetry: "やり直す",
+                allClearTitle: "おめでとうございます！", allClearDesc: "すべての調合を完了しました！", btnAgain: "もう一度遊ぶ",
+                helpTitle: "遊び方・クリア条件",
+                help1: "画面中央のボタンを長押しして流体を落とします。",
+                help2: "流体を一番下の「受け皿」に入れ、<b>目標色（ターゲット）</b>と同じ色を作りましょう。",
+                help3: "<b>光の混色ルール：</b><br><span style='color:#ff0; font-weight:bold;'>赤 + 緑 = 黄色</span><br><span style='color:#0ff; font-weight:bold;'>緑 + 青 = シアン（水色）</span><br><span style='color:#f0f; font-weight:bold;'>赤 + 青 = マゼンタ（紫）</span><br><span style='color:#fff; font-weight:bold;'>赤 + 緑 + 青 = 白色</span>",
+                help4: "ステージ後半では、Cyan(水色)・Mag(紫)・Yel(黄色)の流体も追加されます。組み合わせを考えてみてください！",
+                help5: "正しい割合で色が混ざると、画面下の<b>調合一致率ゲージ</b>が徐々に上昇します。",
+                helpClose: "閉じる / 再開",
+                langBtnLabel: "EN",
+                langBtnTitleLabel: "🌍 English"
+            },
+            en: {
+                mainTitle: "Neon Fluid Alchemy",
+                level: "Level", target: "Target:", drops: "Drops", progress: "Mixing Match Rate",
+                start1: "Hold buttons to drop fluid and mix colors!",
+                start2: "Red + Green = Yellow", start3: "Green + Blue = Cyan", start4: "Red + Blue = Magenta",
+                btnStart: "Start Game", clearTitle: "Level Clear!", btnNext: "Next Level",
+                overTitle: "Out of Drops...", overDesc: "Not enough fluid left.", btnRetry: "Retry Level",
+                allClearTitle: "Congratulations!", allClearDesc: "You have completed all mixtures!", btnAgain: "Play Again",
+                helpTitle: "How to Play & Clear Conditions",
+                help1: "Hold the center buttons to drop fluid.",
+                help2: "Mix them in the bottom tray to match the <b>Target</b> color.",
+                help3: "<b>Light Mixing Rules:</b><br><span style='color:#ff0; font-weight:bold;'>Red + Green = Yellow</span><br><span style='color:#0ff; font-weight:bold;'>Green + Blue = Cyan</span><br><span style='color:#f0f; font-weight:bold;'>Red + Blue = Magenta</span><br><span style='color:#fff; font-weight:bold;'>Red + Green + Blue = White</span>",
+                help4: "In later stages, Cyan, Mag (Magenta), and Yel (Yellow) are added. Try different combinations!",
+                help5: "When mixed correctly, the <b>Mixing Match Rate</b> gauge will gradually increase.",
+                helpClose: "Close / Resume",
+                langBtnLabel: "JA",
+                langBtnTitleLabel: "🌍 日本語"
+            }
+        };
+
+        function updateLanguageUI() {
+            const t = i18n[currentLang];
+            document.getElementById('t-main-title').innerText = t.mainTitle;
+            document.getElementById('t-level').innerText = t.level;
+            document.getElementById('t-target').innerText = t.target;
+            document.getElementById('t-drops').innerText = t.drops;
+            document.getElementById('t-progress').innerText = t.progress;
+            
+            document.getElementById('t-start1').innerText = t.start1;
+            document.getElementById('t-start2').innerText = t.start2;
+            document.getElementById('t-start3').innerText = t.start3;
+            document.getElementById('t-start4').innerText = t.start4;
+            document.getElementById('btn-start').innerText = t.btnStart;
+            
+            document.getElementById('t-clear').innerText = t.clearTitle;
+            document.getElementById('btn-next').innerText = t.btnNext;
+            
+            document.getElementById('t-over').innerText = t.overTitle;
+            document.getElementById('t-over-desc').innerText = t.overDesc;
+            document.getElementById('btn-retry').innerText = t.btnRetry;
+            
+            document.getElementById('t-allclear').innerText = t.allClearTitle;
+            document.getElementById('t-allclear-desc').innerText = t.allClearDesc;
+            document.getElementById('btn-again').innerText = t.btnAgain;
+            
+            document.getElementById('t-help-title').innerText = t.helpTitle;
+            document.getElementById('t-help1').innerHTML = t.help1;
+            document.getElementById('t-help2').innerHTML = t.help2;
+            document.getElementById('t-help3').innerHTML = t.help3;
+            document.getElementById('t-help4').innerHTML = t.help4;
+            document.getElementById('t-help5').innerHTML = t.help5;
+            document.getElementById('btn-help-close').innerText = t.helpClose;
+
+            document.getElementById('lang-btn').innerText = t.langBtnLabel;
+            document.getElementById('lang-btn-title').innerText = t.langBtnTitleLabel;
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'ja' ? 'en' : 'ja';
+            updateLanguageUI();
+        }
+
+        // 描画用の色(r,g,b)と、計算用の純粋な論理色(logic)
+        const R = {r:240, g:0, b:0, hex: '#ff0000', logic: {r:255, g:0, b:0}};
+        const G = {r:0, g:240, b:0, hex: '#00ff00', logic: {r:0, g:255, b:0}};
+        const B = {r:0, g:40, b:240, hex: '#0050ff', logic: {r:0, g:0, b:255}};
+        const C = {r:0, g:240, b:240, hex: '#00ffff', logic: {r:0, g:255, b:255}};
+        const M = {r:240, g:0, b:240, hex: '#ff00ff', logic: {r:255, g:0, b:255}};
+        const Y = {r:240, g:240, b:0, hex: '#ffff00', logic: {r:255, g:255, b:0}};
+
+        const levels = [
+            { target: {r:255, g:255, b:0, hex: '#ffff00'}, name: "Yellow", drops: 120, layout: 1, colors: ['btn-r', 'btn-g', 'btn-b'] },
+            { target: {r:0, g:255, b:255, hex: '#00ffff'}, name: "Cyan", drops: 120, layout: 2, colors: ['btn-r', 'btn-g', 'btn-b'] },
+            { target: {r:255, g:0, b:255, hex: '#ff00ff'}, name: "Magenta", drops: 120, layout: 3, colors: ['btn-r', 'btn-g', 'btn-b'] },
+            { target: {r:255, g:255, b:255, hex: '#ffffff'}, name: "White", drops: 150, layout: 4, colors: ['btn-r', 'btn-g', 'btn-b'] },
+            { target: {r:255, g:128, b:0, hex: '#ff8000'}, name: "Orange", drops: 120, layout: 1, colors: ['btn-r', 'btn-y', 'btn-b'] },
+            { target: {r:128, g:0, b:255, hex: '#8000ff'}, name: "Purple", drops: 120, layout: 2, colors: ['btn-r', 'btn-b', 'btn-m'] },
+            { target: {r:255, g:255, b:255, hex: '#ffffff'}, name: "CMY White", drops: 130, layout: 3, colors: ['btn-c', 'btn-m', 'btn-y'] },
+            { target: {r:255, g:255, b:255, hex: '#ffffff'}, name: "Rainbow", drops: 180, layout: 4, colors: ['btn-r', 'btn-g', 'btn-b', 'btn-c', 'btn-m', 'btn-y'] }
+        ];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            bgCanvas.width = width; bgCanvas.height = height;
+            fluidCanvas.width = width; fluidCanvas.height = height;
+            setupLevelLayout();
+        }
+        window.addEventListener('resize', resize);
+
+        function setupLevelLayout() {
+            if(!isPlaying) return;
+            obstacles = [];
+            const cx = width / 2;
+            
+            // 修正：ターゲット容器（受け皿）の位置を上にずらし、ゲージと被らないようにしました
+            targetBox = { x: cx - 100, y: height - 160, w: 200, h: 100 };
+            const tb = targetBox;
+            for(let i=0; i<6; i++) {
+                obstacles.push({ x: tb.x, y: tb.y + i*20, r: 15, moving: false });
+                obstacles.push({ x: tb.x + tb.w, y: tb.y + i*20, r: 15, moving: false });
+            }
+            for(let i=0; i<=10; i++) {
+                obstacles.push({ x: tb.x + i*20, y: tb.y + tb.h, r: 15, moving: false });
+            }
+
+            const layout = levels[currentLevel].layout;
+            if (layout === 1) {
+                obstacles.push({ x: cx - 200, y: height/2 + 60, r: 150, moving: false });
+                obstacles.push({ x: cx + 200, y: height/2 + 60, r: 150, moving: false });
+            } else if (layout === 2) {
+                obstacles.push({ x: cx, y: height/2 - 50, r: 40, moving: false });
+                obstacles.push({ x: cx - 220, y: height/2 + 80, r: 150, moving: false });
+                obstacles.push({ x: cx + 220, y: height/2 + 80, r: 150, moving: false });
+            } else if (layout >= 3) {
+                obstacles.push({ x: cx, y: height/2 - 20, r: 55, moving: true, angle: 0, originX: cx });
+                obstacles.push({ x: cx - 230, y: height/2 + 80, r: 150, moving: false });
+                obstacles.push({ x: cx + 230, y: height/2 + 80, r: 150, moving: false });
+            }
+        }
+
+        class Particle {
+            constructor(x, y, colorData) {
+                this.x = x + (Math.random() - 0.5) * 20;
+                this.y = y + (Math.random() - 0.5) * 20;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = Math.random() * 2;
+                
+                this.radius = 12; 
+                this.drawRadius = 18; 
+                
+                this.color = colorData;
+                this.currentColor = { r: colorData.r, g: colorData.g, b: colorData.b }; // 追加：現在の描画色
+                this.inTarget = false;
+            }
+
+            update() {
+                this.vy += 0.4;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                
+                this.inTarget = (this.x > targetBox.x && this.x < targetBox.x + targetBox.w && 
+                                 this.y > targetBox.y && this.y < targetBox.y + targetBox.h);
+
+                if (this.inTarget) {
+                    this.vx += (Math.random() - 0.5) * 1.0;
+                    this.vy += (Math.random() - 0.5) * 0.5;
+
+                    // 追加：受け皿の中では、粒が「混ざった後の色」へ徐々に変色していく（溶け合う表現）
+                    if (currentMixColor) {
+                        this.currentColor.r += (currentMixColor.r - this.currentColor.r) * 0.05;
+                        this.currentColor.g += (currentMixColor.g - this.currentColor.g) * 0.05;
+                        this.currentColor.b += (currentMixColor.b - this.currentColor.b) * 0.05;
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.1;
+                    this.vy += (Math.random() - 0.5) * 0.1;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
+                if (this.x > width - this.radius) { this.x = width - this.radius; this.vx *= -0.5; }
+                
+                for (let obs of obstacles) {
+                    let dx = this.x - obs.x;
+                    let dy = this.y - obs.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    let minDist = this.radius + obs.r;
+
+                    if (dist < minDist) {
+                        let angle = Math.atan2(dy, dx);
+                        let overlap = minDist - dist;
+                        this.x += Math.cos(angle) * overlap;
+                        this.y += Math.sin(angle) * overlap;
+                        
+                        let normalX = dx / dist;
+                        let normalY = dy / dist;
+                        let dotProduct = this.vx * normalX + this.vy * normalY;
+                        this.vx -= 2 * dotProduct * normalX * 0.4;
+                        this.vy -= 2 * dotProduct * normalY * 0.4;
+                        
+                        if(obs.moving) {
+                            this.vx += (Math.random()-0.5) * 6;
+                        }
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.drawRadius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgb(${this.currentColor.r}, ${this.currentColor.g}, ${this.currentColor.b})`;
+                ctx.fill();
+            }
+        }
+
+        let dropInterval = null;
+
+        function startDrop(colorData, btnId, e) {
+            if(e && e.cancelable) e.preventDefault();
+            if(!isPlaying || dropsLeft <= 0) return;
+            if(dropInterval !== null) return;
+
+            const btn = document.getElementById(btnId);
+            const rect = btn.getBoundingClientRect();
+            const dropX = rect.left + rect.width / 2;
+            const dropY = rect.top + rect.height;
+
+            if (dropsLeft > 0) {
+                particles.push(new Particle(dropX, dropY, colorData));
+                dropsLeft--;
+                document.getElementById('ink-display').innerText = dropsLeft;
+            }
+
+            dropInterval = setInterval(() => {
+                if (dropsLeft > 0) {
+                    particles.push(new Particle(dropX, dropY, colorData));
+                    dropsLeft--;
+                    document.getElementById('ink-display').innerText = dropsLeft;
+                } else {
+                    stopDrop();
+                }
+            }, 60); 
+        }
+        
+        function stopDrop(e) { 
+            if(e && e.cancelable && e.type !== 'pointerup') e.preventDefault();
+            if(dropInterval) {
+                clearInterval(dropInterval); 
+                dropInterval = null;
+            }
+        }
+
+        document.getElementById('btn-r').addEventListener('pointerdown', (e) => startDrop(R, 'btn-r', e));
+        document.getElementById('btn-g').addEventListener('pointerdown', (e) => startDrop(G, 'btn-g', e));
+        document.getElementById('btn-b').addEventListener('pointerdown', (e) => startDrop(B, 'btn-b', e));
+        
+        document.getElementById('btn-c').addEventListener('pointerdown', (e) => startDrop(C, 'btn-c', e));
+        document.getElementById('btn-m').addEventListener('pointerdown', (e) => startDrop(M, 'btn-m', e));
+        document.getElementById('btn-y').addEventListener('pointerdown', (e) => startDrop(Y, 'btn-y', e));
+        
+        window.addEventListener('pointerup', stopDrop);
+        window.addEventListener('pointercancel', stopDrop);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isPlaying) return;
+
+            bgCtx.globalCompositeOperation = 'source-over';
+            bgCtx.fillStyle = '#111';
+            bgCtx.fillRect(0, 0, width, height);
+
+            bgCtx.fillStyle = '#444';
+            for (let obs of obstacles) {
+                if (obs.moving) {
+                    obs.angle += 0.05;
+                    obs.x = obs.originX + Math.sin(obs.angle) * 80;
+                }
+                bgCtx.beginPath();
+                bgCtx.arc(obs.x, obs.y, obs.r, 0, Math.PI * 2);
+                bgCtx.fill();
+                bgCtx.strokeStyle = '#666';
+                bgCtx.lineWidth = 2;
+                bgCtx.stroke();
+            }
+
+            bgCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+            bgCtx.lineWidth = 5;
+            bgCtx.strokeRect(targetBox.x, targetBox.y, targetBox.w, targetBox.h);
+
+            fluidCtx.clearRect(0, 0, width, height);
+            
+            // 修正：粒自体が変色するため、合成モードは自然な「source-over」に戻します
+            fluidCtx.globalCompositeOperation = 'source-over';
+
+            let targetParticles = [];
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.draw(fluidCtx);
+                if (p.inTarget) targetParticles.push(p);
+                if (p.y > height + 50) particles.splice(i, 1);
+            }
+            
+            checkClearCondition(targetParticles);
+        }
+
+        function checkClearCondition(targetParticles) {
+            const target = levels[currentLevel].target;
+            
+            if (targetParticles.length < 25) {
+                // 不正解時の減少速度も穏やかに
+                matchProgress = Math.max(0, matchProgress - 0.2);
+                updateProgressBar();
+                checkGameOver();
+                currentMixColor = null; // 粒がない時は色リセット
+                return;
+            }
+
+            let sumR = 0, sumG = 0, sumB = 0;
+            for(let p of targetParticles) {
+                sumR += p.color.logic.r;
+                sumG += p.color.logic.g;
+                sumB += p.color.logic.b;
+            }
+            
+            let total = targetParticles.length;
+            let avgR = sumR / total;
+            let avgG = sumG / total;
+            let avgB = sumB / total;
+
+            let maxVal = Math.max(avgR, avgG, avgB);
+            if (maxVal > 0) {
+                let scale = 255 / maxVal;
+                avgR *= scale;
+                avgG *= scale;
+                avgB *= scale;
+            }
+
+            // 追加：全体の割合から算出した「混ざった後の色」を保存（白飛びを防ぐため少しトーンを落とす）
+            currentMixColor = { r: avgR * (240/255), g: avgG * (240/255), b: avgB * (240/255) };
+
+            let dist = Math.sqrt(Math.pow(avgR - target.r, 2) + Math.pow(avgG - target.g, 2) + Math.pow(avgB - target.b, 2));
+            
+            // 修正：ゲージが一気に溜まるのではなく、だんだん（徐々に）溜まっていくように数値を下げました
+            if (dist < 100) {
+                matchProgress += 0.3; // 約5.5秒キープすると100%になりクリア
+            } else {
+                matchProgress -= 0.2; // 間違えるとゆっくり減る
+            }
+            matchProgress = Math.max(0, Math.min(100, matchProgress));
+            updateProgressBar();
+
+            if (matchProgress >= 100) {
+                levelClear();
+            } else {
+                checkGameOver();
+            }
+        }
+
+        function updateProgressBar() {
+            const bar = document.getElementById('progress-bar');
+            bar.style.width = matchProgress + '%';
+            if(matchProgress > 80) bar.style.background = '#4CAF50';
+            else if(matchProgress > 40) bar.style.background = '#FFC107';
+            else bar.style.background = '#F44336';
+        }
+
+        function checkGameOver() {
+            if (dropsLeft === 0 && particles.filter(p => p.vy > 0.5 && !p.inTarget).length === 0) {
+                setTimeout(() => {
+                    if (matchProgress < 100 && isPlaying) {
+                        isPlaying = false;
+                        document.getElementById('screen-gameover').classList.remove('hidden');
+                        document.getElementById('screen-gameover').classList.add('active');
+                    }
+                }, 1500);
+            }
+        }
+
+        function startGame() {
+            document.getElementById('screen-start').classList.remove('active');
+            setTimeout(() => document.getElementById('screen-start').classList.add('hidden'), 500);
+            loadLevel(0);
+        }
+
+        function loadLevel(levelIndex) {
+            currentLevel = levelIndex;
+            const lvl = levels[currentLevel];
+            document.getElementById('level-display').innerText = currentLevel + 1;
+            document.getElementById('target-preview').style.backgroundColor = lvl.target.hex;
+            document.getElementById('target-preview').style.boxShadow = `0 0 15px ${lvl.target.hex}`;
+            dropsLeft = lvl.drops;
+            document.getElementById('ink-display').innerText = dropsLeft;
+            
+            const allBtns = ['btn-r', 'btn-g', 'btn-b', 'btn-c', 'btn-m', 'btn-y'];
+            allBtns.forEach(id => {
+                const btn = document.getElementById(id);
+                if(lvl.colors.includes(id)) {
+                    btn.style.display = 'flex';
+                } else {
+                    btn.style.display = 'none';
+                }
+            });
+
+            particles = [];
+            matchProgress = 0;
+            updateProgressBar();
+            isPlaying = true; 
+            resize();
+        }
+
+        function levelClear() {
+            isPlaying = false;
+            if (currentLevel + 1 >= levels.length) {
+                document.getElementById('screen-allclear').classList.remove('hidden');
+                setTimeout(()=>document.getElementById('screen-allclear').classList.add('active'), 50);
+            } else {
+                document.getElementById('screen-clear').classList.remove('hidden');
+                setTimeout(()=>document.getElementById('screen-clear').classList.add('active'), 50);
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('screen-clear').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('screen-clear').classList.add('hidden');
+                loadLevel(currentLevel + 1);
+            }, 500);
+        }
+
+        function retryLevel() {
+            document.getElementById('screen-gameover').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('screen-gameover').classList.add('hidden');
+                loadLevel(currentLevel);
+            }, 500);
+        }
+
+        function restartGame() {
+            document.getElementById('screen-allclear').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('screen-allclear').classList.add('hidden');
+                loadLevel(0); 
+            }, 500);
+        }
+
+        function showHelp() {
+            stopDrop(); 
+            wasPlayingBeforeHelp = isPlaying;
+            isPlaying = false; 
+            
+            if (document.getElementById('screen-start').classList.contains('active')) {
+                document.getElementById('screen-start').style.opacity = '0';
+            }
+
+            const helpScreen = document.getElementById('screen-help');
+            helpScreen.classList.remove('hidden');
+            setTimeout(() => helpScreen.classList.add('active'), 10);
+        }
+
+        function hideHelp() {
+            const helpScreen = document.getElementById('screen-help');
+            helpScreen.classList.remove('active');
+            setTimeout(() => {
+                helpScreen.classList.add('hidden');
+                
+                if (document.getElementById('screen-start').classList.contains('active')) {
+                    document.getElementById('screen-start').style.opacity = '1';
+                }
+                
+                if (wasPlayingBeforeHelp) {
+                    isPlaying = true;
+                }
+            }, 500);
+        }
+
+        animate();
+
+    </script>
+</body>
+</html>

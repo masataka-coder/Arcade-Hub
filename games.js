@@ -110,5 +110,20 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/lost-cg.mp4",
         link: "games/lost/index.html"
+    },
+    {
+        id: "color",
+        ja: {
+            title: "ネオン流体錬金術",
+            description: "3色のインクを注いで混ぜ合わせ、目的の色を作り出そう。1滴が成功を左右する。"
+        },
+        en: {
+            title: "Neon Fluid Alchemy",
+            description: "Pour and mix three ink colors to create your desired color. Every drop counts."
+        },
+        image: "assets/thumbnails/color.png",
+        movie: "assets/movies/color.mp4",
+        movie_cg: "assets/movies/color-cg.mp4",
+        link: "games/color/index.html"
     }
 ];
