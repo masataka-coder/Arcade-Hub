@@ -95,5 +95,20 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/golf-cg.mp4",
         link: "games/golf/index.html"
+    },
+    {
+        id: "lost",
+        ja: {
+            title: "ロスト＆ファウンド・シティ",
+            description: "現実の時間に合わせて景色が変わる街で、落とし物を探そう。アイテムから失われた記憶を紡ぐ、静寂の探索ゲーム。"
+        },
+        en: {
+            title: "Lost & Found City",
+            description: "Search for lost items in a city where the scenery changes with real-world time. A quiet exploration game that pieces together forgotten memories."
+        },
+        image: "assets/thumbnails/lost.png",
+        movie: null,
+        movie_cg: "assets/movies/lost-cg.mp4",
+        link: "games/lost/index.html"
     }
 ];
