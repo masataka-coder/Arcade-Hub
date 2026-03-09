@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arcade-hub-v2';
+const CACHE_NAME = 'arcade-hub-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -23,7 +23,10 @@ const ASSETS_TO_CACHE = [
     './assets/thumbnails/lost.png',
     './assets/thumbnails/color.png',
     './assets/thumbnails/village.png',
-    './assets/icon.svg'
+    './assets/icon.svg',
+    './assets/icon-192.png',
+    './assets/icon-512.png',
+    './assets/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
