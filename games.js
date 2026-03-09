@@ -9,9 +9,10 @@ const ALL_GAMES = [
             title: "Block Breaker",
             description: "Classic arcade action with a modern twist. Break through layers of blocks and unlock powerful abilities."
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/block.png",
         movie: "assets/movies/block.mp4",
-        movie_cg: null,
+        movie_cg: "assets/movies/block-cg.mp4",
         link: "games/block/index.html"
     },
     {
@@ -24,6 +25,7 @@ const ALL_GAMES = [
             title: "Tank Wars",
             description: "Strategic tank combat. Upgrade your arsenal, research new tech, and dominate the battlefield."
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/tank.png",
         movie: "assets/movies/tank.mp4",
         movie_cg: "assets/movies/tank-cg.mp4",
@@ -39,9 +41,10 @@ const ALL_GAMES = [
             title: "Tower Defense",
             description: "Protect your base in this multi-stage strategic challenge. Research advanced towers and survive infinite waves."
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/tower.png",
         movie: "assets/movies/tower.mp4",
-        movie_cg: null,
+        movie_cg: "assets/movies/tower-cg.mp4",
         link: "games/tower/index.html"
     },
     {
@@ -54,6 +57,7 @@ const ALL_GAMES = [
             title: "Neon Strike",
             description: "The ultimate neon shooting experience. Use advanced technology to defeat waves of enemies and giant bosses. Upgrade your ship in the shop and aim for the high score."
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/neon.png",
         movie: "assets/movies/neon.mp4",
         movie_cg: "assets/movies/neon-cg.mp4",
@@ -65,6 +69,7 @@ const ALL_GAMES = [
             title: "ハッピーカフェ・オーナー",
             description: "農園経営からM&A、恐竜＆サイバーパンクタイムトラベルまで！至高の店舗経営シミュレーション。"
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>☕ Happy Cafe</text></svg>",
         movie: null,
         movie_cg: null,
@@ -76,6 +81,7 @@ const ALL_GAMES = [
             title: "村の調和：エボリューション",
             description: "資源を集め、村を発展させ、襲来する敵から村を守り抜こう。交易所や遠征を活用して村をレベルアップ！"
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>🏕️ Village</text></svg>",
         movie: null,
         movie_cg: "assets/movies/village-cg.mp4",
@@ -91,6 +97,7 @@ const ALL_GAMES = [
             title: "Orbital Golf",
             description: "Master the gravity of space and aim for a hole-in-one! Calculate planetary pull and soar through a beautiful, mysterious cosmos."
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/golf.png",
         movie: null,
         movie_cg: "assets/movies/golf-cg.mp4",
@@ -106,6 +113,7 @@ const ALL_GAMES = [
             title: "Lost & Found City",
             description: "Search for lost items in a city where the scenery changes with real-world time. A quiet exploration game that pieces together forgotten memories."
         },
+        copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/lost.png",
         movie: null,
         movie_cg: "assets/movies/lost-cg.mp4",
@@ -121,6 +129,7 @@ const ALL_GAMES = [
             title: "Neon Fluid Alchemy",
             description: "Pour and mix three ink colors to create your desired color. Every drop counts."
         },
+        copyright: "&copy; 2026 Masanobu Kohata",
         image: "assets/thumbnails/color.png",
         movie: "assets/movies/color.mp4",
         movie_cg: "assets/movies/color-cg.mp4",

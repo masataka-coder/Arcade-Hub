@@ -62,6 +62,7 @@ function renderGames() {
                 <div class="card-content">
                     <h2>${info.title}</h2>
                     <p>${info.description}</p>
+                    ${game.copyright ? `<small style="color: #94a3b8; display: block; margin-top: 8px;">${game.copyright}</small>` : ''}
                 </div>
                 <div class="card-footer">
                     <span class="play-badge">${dict.view_details}</span>
@@ -121,6 +122,9 @@ function openModal(id) {
 
     document.getElementById('modal-title').innerText = info.title;
     document.getElementById('modal-description').innerText = info.description;
+    if (game.copyright) {
+        document.getElementById('modal-description').innerHTML += `<br><br><small style="color: #94a3b8;">${game.copyright}</small>`;
+    }
     document.getElementById('modal-play-link').href = game.link;
 
     document.getElementById('label-video-1').innerText = dict.video_label_concept;

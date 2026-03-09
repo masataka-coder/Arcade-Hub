@@ -1,18 +1,29 @@
-const CACHE_NAME = 'arcade-hub-v1';
+const CACHE_NAME = 'arcade-hub-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './style.css',
     './script.js',
+    './games.js',
     './manifest.json',
     './games/block/index.html',
     './games/tank/index.html',
     './games/tower/index.html',
     './games/neon/index.html',
+    './games/cafe/index.html',
+    './games/village/index.html',
+    './games/golf/index.html',
+    './games/lost/index.html',
+    './games/color/index.html',
     './assets/thumbnails/block.png',
     './assets/thumbnails/tank.png',
     './assets/thumbnails/tower.png',
-    './assets/thumbnails/neon.png'
+    './assets/thumbnails/neon.png',
+    './assets/thumbnails/golf.png',
+    './assets/thumbnails/lost.png',
+    './assets/thumbnails/color.png',
+    './assets/thumbnails/village.png',
+    './assets/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
