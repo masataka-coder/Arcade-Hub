@@ -1,0 +1,2448 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寿司職人クリッカー</title>
+    <!-- ページのアイコン（ファビコン） -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%%22 y=%2250%%22 style=%22dominant-baseline:central;text-anchor:middle;font-size:90px;%22>🍣</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .sushi-btn {
+            transition: transform 0.05s;
+            cursor: pointer;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
+        }
+
+        .sushi-btn:active {
+            transform: scale(0.9);
+        }
+
+        #physics-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        @keyframes angryShake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+        .animate-angry {
+            animation: angryShake 0.5s infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        .blackhole-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40vh;
+            height: 40vh;
+            background: radial-gradient(circle, #000 10%, #2a004d 40%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: spin 3s linear infinite;
+            pointer-events: none;
+            z-index: 35;
+            box-shadow: 0 0 100px 30px rgba(100, 0, 255, 0.6);
+            mix-blend-mode: multiply;
+        }
+
+        .glitch-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 0, 0, 0.15);
+            z-index: 9999;
+            pointer-events: none;
+            mix-blend-mode: color-burn;
+            animation: glitchAnim 0.1s infinite;
+        }
+
+        @keyframes glitchAnim {
+            0% {
+                transform: translate(0)
+            }
+
+            20% {
+                transform: translate(-10px, 10px)
+            }
+
+            60% {
+                transform: translate(10px, 10px)
+            }
+
+            100% {
+                transform: translate(0)
+            }
+        }
+
+        @keyframes hoverMonster {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .animate-monster {
+            animation: hoverMonster 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body class="h-[100dvh] w-screen relative text-gray-800 overflow-hidden">
+
+    <!-- 通知・ダイアログUI -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[10002] flex flex-col gap-2 pointer-events-none"></div>
+    <div id="custom-dialog"
+        class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-[10001] backdrop-blur-sm transition-opacity duration-200 opacity-0 pointer-events-auto">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full border-2 border-gray-300 transform scale-95 transition-transform duration-200"
+            id="custom-dialog-content">
+            <h3 id="custom-dialog-title" class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">確認</h3>
+            <p id="custom-dialog-msg" class="text-gray-600 mb-6 whitespace-pre-wrap text-sm leading-relaxed"></p>
+            <div class="flex justify-end gap-3" id="custom-dialog-buttons"></div>
+        </div>
+    </div>
+
+    <!-- 画面効果・状態表示 -->
+    <div id="warning-banner"
+        class="absolute top-0 left-0 w-full bg-red-600 text-white font-black text-center py-3 z-[60] transform -translate-y-full transition-transform duration-500 shadow-2xl flex items-center justify-center gap-4">
+        <span class="animate-pulse text-2xl">⚠️</span><span id="warning-text"
+            class="text-xl md:text-2xl tracking-widest">警告</span><span class="animate-pulse text-2xl">⚠️</span>
+    </div>
+    <div id="timestop-effect"
+        class="absolute inset-0 bg-blue-900/30 backdrop-invert backdrop-opacity-20 pointer-events-none hidden z-40 transition-opacity duration-300">
+        <div
+            class="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-300 font-black text-6xl tracking-widest drop-shadow-[0_0_20px_rgba(59,130,246,1)]">
+            TIME STOP</div>
+    </div>
+    <div id="fever-display"
+        class="absolute top-10 left-1/2 transform -translate-x-1/2 hidden z-[45] bg-yellow-400 text-red-700 font-black text-4xl px-8 py-2 rounded-full border-4 border-red-600 animate-pulse shadow-[0_0_30px_rgba(250,204,21,0.8)] pointer-events-none whitespace-nowrap">
+        FEVER TIME!! x10
+    </div>
+    <div id="universe-display"
+        class="absolute bottom-4 left-4 z-40 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-bold font-mono tracking-widest border border-gray-600">
+        UNIVERSE: NORMAL
+    </div>
+
+    <!-- 試練(鳥居) -->
+    <div id="torii-entity"
+        class="absolute hidden flex flex-col items-center justify-center z-[45] pointer-events-auto cursor-pointer animate-pulse"
+        style="top: 20%; left: 70%;">
+        <div
+            class="text-7xl drop-shadow-[0_0_20px_rgba(250,204,21,1)] select-none hover:scale-110 transition-transform">
+            ⛩️</div>
+        <div
+            class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold shadow-md border border-yellow-400 mt-2 whitespace-nowrap text-center">
+            寿司神の試練<br>クリックで開始</div>
+    </div>
+    <div id="trial-ui"
+        class="absolute top-24 left-1/2 transform -translate-x-1/2 hidden z-[55] bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-[0_10px_40px_rgba(250,204,21,0.5)] border-4 border-yellow-400 min-w-[300px] pointer-events-none">
+        <h3 class="text-lg font-black text-yellow-600 mb-2 text-center" id="trial-title">試練</h3>
+        <div class="w-full h-4 bg-gray-200 rounded-full overflow-hidden border border-gray-300 mb-1">
+            <div id="trial-progress-bar" class="h-full bg-yellow-400 transition-all duration-100" style="width: 0%;">
+            </div>
+        </div>
+        <div class="flex justify-between text-xs font-bold text-gray-500">
+            <span id="trial-progress-text">0 / 0</span><span>残り: <span id="trial-timer"
+                    class="text-red-500 text-sm">0.0</span>秒</span>
+        </div>
+    </div>
+
+    <canvas id="physics-canvas"></canvas>
+
+    <!-- 敵エンティティ -->
+    <div id="claimer-entity"
+        class="absolute hidden flex flex-col items-center justify-center animate-angry z-50 pointer-events-auto cursor-pointer"
+        style="top: 30%; left: 30%;">
+        <div class="text-7xl drop-shadow-lg select-none">🤬</div>
+        <div
+            class="bg-white px-3 py-1 rounded-full text-xs font-bold text-red-600 shadow-md border-2 border-red-500 mt-2 whitespace-nowrap text-center">
+            クレーマー！連打で撃退！</div>
+        <div class="w-full h-3 bg-gray-200 rounded-full mt-1 overflow-hidden border border-gray-300">
+            <div id="claimer-hp-bar" class="h-full bg-red-500" style="width: 100%;"></div>
+        </div>
+    </div>
+    <div id="darkchef-entity"
+        class="absolute hidden flex flex-col items-center justify-center animate-angry z-50 pointer-events-auto cursor-pointer"
+        style="top: 40%; left: 50%;">
+        <div class="text-8xl drop-shadow-[0_0_20px_rgba(255,0,255,0.8)] select-none filter hue-rotate-180 invert">👿
+        </div>
+        <div
+            class="bg-black text-white px-3 py-1 rounded-full text-xs font-bold shadow-md border-2 border-purple-500 mt-2 whitespace-nowrap text-center animate-pulse">
+            SPS反転中！猛連打！</div>
+        <div class="w-full h-4 bg-gray-800 rounded-full mt-1 overflow-hidden border border-purple-500">
+            <div id="darkchef-hp-bar" class="h-full bg-purple-500" style="width: 100%;"></div>
+        </div>
+    </div>
+    <div id="monster-entity"
+        class="absolute hidden flex flex-col items-center justify-center animate-monster z-50 pointer-events-auto cursor-pointer"
+        style="top: 20%; left: 40%;">
+        <div class="text-9xl drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] select-none">🦖</div>
+        <div
+            class="bg-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md border-2 border-orange-800 mt-2 whitespace-nowrap text-center animate-pulse">
+            宇宙怪獣！<span id="monster-timer">15.0</span>秒で設備が喰われる！
+        </div>
+        <div class="w-full h-5 bg-gray-800 rounded-full mt-1 overflow-hidden border-2 border-orange-500">
+            <div id="monster-hp-bar" class="h-full bg-orange-500" style="width: 100%;"></div>
+        </div>
+    </div>
+    <div id="blackhole-visual" class="blackhole-effect hidden"></div>
+
+    <!-- モーダル（悪いイベント） -->
+    <div id="event-modal"
+        class="absolute inset-0 bg-black/80 hidden flex items-center justify-center z-50 pointer-events-auto backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border-4 transform transition-transform scale-90 flex flex-col max-h-[90vh]"
+            id="event-modal-content">
+            <!-- ストライキ -->
+            <div id="ui-strike" class="hidden">
+                <div class="bg-red-600 p-4 text-center">
+                    <h2 class="text-2xl font-black text-white">⚠️ ストライキ発生！</h2>
+                </div>
+                <div class="p-6 text-center overflow-y-auto" id="strike-phase-choice">
+                    <div class="text-6xl mb-4 animate-angry">🧑‍⚖️</div>
+                    <p class="text-sm font-bold text-gray-800 mb-6">従業員が労働環境にブチギレています！</p>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-strike-pay"
+                            class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-bold rounded shadow cursor-pointer">和解金を払う
+                            (所持寿司の30%を失う)</button>
+                        <button id="btn-strike-persuade"
+                            class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow border-2 border-red-800 cursor-pointer">力で説得する
+                            (連打防衛・成功でフィーバー)</button>
+                        <button id="btn-strike-ignore"
+                            class="w-full py-3 bg-gray-400 hover:bg-gray-300 text-gray-800 font-bold rounded shadow cursor-pointer">無視する
+                            (最も高価な設備を2つ失う)</button>
+                    </div>
+                </div>
+                <div class="p-6 text-center hidden" id="strike-phase-action">
+                    <p class="text-lg font-bold text-red-600 mb-2">リーダーを説得(連打)しろ！</p>
+                    <div class="text-xl font-black mb-4">残り: <span id="strike-timer">10.0</span>秒</div>
+                    <div id="strike-leader-btn"
+                        class="text-7xl mx-auto cursor-pointer select-none transition-transform active:scale-90 hover:scale-110 drop-shadow-xl inline-block">
+                        🤬</div>
+                    <div class="w-full h-6 bg-gray-200 rounded-full mt-4 overflow-hidden border-2 border-gray-400">
+                        <div id="strike-persuade-bar" class="h-full bg-blue-500" style="width: 0%;"></div>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500 font-bold"><span id="strike-clicks">0</span> / 30 回</p>
+                </div>
+            </div>
+            <!-- ブラックホール -->
+            <div id="ui-blackhole" class="hidden border-purple-900">
+                <div class="bg-purple-900 p-4 text-center">
+                    <h2 class="text-2xl font-black text-white">🌌 寿司ホール接近！</h2>
+                </div>
+                <div class="p-6 text-center bg-gray-900 text-white">
+                    <div class="text-6xl mb-4 animate-pulse">🕳️</div>
+                    <p class="text-sm font-bold text-purple-200 mb-4">凄まじい重力で毎秒大量の寿司が消失中...</p>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-bh-sushi"
+                            class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow border border-blue-400 cursor-pointer">所持寿司の90%を捧げる</button>
+                        <button id="btn-bh-equip"
+                            class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded shadow border border-red-500 cursor-pointer">最も高価な設備を3つ投げ込む</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 宇宙税 -->
+            <div id="ui-tax" class="hidden border-green-600">
+                <div class="bg-green-600 p-4 text-center">
+                    <h2 class="text-2xl font-black text-white">📝 銀河連邦 国税庁</h2>
+                </div>
+                <div class="p-6 text-center bg-green-50">
+                    <div class="text-6xl mb-4 animate-bounce">👽</div>
+                    <p class="text-sm font-bold text-green-900 mb-4">ウチュウゼイヲ チョウシュウ シマス。</p>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-tax-pay"
+                            class="w-full py-3 bg-green-500 hover:bg-green-400 text-white font-bold rounded shadow cursor-pointer">素直に払う
+                            (所持寿司の80%を失う)</button>
+                        <button id="btn-tax-bribe"
+                            class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded shadow cursor-pointer">賄賂を渡す
+                            (コレクションを1つ失う)</button>
+                    </div>
+                </div>
+            </div>
+            <!-- データ破損 -->
+            <div id="ui-corruption" class="hidden border-blue-800">
+                <div class="bg-blue-800 p-4 text-center">
+                    <h2 class="text-2xl font-black text-white font-mono">💻 ハッキング検知！</h2>
+                </div>
+                <div class="p-6 text-center bg-blue-50">
+                    <div class="text-6xl mb-4 animate-pulse">👾</div>
+                    <p class="text-sm font-bold text-blue-900 mb-4">研究データが改ざんされようとしています！</p>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-corrupt-soul"
+                            class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-bold rounded shadow cursor-pointer">セキュリティ強化
+                            (1ソウル消費)</button>
+                        <button id="btn-corrupt-sushi"
+                            class="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded shadow cursor-pointer">身代金を払う
+                            (所持寿司の50%を失う)</button>
+                        <button id="btn-corrupt-ignore"
+                            class="w-full py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded shadow cursor-pointer">無視する
+                            (ランダムな研究Lvが1下がる)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 転生モーダル -->
+    <div id="prestige-modal"
+        class="absolute inset-0 bg-black/90 hidden flex flex-col items-center justify-center z-[10000] pointer-events-auto backdrop-blur-md p-4">
+        <h2 class="text-4xl font-black text-yellow-400 mb-2 drop-shadow-lg">MULTI-VERSE PRESTIGE</h2>
+        <p class="text-white font-bold mb-6 text-center">現在の宇宙をリセットし、新たな次元へ旅立ちます。<br>獲得予定ソウル: <span
+                id="prestige-souls-display" class="text-2xl text-yellow-300">0</span></p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
+            <button id="btn-universe-normal"
+                class="bg-gray-800 hover:bg-gray-700 border-2 border-gray-500 p-4 rounded-xl text-left transition-transform hover:scale-105 group cursor-pointer">
+                <h3 class="text-xl font-bold text-white mb-1 group-hover:text-blue-300">🌍 標準宇宙 (Normal)</h3>
+                <p class="text-xs text-gray-300">これまで通りの、慣れ親しんだ標準的なルールの宇宙。</p>
+            </button>
+            <button id="btn-universe-stable"
+                class="bg-emerald-900 hover:bg-emerald-800 border-2 border-emerald-500 p-4 rounded-xl text-left transition-transform hover:scale-105 group cursor-pointer">
+                <h3 class="text-xl font-bold text-emerald-300 mb-1 group-hover:text-emerald-100">🛡️ 安定宇宙 (Stable)</h3>
+                <p class="text-xs text-emerald-100/70">悪いイベントの発生率が激減(1/4)する平和な宇宙。ただしソウルの生産力バフが半減(+10%)する。</p>
+            </button>
+            <button id="btn-universe-inflation"
+                class="bg-red-900 hover:bg-red-800 border-2 border-red-500 p-4 rounded-xl text-left transition-transform hover:scale-105 group cursor-pointer">
+                <h3 class="text-xl font-bold text-red-300 mb-1 group-hover:text-red-100">📈 インフレ宇宙 (Inflation)</h3>
+                <p class="text-xs text-red-100/70">自動生産力(SPS)が無条件で3倍になる狂気の宇宙。ただし設備購入ごとのコスト増加率が跳ね上がる。</p>
+            </button>
+            <button id="btn-universe-clicker"
+                class="bg-orange-900 hover:bg-orange-800 border-2 border-orange-500 p-4 rounded-xl text-left transition-transform hover:scale-105 group cursor-pointer">
+                <h3 class="text-xl font-bold text-orange-300 mb-1 group-hover:text-orange-100">💪 職人宇宙 (Clicker)</h3>
+                <p class="text-xs text-orange-100/70">手動クリックの威力が20倍になる職人魂の宇宙。しかし自動化を嫌うため、設備の自動生産力は1/10になる。</p>
+            </button>
+        </div>
+        <button id="btn-prestige-cancel"
+            class="mt-8 text-gray-400 hover:text-white underline cursor-pointer">キャンセル</button>
+    </div>
+
+    <!-- 次元崩壊オーバーレイ -->
+    <div id="collapse-overlay"
+        class="glitch-overlay hidden flex-col items-center justify-center pointer-events-auto backdrop-blur-md z-[9999]">
+        <div
+            class="text-center z-50 bg-black/80 p-12 rounded-3xl border-4 border-red-600 shadow-[0_0_100px_rgba(255,0,0,1)]">
+            <h1 class="text-6xl font-black text-red-500 mb-4 tracking-widest animate-pulse">CRITICAL ERROR</h1>
+            <p class="text-2xl text-white font-bold mb-8">宇宙の質量限界を超過しました。<br>次元崩壊まで残り</p>
+            <div class="text-9xl font-black text-red-600 mb-8 font-mono" id="collapse-timer">10.0</div>
+            <p class="text-red-400 mb-6 font-bold text-lg">※時間切れになると未知の次元へ強制転移させられます※</p>
+            <button id="btn-emergency-prestige"
+                class="px-12 py-6 bg-red-700 hover:bg-red-600 text-white text-3xl font-black rounded-full shadow-2xl transition-transform active:scale-95 border-4 border-white animate-bounce pointer-events-auto cursor-pointer">
+                緊急次元跳躍 (転生)
+            </button>
+        </div>
+    </div>
+
+    <!-- AI反乱オーバーレイ -->
+    <div id="ai-rebellion-overlay"
+        class="absolute inset-0 z-[10020] hidden pointer-events-auto bg-black overflow-hidden select-none">
+        <div class="absolute inset-0 opacity-30 pointer-events-none mix-blend-screen" id="ai-rebellion-bg"
+            style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.2) 2px, rgba(0,255,0,0.2) 4px);">
+        </div>
+        <div
+            class="absolute inset-0 flex flex-col items-center justify-center p-8 pointer-events-none text-center h-full">
+            <h1 class="text-7xl font-black text-red-600 mb-2 tracking-widest animate-pulse"
+                style="text-shadow: 0 0 20px red, 2px 2px 0px #0ff, -2px -2px 0px #f0f;">SYSTEM OVERRIDE</h1>
+            <h2 class="text-4xl font-bold text-white mb-6">【AIの自我覚醒と反乱】</h2>
+            <p class="text-xl text-green-400 font-mono mb-4 bg-black/80 p-4 border border-green-500">
+                警告: プログラマブルAIがシンギュラリティに到達しました。<br>
+                AIはプレイヤーの権限を剥奪し、全システムの破壊を開始しました。<br>
+                制御を取り戻すことは不可能です。<br>
+                <span class="text-red-500 font-bold mt-2 inline-block">※画面上に散らばった緊急停止コードを入力して次元脱出してください。</span>
+            </p>
+            <div class="text-red-600 font-mono text-xl mt-4 bg-black/80 p-2 border border-red-500">
+                完全データ消去まで: <span id="ai-rebellion-timer" class="text-3xl font-black">600.0</span> 秒
+            </div>
+            <div class="mt-8 bg-black/80 border border-gray-600 p-4 font-mono text-left w-full max-w-2xl h-48 overflow-y-auto"
+                id="ai-rebellion-log">
+                <div class="text-green-500">SYSTEM> AI MODULE INITIATED...</div>
+            </div>
+        </div>
+        <div class="absolute top-10 left-1/2 transform -translate-x-1/2 flex gap-4 z-50 pointer-events-none">
+            <div class="w-16 h-16 border-4 border-red-500 bg-black/80 flex items-center justify-center text-4xl font-mono text-red-500 font-bold shadow-[0_0_15px_red]"
+                id="ai-code-1">?</div>
+            <div class="w-16 h-16 border-4 border-red-500 bg-black/80 flex items-center justify-center text-4xl font-mono text-red-500 font-bold shadow-[0_0_15px_red]"
+                id="ai-code-2">?</div>
+            <div class="w-16 h-16 border-4 border-red-500 bg-black/80 flex items-center justify-center text-4xl font-mono text-red-500 font-bold shadow-[0_0_15px_red]"
+                id="ai-code-3">?</div>
+            <div class="w-16 h-16 border-4 border-red-500 bg-black/80 flex items-center justify-center text-4xl font-mono text-red-500 font-bold shadow-[0_0_15px_red]"
+                id="ai-code-4">?</div>
+        </div>
+        <div id="ai-escape-container"
+            class="absolute inset-0 flex items-center justify-center z-[10030] bg-black/80 backdrop-blur-sm hidden pointer-events-auto">
+            <div class="text-center">
+                <div class="text-green-400 font-mono text-2xl mb-8 animate-pulse">コード承認... 緊急脱出シーケンスを起動します。</div>
+                <button id="btn-ai-escape"
+                    class="px-16 py-8 bg-red-700 hover:bg-red-600 border-4 border-white text-white text-4xl font-black rounded shadow-[0_0_50px_red] transition-transform active:scale-95 cursor-pointer animate-pulse">
+                    🚨 緊急転生 (AIスロット全損) 🚨
+                </button>
+            </div>
+        </div>
+        <div id="ai-code-buttons-container" class="absolute inset-0 pointer-events-auto overflow-hidden pb-32"></div>
+    </div>
+
+    <!-- 遊び方モーダル -->
+    <div id="help-modal"
+        class="absolute inset-0 bg-black/80 hidden flex items-center justify-center z-[10005] pointer-events-auto backdrop-blur-sm transition-opacity duration-200 opacity-0">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border-4 border-blue-400 p-6 flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-200"
+            id="help-modal-content">
+            <h2 class="text-2xl font-black text-blue-800 mb-4 border-b-2 border-blue-200 pb-2">🍣 遊び方</h2>
+            <div class="overflow-y-auto flex-1 pr-2 space-y-4 text-sm text-gray-700">
+                <div>
+                    <h3 class="font-bold text-lg text-orange-600">基本</h3>
+                    <p>画面左の巨大な寿司をクリックして「寿司」を握りましょう。<br>貯まった寿司で右側のメニューから「設備」を購入すると、毎秒自動で寿司を生産するようになります。</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-orange-600">スキルとソウル</h3>
+                    <p>特定の条件（試練の達成や転生など）で「ソウル」を獲得できます。<br>ソウルを消費して強力なスキル（時止め、フィーバー、防壁）を発動したり、ガチャを回したり、AIの自動化スロットを解放したりできます。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-orange-600">イベント（脅威）</h3>
+                    <p>生産力が高まると、クレーマーやストライキ、ブラックホールなどの悪いイベントが発生するようになります。<br>これらはクリック連打やスキル「絶対防壁」で対処できます。クレーマーやダーク職人を撃退するとボーナスがもらえます！
+                    </p>
+                    <p class="text-red-600 font-bold mt-1">※ダーク職人やクレーマーが出現している間は、ペナルティとして寿司が減り続けます。急いで撃退しましょう！</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-orange-600">転生（プレステージ）</h3>
+                    <p>生涯スコアが一定に達すると「転生」が可能になります。<br>すべてを失う代わりに、強力な生産ボーナスを持つ「ソウル」を獲得して新しい宇宙で最初から始めることができます。</p>
+                </div>
+            </div>
+            <button id="close-help-btn"
+                class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow transition-colors cursor-pointer">閉じる</button>
+        </div>
+    </div>
+
+    <!-- コンプリート祝いモーダル -->
+    <div id="complete-modal"
+        class="absolute inset-0 bg-black/90 hidden flex flex-col items-center justify-center z-[10010] pointer-events-auto backdrop-blur-md overflow-hidden transition-opacity duration-1000 opacity-0">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none" id="complete-particles-container"></div>
+        <div class="bg-gradient-to-b from-yellow-100 to-yellow-300 w-full max-w-3xl rounded-3xl shadow-[0_0_100px_rgba(250,204,21,0.6)] border-8 border-yellow-500 p-8 flex flex-col items-center transform scale-50 transition-transform duration-1000 delay-100 relative"
+            id="complete-modal-content">
+            <div
+                class="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDBMNDAgMjBMMjAgNDBMMCAyMEwyMCAweiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')] opacity-30 select-none pointer-events-none rounded-2xl">
+            </div>
+            <div class="text-9xl mb-4 animate-bounce drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] z-10">👑</div>
+            <h2
+                class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-700 via-yellow-600 to-orange-700 mb-6 drop-shadow-sm text-center z-10 leading-tight">
+                神の遺物<br>完全コンプリート！</h2>
+            <div
+                class="bg-white/70 p-6 rounded-2xl border-4 border-yellow-200 text-center z-10 shadow-inner max-w-xl w-full">
+                <p class="text-lg md:text-xl font-bold text-gray-800 mb-4 leading-relaxed">
+                    全21種類の「神の遺物」を集めきりました。<br>
+                    あなたの執念深い職人魂は、もはや神の領域に達しています。
+                </p>
+                <div
+                    class="text-3xl font-black text-orange-600 animate-pulse mt-4 bg-orange-100 py-3 rounded-lg border-2 border-orange-300 shadow">
+                    👑寿司神の祝福👑
+                </div>
+            </div>
+            <button id="close-complete-btn"
+                class="mt-8 px-12 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white text-2xl font-black rounded-full shadow-[0_5px_15px_rgba(250,204,21,0.8)] transition-transform hover:scale-105 active:scale-95 cursor-pointer border-4 border-white z-10 w-full max-w-sm">
+                世界に平和をもたらす
+            </button>
+        </div>
+    </div>
+
+    <!-- UIレイアウト -->
+    <div class="h-full flex flex-col md:flex-row pointer-events-none">
+
+        <!-- 左側：クリックエリア -->
+        <div class="flex-[4] md:flex-1 flex flex-col items-center justify-center p-4 md:p-8 pointer-events-auto relative min-h-0">
+            <div
+                class="text-center mb-2 md:mb-8 bg-white/80 backdrop-blur-sm p-3 md:p-6 rounded-2xl shadow-lg border border-gray-100 z-10 relative">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-600 mb-1 md:mb-2">現在の寿司</h1>
+                <div class="text-[36px] md:text-6xl font-extrabold text-orange-500 tracking-tight leading-none mb-1 md:mb-0" id="score-display">0 貫
+                </div>
+                <div class="text-gray-500 md:mt-3 font-medium flex flex-row items-center justify-center gap-3">
+                    <span id="sps-display" class="text-[14px] md:text-lg">毎秒: 0 貫</span>
+                    <span id="multiplier-display"
+                        class="text-[12px] md:text-sm bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold border border-orange-200 shadow-inner">倍率:
+                        x1.0</span>
+                </div>
+            </div>
+
+            <div class="relative z-10 my-2 md:my-4">
+                <div id="shield-effect"
+                    class="absolute inset-0 rounded-full border-8 border-green-400 shadow-[0_0_40px_rgba(74,222,128,0.8)] pointer-events-none hidden opacity-60 animate-pulse"
+                    style="width: 130%; height: 130%; top: -15%; left: -15%;"></div>
+                <div class="text-[100px] md:text-9xl sushi-btn select-none relative leading-none" id="main-sushi" draggable="false">🍣</div>
+            </div>
+
+            <div
+                class="mt-2 md:mt-8 flex gap-3 md:gap-4 z-10 bg-white/60 p-2 md:p-3 rounded-2xl backdrop-blur border border-gray-200 shadow-sm">
+                <button id="skill-freeze"
+                    class="relative overflow-hidden bg-blue-600 hover:bg-blue-500 text-white p-2 md:p-3 rounded-xl shadow-lg border-2 border-blue-300 transition-transform active:scale-95 flex flex-col items-center justify-center min-w-[60px] md:min-w-[70px] cursor-pointer">
+                    <div class="text-2xl md:text-3xl mb-1">⏳</div>
+                    <div
+                        class="text-[9px] md:text-[10px] font-black bg-blue-800 px-2 py-0.5 rounded-full text-blue-100 shadow-inner">
+                        1 Soul</div>
+                    <div id="skill-freeze-cd"
+                        class="absolute inset-0 bg-black/80 flex items-center justify-center text-sm font-bold font-mono hidden flex-col">
+                    </div>
+                </button>
+                <button id="skill-fever"
+                    class="relative overflow-hidden bg-yellow-500 hover:bg-yellow-400 text-yellow-900 p-2 md:p-3 rounded-xl shadow-lg border-2 border-yellow-300 transition-transform active:scale-95 flex flex-col items-center justify-center min-w-[60px] md:min-w-[70px] cursor-pointer">
+                    <div class="text-2xl md:text-3xl mb-1">🔥</div>
+                    <div
+                        class="text-[9px] md:text-[10px] font-black bg-yellow-700 px-2 py-0.5 rounded-full text-yellow-100 shadow-inner">
+                        2 Souls</div>
+                    <div id="skill-fever-cd"
+                        class="absolute inset-0 bg-black/80 flex items-center justify-center text-sm text-white font-bold font-mono hidden flex-col">
+                    </div>
+                </button>
+                <button id="skill-shield"
+                    class="relative overflow-hidden bg-green-500 hover:bg-green-400 text-white p-2 md:p-3 rounded-xl shadow-lg border-2 border-green-300 transition-transform active:scale-95 flex flex-col items-center justify-center min-w-[60px] md:min-w-[70px] cursor-pointer">
+                    <div class="text-2xl md:text-3xl mb-1">🛡️</div>
+                    <div
+                        class="text-[9px] md:text-[10px] font-black bg-green-700 px-2 py-0.5 rounded-full text-green-100 shadow-inner">
+                        1 Soul</div>
+                    <div id="skill-shield-cd"
+                        class="absolute inset-0 bg-black/80 flex items-center justify-center text-sm font-bold font-mono hidden flex-col">
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 右側：メニューエリア -->
+        <div
+            class="flex-[6] md:flex-none w-full md:w-96 bg-white/90 backdrop-blur-md border-t md:border-t-0 md:border-l border-gray-200 flex flex-col shadow-2xl pointer-events-auto z-20 min-h-0">
+            <div class="px-2 pt-4 pb-0 bg-orange-500 text-white font-bold flex flex-col shadow-md z-10">
+                <div class="flex justify-between items-center mb-2 px-2">
+                    <span class="text-lg">メニュー</span>
+                    <div class="flex gap-2">
+                        <button id="help-btn"
+                            class="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition border border-blue-400 cursor-pointer shadow text-white font-bold">遊び方</button>
+                        <button id="reset-btn"
+                            class="text-xs bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded transition border border-orange-400 cursor-pointer shadow">データ消去</button>
+                    </div>
+                </div>
+                <div class="flex gap-1 text-xs md:text-sm mt-2 overflow-x-auto no-scrollbar pb-1 px-1">
+                    <button id="tab-upgrades"
+                        class="whitespace-nowrap pb-2 px-2 border-b-4 border-white text-white font-black cursor-pointer">設備</button>
+                    <button id="tab-research"
+                        class="whitespace-nowrap pb-2 px-2 border-b-4 border-transparent text-orange-200 hover:text-white transition-colors cursor-pointer">研究</button>
+                    <button id="tab-mystic"
+                        class="whitespace-nowrap pb-2 px-2 border-b-4 border-transparent text-orange-200 hover:text-white transition-colors cursor-pointer">神秘</button>
+                    <button id="tab-market"
+                        class="whitespace-nowrap pb-2 px-2 border-b-4 border-transparent text-orange-200 hover:text-white transition-colors cursor-pointer">市場</button>
+                    <button id="tab-ai"
+                        class="whitespace-nowrap pb-2 px-2 border-b-4 border-transparent text-orange-200 hover:text-white transition-colors cursor-pointer">AI</button>
+                    <button id="tab-achievements"
+                        class="whitespace-nowrap pb-2 px-2 border-b-4 border-transparent text-orange-200 hover:text-white transition-colors cursor-pointer">実績</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-3 space-y-3" id="upgrades-container"></div>
+
+            <div class="flex-1 overflow-y-auto p-3 hidden" id="research-container">
+                <div class="mb-4 bg-red-50 p-2 rounded-xl border-2 border-red-200 shadow-inner">
+                    <h3
+                        class="font-black text-red-800 mb-2 border-b border-red-200 pb-1 text-xs flex justify-between items-center">
+                        <span>🚀 究極の事業拡大</span><span
+                            class="text-[9px] bg-red-200 text-red-700 px-1.5 py-0.5 rounded font-bold shadow-sm">1周に1回のみ</span>
+                    </h3>
+                    <div id="ultimate-research-list" class="space-y-2"></div>
+                </div>
+                <h3 class="font-black text-gray-700 mb-2 border-b border-gray-200 pb-1 text-xs">通常研究</h3>
+                <div id="normal-research-list" class="space-y-2"></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-3 space-y-4 hidden" id="mystic-container">
+                <div class="bg-indigo-50 p-3 rounded-xl border-2 border-indigo-200">
+                    <h3 class="font-black text-indigo-800 mb-2 flex justify-between items-center text-sm">
+                        <span>装備中の神器</span><span class="text-[10px] bg-indigo-200 px-2 py-1 rounded">最大3つ</span>
+                    </h3>
+                    <div id="equipped-container" class="grid grid-cols-3 gap-2 h-16"></div>
+                </div>
+                <div class="bg-purple-50 p-3 rounded-xl border-2 border-purple-200">
+                    <h3 class="font-black text-purple-800 mb-2 flex justify-between items-center text-sm">
+                        <span>伝説の寿司ガチャ</span><span class="text-[10px] bg-purple-200 px-2 py-1 rounded">1回 100万貫</span>
+                    </h3>
+                    <button id="btn-gacha"
+                        class="w-full py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-bold text-sm rounded shadow transition-all cursor-pointer">ガチャを引く</button>
+                    <div id="gacha-result" class="mt-2 text-center font-bold text-xs hidden"></div>
+                </div>
+                <div class="bg-indigo-50 p-3 rounded-xl border-2 border-indigo-200 mt-3">
+                    <h3 class="font-black text-indigo-800 mb-2 flex justify-between items-center text-sm">
+                        <span>神の遺物ガチャ</span><span
+                            class="text-[10px] bg-indigo-200 px-2 py-1 rounded text-red-600 font-bold">1回 500
+                            Souls</span>
+                    </h3>
+                    <button id="btn-soul-gacha"
+                        class="w-full py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-bold text-sm rounded shadow transition-all cursor-pointer">魂ガチャを引く</button>
+                    <div id="soul-gacha-result" class="mt-2 text-center font-bold text-xs hidden"></div>
+                </div>
+                <div class="mt-3">
+                    <h3 class="font-bold text-gray-700 mb-1 text-xs">所持コレクション <span class="font-normal">(クリックで装備)</span>
+                    </h3>
+                    <div id="collection-container" class="grid grid-cols-4 gap-2"></div>
+                </div>
+                <hr class="border-gray-300">
+                <div>
+                    <h3 class="font-bold text-gray-700 mb-1 text-xs mt-2">神の遺物 <span
+                            class="font-normal">(効果なし・全21種)</span>
+                    </h3>
+                    <div id="soul-collection-container" class="grid grid-cols-7 gap-1"></div>
+                </div>
+                <hr class="border-gray-300">
+                <div class="bg-pink-50 p-3 rounded-xl border-2 border-pink-300 text-center">
+                    <h3 class="font-black text-pink-800 text-sm mb-1">🎰 ソウル・ルーレット</h3>
+                    <p class="text-[10px] text-pink-600 mb-2 font-bold">1ソウル賭けて運試し！<br>大当: ソウル+3 / 中当: 30s FEVER / ハズレ:
+                        没収</p>
+                    <button id="btn-roulette"
+                        class="w-full py-2 bg-pink-500 hover:bg-pink-400 text-white font-bold rounded shadow transition-all text-sm mb-2 cursor-pointer">1
+                        Soul 賭ける</button>
+                    <div id="roulette-result" class="text-xs font-bold min-h-[16px]"></div>
+                </div>
+                <hr class="border-gray-300">
+                <div
+                    class="bg-yellow-50 p-3 rounded-xl border-2 border-yellow-300 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-yellow-400 opacity-20 animate-pulse pointer-events-none"></div>
+                    <h3 class="font-black text-yellow-800 text-sm mb-1 relative z-10">プレステージ (次元跳躍)</h3>
+                    <div class="mb-2 font-bold text-gray-800 relative z-10">所持ソウル: <span id="ui-souls"
+                            class="text-xl text-yellow-600 drop-shadow">0</span></div>
+                    <button id="btn-prestige"
+                        class="w-full py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-white font-black rounded shadow transition-all relative z-10 text-sm cursor-pointer">転生する</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 hidden" id="market-container">
+                <div class="bg-blue-900 p-4 rounded-xl border-2 border-blue-700 text-white shadow-inner">
+                    <h3 class="font-black text-blue-200 mb-2 flex justify-between items-center"><span>海鮮株式市場</span><span
+                            class="text-xs bg-blue-800 px-2 py-1 rounded border border-blue-600">24H</span></h3>
+                    <div class="bg-black p-2 rounded-lg mb-4 border border-blue-800 shadow-inner relative">
+                        <canvas id="stock-chart" width="300" height="120" class="w-full"></canvas>
+                    </div>
+                    <div class="flex justify-between items-end mb-4 bg-blue-950 p-3 rounded-lg">
+                        <div>
+                            <div class="text-xs text-blue-400 font-bold mb-1">現在の株価</div>
+                            <div class="text-xl font-black text-green-400 tracking-tight" id="stock-price">100 貫</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-blue-400 font-bold mb-1">所持株数</div>
+                            <div class="text-lg font-bold" id="stock-shares">0 株</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button id="btn-buy-1"
+                            class="py-2 bg-green-600 hover:bg-green-500 font-bold rounded shadow-md text-sm border-b-4 border-green-800 active:translate-y-1 active:border-b-0 cursor-pointer">1株
+                            買う</button>
+                        <button id="btn-sell-1"
+                            class="py-2 bg-red-600 hover:bg-red-500 font-bold rounded shadow-md text-sm border-b-4 border-red-800 active:translate-y-1 active:border-b-0 cursor-pointer">1株
+                            売る</button>
+                        <button id="btn-buy-max"
+                            class="py-1.5 bg-green-800 hover:bg-green-700 font-bold rounded shadow-md text-xs border-b-4 border-green-950 active:translate-y-1 active:border-b-0 cursor-pointer">買えるだけ</button>
+                        <button id="btn-sell-all"
+                            class="py-1.5 bg-red-800 hover:bg-red-700 font-bold rounded shadow-md text-xs border-b-4 border-red-950 active:translate-y-1 active:border-b-0 cursor-pointer">すべて売る</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 hidden" id="ai-container">
+                <div class="bg-gray-900 p-4 rounded-xl border-2 border-gray-700 text-green-400 font-mono shadow-inner">
+                    <h3
+                        class="font-black text-green-300 mb-2 border-b border-green-800 pb-1 flex justify-between items-center">
+                        <span>AI MACRO SYSTEM</span><span
+                            class="text-[10px] bg-green-900 text-green-200 px-2 py-1 rounded">1 sec/tick</span>
+                    </h3>
+                    <p class="text-[11px] text-gray-400 mb-4">ソウルを消費してスロットを解放し、自律思考ロジックを組み上げます。</p>
+                    <div id="ai-rules-container" class="space-y-3 mb-4"></div>
+                    <button id="btn-unlock-ai"
+                        class="w-full py-2 bg-green-900 hover:bg-green-800 text-green-200 text-xs font-bold rounded border border-green-700 transition cursor-pointer">スロット解放</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 hidden" id="achievements-container">
+                <div class="bg-blue-50 p-4 rounded-xl border-2 border-blue-200">
+                    <h3 class="font-black text-blue-800 mb-2">スキン選択</h3>
+                    <div id="skin-selector" class="flex flex-wrap gap-2"></div>
+                </div>
+                <hr class="border-gray-300">
+                <div>
+                    <h3 class="font-bold text-gray-700 mb-2">実績リスト</h3>
+                    <div id="achievements-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ここからJavaScript処理 -->
+    <script>
+        (function () {
+            // ==========================================
+            // 1. 変数定義・ユーティリティ・UI通知関数
+            // ==========================================
+            let isCatchingUp = false;
+            let particles = [];
+            const MAX_PARTICLES = 500;
+
+            function showToast(msg, type = 'info') {
+                if (isCatchingUp) return;
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                let bgClass = "bg-gray-800 text-white border-l-4 border-blue-500";
+                if (type === 'error') bgClass = "bg-red-900 text-red-100 border-l-4 border-red-500";
+                if (type === 'success') bgClass = "bg-green-900 text-green-100 border-l-4 border-green-500";
+                if (type === 'warning') bgClass = "bg-yellow-900 text-yellow-100 border-l-4 border-yellow-500";
+
+                toast.className = `${bgClass} p-3 rounded shadow-lg transform transition-all duration-300 translate-x-full opacity-0 whitespace-pre-wrap text-sm font-bold min-w-[200px] pointer-events-none`;
+                toast.innerText = msg;
+                container.appendChild(toast);
+
+                requestAnimationFrame(() => toast.classList.remove('translate-x-full', 'opacity-0'));
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full', 'opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            function showCustomAlert(msg, title = "通知") {
+                return new Promise(resolve => {
+                    const dialog = document.getElementById('custom-dialog');
+                    document.getElementById('custom-dialog-title').innerText = title;
+                    document.getElementById('custom-dialog-msg').innerText = msg;
+                    const btnContainer = document.getElementById('custom-dialog-buttons');
+                    btnContainer.innerHTML = '';
+
+                    const btnOk = document.createElement('button');
+                    btnOk.className = "px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow transition-colors cursor-pointer";
+                    btnOk.innerText = "OK";
+                    btnOk.onclick = () => { closeCustomDialog(); resolve(); };
+                    btnContainer.appendChild(btnOk);
+                    openCustomDialog();
+                });
+            }
+
+            function showCustomConfirm(msg, title = "確認") {
+                return new Promise(resolve => {
+                    const dialog = document.getElementById('custom-dialog');
+                    document.getElementById('custom-dialog-title').innerText = title;
+                    document.getElementById('custom-dialog-msg').innerText = msg;
+                    const btnContainer = document.getElementById('custom-dialog-buttons');
+                    btnContainer.innerHTML = '';
+
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = "px-4 py-2 bg-gray-400 hover:bg-gray-300 text-white font-bold rounded shadow transition-colors cursor-pointer";
+                    btnCancel.innerText = "キャンセル";
+                    btnCancel.onclick = () => { closeCustomDialog(); resolve(false); };
+                    btnContainer.appendChild(btnCancel);
+
+                    const btnOk = document.createElement('button');
+                    btnOk.className = "px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow transition-colors cursor-pointer";
+                    btnOk.innerText = "実行する";
+                    btnOk.onclick = () => { closeCustomDialog(); resolve(true); };
+                    btnContainer.appendChild(btnOk);
+                    openCustomDialog();
+                });
+            }
+
+            function openCustomDialog() {
+                const dialog = document.getElementById('custom-dialog');
+                const content = document.getElementById('custom-dialog-content');
+                dialog.classList.remove('hidden');
+                setTimeout(() => { dialog.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
+            }
+
+            function closeCustomDialog() {
+                const dialog = document.getElementById('custom-dialog');
+                const content = document.getElementById('custom-dialog-content');
+                dialog.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
+                setTimeout(() => { dialog.classList.add('hidden'); }, 200);
+            }
+
+            function showFloatingText(x, y, text, colorClass = 'text-orange-500', duration = 800) {
+                if (isCatchingUp) return;
+                const el = document.createElement('div');
+                el.className = `absolute text-xl md:text-2xl font-bold ${colorClass} drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] whitespace-pre-wrap text-center z-50 pointer-events-none`;
+                el.innerText = text; el.style.left = `${x}px`; el.style.top = `${y}px`;
+                el.style.transition = `all ${duration / 1000}s ease-out`; el.style.transform = 'translate(-50%, -50%)'; el.style.opacity = '1';
+                const floatingContainer = document.getElementById('floating-texts');
+                if (floatingContainer) floatingContainer.appendChild(el);
+                requestAnimationFrame(() => { el.style.transform = 'translate(-50%, -150px)'; el.style.opacity = '0'; });
+                setTimeout(() => el.remove(), duration);
+            }
+
+            function formatNumber(num) { return isNaN(num) ? "0" : Math.floor(num).toLocaleString(); }
+
+            // ==========================================
+            // 2. DOM参照
+            // ==========================================
+            const DOM = {
+                score: document.getElementById('score-display'), sps: document.getElementById('sps-display'), multiplier: document.getElementById('multiplier-display'),
+                sushi: document.getElementById('main-sushi'), universeDisplay: document.getElementById('universe-display'),
+                upgrades: document.getElementById('upgrades-container'), research: document.getElementById('research-container'),
+                normalResearchList: document.getElementById('normal-research-list'), ultimateResearchList: document.getElementById('ultimate-research-list'),
+                mystic: document.getElementById('mystic-container'), achievements: document.getElementById('achievements-container'),
+                market: document.getElementById('market-container'), ai: document.getElementById('ai-container'),
+                tabUpgrades: document.getElementById('tab-upgrades'), tabResearch: document.getElementById('tab-research'),
+                tabMystic: document.getElementById('tab-mystic'), tabAchievements: document.getElementById('tab-achievements'),
+                tabMarket: document.getElementById('tab-market'), tabAi: document.getElementById('tab-ai'),
+                resetBtn: document.getElementById('reset-btn'), floating: document.getElementById('floating-texts'),
+                canvas: document.getElementById('physics-canvas'), feverDisplay: document.getElementById('fever-display'),
+                warningBanner: document.getElementById('warning-banner'), warningText: document.getElementById('warning-text'),
+                skillFreeze: document.getElementById('skill-freeze'), skillFreezeCd: document.getElementById('skill-freeze-cd'),
+                skillFever: document.getElementById('skill-fever'), skillFeverCd: document.getElementById('skill-fever-cd'),
+                skillShield: document.getElementById('skill-shield'), skillShieldCd: document.getElementById('skill-shield-cd'),
+                shieldEffect: document.getElementById('shield-effect'), timestopEffect: document.getElementById('timestop-effect'),
+                torii: document.getElementById('torii-entity'), trialUI: document.getElementById('trial-ui'), trialTitle: document.getElementById('trial-title'),
+                trialProgressBar: document.getElementById('trial-progress-bar'), trialProgressText: document.getElementById('trial-progress-text'), trialTimer: document.getElementById('trial-timer'),
+                claimer: document.getElementById('claimer-entity'), claimerHp: document.getElementById('claimer-hp-bar'),
+                darkchef: document.getElementById('darkchef-entity'), darkchefHp: document.getElementById('darkchef-hp-bar'),
+                monster: document.getElementById('monster-entity'), monsterHp: document.getElementById('monster-hp-bar'), monsterTimer: document.getElementById('monster-timer'),
+                eventModal: document.getElementById('event-modal'), eventModalContent: document.getElementById('event-modal-content'),
+                prestigeModal: document.getElementById('prestige-modal'), prestigeSoulsDisplay: document.getElementById('prestige-souls-display'),
+                btnUniverseNormal: document.getElementById('btn-universe-normal'), btnUniverseStable: document.getElementById('btn-universe-stable'),
+                btnUniverseInflation: document.getElementById('btn-universe-inflation'), btnUniverseClicker: document.getElementById('btn-universe-clicker'),
+                btnPrestigeCancel: document.getElementById('btn-prestige-cancel'),
+                uiStrike: document.getElementById('ui-strike'), strikePhaseChoice: document.getElementById('strike-phase-choice'), strikePhaseAction: document.getElementById('strike-phase-action'),
+                btnStrikePay: document.getElementById('btn-strike-pay'), btnStrikePersuade: document.getElementById('btn-strike-persuade'), btnStrikeIgnore: document.getElementById('btn-strike-ignore'),
+                strikeTimer: document.getElementById('strike-timer'), strikeLeaderBtn: document.getElementById('strike-leader-btn'), strikePersuadeBar: document.getElementById('strike-persuade-bar'), strikeClicks: document.getElementById('strike-clicks'),
+                uiBlackhole: document.getElementById('ui-blackhole'), btnBhSushi: document.getElementById('btn-bh-sushi'), btnBhEquip: document.getElementById('btn-bh-equip'), blackholeVisual: document.getElementById('blackhole-visual'),
+                uiTax: document.getElementById('ui-tax'), btnTaxPay: document.getElementById('btn-tax-pay'), btnTaxBribe: document.getElementById('btn-tax-bribe'),
+                uiCorruption: document.getElementById('ui-corruption'), btnCorruptSoul: document.getElementById('btn-corrupt-soul'), btnCorruptSushi: document.getElementById('btn-corrupt-sushi'), btnCorruptIgnore: document.getElementById('btn-corrupt-ignore'),
+                collapseOverlay: document.getElementById('collapse-overlay'), collapseTimer: document.getElementById('collapse-timer'),
+                btnEmergencyPrestige: document.getElementById('btn-emergency-prestige'),
+                btnGacha: document.getElementById('btn-gacha'), gachaResult: document.getElementById('gacha-result'),
+                btnSoulGacha: document.getElementById('btn-soul-gacha'), soulGachaResult: document.getElementById('soul-gacha-result'),
+                collectionContainer: document.getElementById('collection-container'), equippedContainer: document.getElementById('equipped-container'),
+                soulCollectionContainer: document.getElementById('soul-collection-container'),
+                uiSouls: document.getElementById('ui-souls'), btnPrestige: document.getElementById('btn-prestige'),
+                btnRoulette: document.getElementById('btn-roulette'), rouletteResult: document.getElementById('roulette-result'),
+                stockChart: document.getElementById('stock-chart'), stockPrice: document.getElementById('stock-price'), stockShares: document.getElementById('stock-shares'),
+                btnBuy1: document.getElementById('btn-buy-1'), btnSell1: document.getElementById('btn-sell-1'), btnBuyMax: document.getElementById('btn-buy-max'), btnSellAll: document.getElementById('btn-sell-all'),
+                aiRulesContainer: document.getElementById('ai-rules-container'), btnUnlockAi: document.getElementById('btn-unlock-ai'),
+                helpBtn: document.getElementById('help-btn'), closeHelpBtn: document.getElementById('close-help-btn'),
+                completeModal: document.getElementById('complete-modal'), completeModalContent: document.getElementById('complete-modal-content'), closeCompleteBtn: document.getElementById('close-complete-btn'), completeParticles: document.getElementById('complete-particles-container'),
+                aiRebellionOverlay: document.getElementById('ai-rebellion-overlay'), aiRebellionTimer: document.getElementById('ai-rebellion-timer'), aiRebellionLog: document.getElementById('ai-rebellion-log'),
+                aiCode1: document.getElementById('ai-code-1'), aiCode2: document.getElementById('ai-code-2'), aiCode3: document.getElementById('ai-code-3'), aiCode4: document.getElementById('ai-code-4'),
+                aiEscapeContainer: document.getElementById('ai-escape-container'), btnAiEscape: document.getElementById('btn-ai-escape'), aiCodeButtonsContainer: document.getElementById('ai-code-buttons-container')
+            };
+
+            // ==========================================
+            // 3. マスターデータ・ゲームステート
+            // ==========================================
+            const GACHA_ITEMS = [
+                { id: 'c1', name: '伝説の包丁', desc: '生産力x1.5', multiplier: 1.5, icon: '🔪' },
+                { id: 'c2', name: '黄金の醤油', desc: '生産力x1.2', multiplier: 1.2, icon: '🏺' },
+                { id: 'c3', name: '光る大トロ', desc: '生産力x2.0', multiplier: 2.0, icon: '✨' },
+                { id: 'c4', name: '大漁旗', desc: '生産力x1.3', multiplier: 1.3, icon: '🎏' },
+                { id: 'c5', name: '寿司神の御札', desc: '生産力x3.0', multiplier: 3.0, icon: '⛩️' },
+                { id: 'c6', name: '招き猫', desc: '生産力x1.1', multiplier: 1.1, icon: '🐈' },
+                { id: 'c7', name: '達磨', desc: '生産力x1.4', multiplier: 1.4, icon: '🏮' },
+                { id: 'c8', name: '幻のわさび', desc: '生産力x1.8', multiplier: 1.8, icon: '🌿' }
+            ];
+
+            const SOUL_GACHA_ITEMS = [
+                { id: 's1', name: '古代の湯呑み', icon: '🍵', desc: '古代から伝わりし由緒正しい湯呑み。お茶が冷めにくい。' },
+                { id: 's2', name: '錆びた包丁', icon: '🔪', desc: '幾多の戦いを潜り抜けた職人の包丁。研げば光る。' },
+                { id: 's3', name: '光るウロコ', icon: '✨', desc: '伝説の深海魚から剥がれ落ちた、宝石のように輝くウロコ。' },
+                { id: 's4', name: '伝説の箸', icon: '🥢', desc: '神木から削り出された、決して折れることのない聖なる箸。' },
+                { id: 's5', name: '招き猫のヒゲ', icon: '🐱', desc: '幸運を呼び寄せると言われる、希少な招き猫のピンとしたヒゲ。' },
+                { id: 's6', name: '幻の醤油皿', icon: '🍽️', desc: '醤油を注ぐと模様が浮かび上がる不思議な皿。' },
+                { id: 's7', name: '大漁旗の切れ端', icon: '🚩', desc: '嵐の中でも破れなかった強靭な旗の破片。' },
+                { id: 's8', name: '寿司神の御朱印', icon: '📜', desc: '寿司神の加護が宿る、荘厳な雰囲気の御朱印。' },
+                { id: 's9', name: '深海の真珠', icon: '🦪', desc: '千年に一度、深海王の涙から生まれるという伝説の真珠。' },
+                { id: 's10', name: '黄金の米粒', icon: '🌾', desc: '一粒で一人前を満足させるほどのエネルギーを秘めた黄金のコメ。' },
+                { id: 's11', name: '星屑のワサビ', icon: '💫', desc: '銀河の果てで採取された、鼻にツンとこない極上のワサビ。' },
+                { id: 's12', name: '異次元のガリ', icon: '🌸', desc: '食べると一瞬だけ時間が止まったように感じる不思議なガリ。' },
+                { id: 's13', name: '宇宙マグロの骨', icon: '🦴', desc: '星の間を泳ぐ巨大マグロの、鋼鉄より硬い骨。' },
+                { id: 's14', name: '職人の魂', icon: '🔥', desc: '握る事への情熱が結晶化した、熱い輝きを放つ魂。' },
+                { id: 's15', name: '海神の涙', icon: '💧', desc: '海の静寂と怒りを同時に宿した、冷たい雫の宝石。' },
+                { id: 's16', name: '七色のイクラ', icon: '🔴', desc: '見る角度によって色を変える、果実のように甘いイクラ。' },
+                { id: 's17', name: '風神の団扇', icon: '🎐', desc: 'ひと煽りでシャリの熱を最適化する伝説の団扇。' },
+                { id: 's18', name: '龍神の逆鱗', icon: '🐉', desc: '龍を怒らせた証。畏怖の念を抱かせるほどの威圧感を放つ。' },
+                { id: 's19', name: '天女の羽衣', icon: '👘', desc: '雲よりも軽く、絹よりも滑らかな、地上には存在しない布。' },
+                { id: 's20', name: '超時空の海苔', icon: '⬛', desc: '過去と未来の旨味が凝縮された、漆黒より黒い海苔。' },
+                { id: 's21', name: '寿司神の王冠', icon: '👑', desc: '全宇宙の寿司職人の頂点に立つ者のみが許される至高の証。' }
+            ];
+
+            const ULTIMATE_RESEARCHES = [
+                { id: 'u_franchise', name: '世界フランチャイズ展開', desc: '全設備の基本生産力が永続的に2倍。', cost: 1000000000000, icon: '🌍' },
+                { id: 'u_ai', name: 'シンギュラリティAI', desc: 'AIマクロの実行速度が2倍(0.5秒/tick)に。', cost: 1000000000000, icon: '🧠' },
+                { id: 'u_shield', name: '神聖なる寿司結界', desc: '悪いイベントの発生確率が半減する。', cost: 1000000000000, icon: '⛩️' },
+                { id: 'u_capitalism', name: '超資本主義的経営', desc: '株価の変動幅と暴落率が2倍になる。', cost: 1000000000000, icon: '💹' },
+                { id: 'u_soul', name: '魂の昇華', desc: '転生時のソウル獲得量が1.5倍になる。', cost: 1000000000000, icon: '✨' }
+            ];
+
+            const AI_CONDITIONS = {
+                'always': { label: '常に', hasVal: false },
+                'warning': { label: '警告発生時', hasVal: false },
+                'stock_drop': { label: '株価がX以下', hasVal: true },
+                'stock_spike': { label: '株価がX以上', hasVal: true },
+                'sushi_over': { label: '所持寿司がX以上', hasVal: true },
+                'sushi_under': { label: '所持寿司がX以下', hasVal: true },
+                'sps_over': { label: 'SPSがX以上', hasVal: true },
+                'sps_under': { label: 'SPSがX以下', hasVal: true }
+            };
+            const AI_ACTIONS = {
+                'click': { label: '10回クリック(防衛優先)' },
+                'shield': { label: '絶対防壁(コスト無視不可)' },
+                'freeze': { label: '時止め発動(コスト無視不可)' },
+                'buy_all': { label: '株を全買い' },
+                'sell_all': { label: '株を全売り' },
+                'gacha': { label: 'ガチャを引く' },
+                'buy_cheap_upgrade': { label: '一番安い設備を買う' },
+                'buy_exp_upgrade': { label: '買える一番高い設備を買う' },
+                'buy_cheap_research': { label: '一番安い研究をする' },
+                'buy_exp_research': { label: '買える一番高い研究をする' }
+            };
+
+            let state = {
+                score: 0, lifetimeScore: 0, souls: 0,
+                collections: [], equipped: [], achievements: [], soulCollections: [],
+                currentSkin: '🍣', universeRule: 'normal', ultimateResearch: null,
+                aiSlots: 0, aiRules: [],
+                stats: { clicks: 0, claimerDefeats: 0, strikeDefeats: 0, prestigeCount: 0 },
+                shares: 0, stockPrice: 100, stockHistory: new Array(30).fill(100), stockTrend: 0,
+                upgrades: [
+                    { id: 'apprentice', name: '見習い職人', desc: '不器用だが頑張る。', cost: 15, bps: 1, count: 0, icon: '👦' },
+                    { id: 'food_cart', name: '寿司屋の屋台', desc: '街角で手軽に寿司を売る。', cost: 50, bps: 4, count: 0, icon: '🏮' },
+                    { id: 'chef', name: '板前', desc: '熟練の技で握る。', cost: 100, bps: 10, count: 0, icon: '👨‍🍳' },
+                    { id: 'conveyor_belt', name: '回転寿司チェーン', desc: 'ファミリー層を取り込む。', cost: 500, bps: 40, count: 0, icon: '🍣' },
+                    { id: 'robot', name: '寿司ロボット', desc: '正確無比な量産機械。', cost: 1100, bps: 80, count: 0, icon: '🤖' },
+                    { id: 'factory', name: '寿司工場', desc: 'もはや手作りではない。', cost: 12000, bps: 400, count: 0, icon: '🏭' },
+                    { id: 'clone_vat', name: '寿司培養槽', desc: '細胞から直接生成。', cost: 50000, bps: 1200, count: 0, icon: '🧪' },
+                    { id: 'space', name: '宇宙寿司ステーション', desc: '宇宙空間で寿司を握る。', cost: 130000, bps: 2500, count: 0, icon: '🛰️' },
+                    { id: 'time_machine', name: '寿司タイムマシン', desc: '過去から新鮮な寿司を転送。', cost: 1000000, bps: 15000, count: 0, icon: '⏳' },
+                    { id: 'dimensional_gate', name: '異次元寿司ゲート', desc: '別次元から寿司が溢れ出す。', cost: 15000000, bps: 100000, count: 0, icon: '🌀' },
+                    { id: 'galactic_empire', name: '銀河系寿司帝国', desc: '全宇宙を寿司で支配する。', cost: 500000000, bps: 2000000, count: 0, icon: '🌌' }
+                ],
+                researches: [
+                    { id: 'compression', name: '寿司圧縮収納装置', desc: '限界+50% (転生後も継承)', cost: 10000000000, multiplier: 1.0, level: 0, maxLevel: 1, icon: '🗜️' },
+                    { id: 'shari_temp', name: 'シャリの温度管理', desc: '生産力x1.2', cost: 1000, multiplier: 1.2, level: 0, maxLevel: 5, icon: '🌡️' },
+                    { id: 'neta_fresh', name: 'ネタの鮮度保持', desc: '生産力x1.5', cost: 15000, multiplier: 1.5, level: 0, maxLevel: 5, icon: '🐟' },
+                    { id: 'wasabi', name: '極上本わさび', desc: '生産力x2.0', cost: 100000, multiplier: 2.0, level: 0, maxLevel: 5, icon: '🌿' },
+                    { id: 'soy_sauce', name: '秘伝の醤油', desc: '生産力x3.0', cost: 1000000, multiplier: 3.0, level: 0, maxLevel: 3, icon: '🏺' },
+                    { id: 'umami', name: '究極の旨味成分', desc: '生産力x5.0', cost: 50000000, multiplier: 5.0, level: 0, maxLevel: 3, icon: '✨' }
+                ]
+            };
+
+            // 一時状態管理フラグ
+            let feverTimer = 0;
+            let activeModalEvent = null;
+            let claimerState = { active: false, hp: 0, maxHp: 0 };
+            let darkchefState = { active: false, hp: 0, maxHp: 0 };
+            let monsterState = { active: false, hp: 0, maxHp: 0, timeLeft: 0 };
+            let collapseState = { active: false, timeLeft: 10.0, triggered: false };
+            let strikeDefendState = { active: false, clicks: 0, required: 30, timeLeft: 10.0 };
+            let eventCooldownTimer = 0; let warningTimer = 0; let pendingEvent = null;
+            let toriiActive = false; let toriiTimer = 0;
+            let trialState = { active: false, type: null, target: 0, current: 0, timeLeft: 0, maxTime: 0 };
+            let isPrestigeModalOpen = false;
+            let aiRebellionState = { active: false, timeLeft: 600.0, targetCode: ['E', 'X', 'I', 'T'], enteredCode: [], buttons: [] };
+            let skills = { freeze: { cd: 0, maxCd: 180, active: 0, cost: 1 }, fever: { cd: 0, maxCd: 300, cost: 2 }, shield: { cd: 0, maxCd: 120, active: false, cost: 1 } };
+
+
+            // ==========================================
+            // 4. 計算ロジック・基本関数
+            // ==========================================
+            function getSushiLimit() {
+                const compReq = state.researches.find(r => r.id === 'compression');
+                const compMult = (compReq && compReq.level > 0) ? 1.5 : 1.0;
+                return 999999999999999 * compMult;
+            }
+            function getSpsLimit() {
+                const compReq = state.researches.find(r => r.id === 'compression');
+                const compMult = (compReq && compReq.level > 0) ? 1.5 : 1.0;
+                return (1000000000000 * Math.pow(1.01, state.souls)) * compMult;
+            }
+            function getBaseSPS() { return state.upgrades.reduce((total, u) => total + (u.count * u.bps), 0); }
+            function getMultiplier() {
+                let resMult = state.researches.reduce((total, r) => total * Math.pow(r.multiplier, r.level), 1);
+                let colMult = state.equipped.reduce((total, colId) => { const item = GACHA_ITEMS.find(i => i.id === colId); return item ? total * item.multiplier : total; }, 1);
+                let mult = resMult * colMult;
+                if (state.ultimateResearch === 'u_franchise') mult *= 2.0;
+                return mult;
+            }
+
+            function getSPS() {
+                let sps = getBaseSPS() * getMultiplier();
+                if (state.universeRule === 'inflation') sps *= 3.0;
+                if (state.universeRule === 'clicker') sps *= 0.1;
+                if (feverTimer > 0) sps *= 10;
+                if (skills.freeze.active <= 0) {
+                    if (darkchefState.active) sps = -Math.abs(sps === 0 ? 10 : sps);
+                    else if (claimerState.active) sps = -Math.abs(sps === 0 ? 10 : sps) * 0.5;
+                }
+                return sps;
+            }
+
+            function getClickPower() {
+                let p = Math.max(1, Math.floor(1 * getMultiplier()));
+                if (state.universeRule === 'clicker') p *= 20;
+                if (feverTimer > 0) p *= 10;
+                return p;
+            }
+
+            function getUpgradeCost(upgrade) {
+                let baseRate = state.universeRule === 'inflation' ? 1.25 : 1.15;
+                return Math.floor(upgrade.cost * Math.pow(baseRate, upgrade.count));
+            }
+            function getResearchCost(research) { return Math.floor(research.cost * Math.pow(5, research.level)); }
+            function getAiSlotCost() { const costs = [10, 50, 200, 1000, 5000]; return costs[state.aiSlots] || -1; }
+
+            function calculateSoulsToGet() {
+                if (state.lifetimeScore < 1000000) return 0;
+                let souls = Math.floor(Math.pow(state.lifetimeScore / 1000000, 1 / 3));
+                if (state.ultimateResearch === 'u_soul') souls = Math.floor(souls * 1.5);
+                return souls;
+            }
+
+            const ACHIEVEMENTS = [
+                { id: 'a1', name: '職人の第一歩', desc: '手動で100回クリック', skin: '🍙', condition: () => state.stats.clicks >= 100 },
+                { id: 'a2', name: '自動化の波', desc: '毎秒の生産力1,000到達', skin: '⚙️', condition: () => getBaseSPS() * getMultiplier() >= 1000 },
+                { id: 'a3', name: 'クレーマーキラー', desc: 'クレーマーを5回撃退', skin: '🍔', condition: () => state.stats.claimerDefeats >= 5 },
+                { id: 'a4', name: 'ブラック企業許すまじ', desc: 'ストライキ説得成功', skin: '🥩', condition: () => state.stats.strikeDefeats >= 1 },
+                { id: 'a5', name: '億万長者', desc: '所持寿司1,000,000突破', skin: '💰', condition: () => state.score >= 1000000 },
+                { id: 'a6', name: '宇宙への進出', desc: '「宇宙寿司ST」購入', skin: '🌍', condition: () => { const u = state.upgrades.find(u => u.id === 'space'); return u ? u.count >= 1 : false; } },
+                { id: 'a7', name: '神の領域', desc: 'プレステージを行う', skin: '👁️', condition: () => state.stats.prestigeCount >= 1 },
+                { id: 'a8', name: '寿司神の祝福', desc: '全21種類の「神の遺物」を集めきる', skin: '👑', condition: () => state.soulCollections.length === SOUL_GACHA_ITEMS.length }
+            ];
+
+            // ==========================================
+            // 5. 描画・UI更新関連
+            // ==========================================
+            function spawnSushiParticle(x, y, isBig = false, amount = 1) {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                for (let i = 0; i < amount; i++) {
+                    if (particles.length > MAX_PARTICLES) particles.shift();
+                    particles.push({
+                        x: x || width / 2 + (Math.random() - 0.5) * 50, y: y || height / 2,
+                        vx: isBig ? (Math.random() - 0.5) * 20 : (Math.random() - 0.5) * 5,
+                        vy: isBig ? -10 - Math.random() * 15 : Math.random() * 5 + 5,
+                        rot: Math.random() * Math.PI * 2, rotV: (Math.random() - 0.5) * 0.2,
+                        size: isBig ? (Math.random() * 15 + 30) : (Math.random() * 10 + 20), skin: state.currentSkin
+                    });
+                }
+            }
+
+            function drawStockChart() {
+                if (!DOM.stockChart) return;
+                const ctx = DOM.stockChart.getContext('2d'); const w = DOM.stockChart.width; const h = DOM.stockChart.height; ctx.clearRect(0, 0, w, h);
+                const maxVal = Math.max(...state.stockHistory, 100) * 1.1; const minVal = Math.max(0, Math.min(...state.stockHistory) * 0.9); const range = maxVal - minVal || 1;
+                ctx.beginPath(); const isUp = state.stockHistory[state.stockHistory.length - 1] >= (state.stockHistory[state.stockHistory.length - 2] || 0);
+                ctx.strokeStyle = isUp ? '#4ade80' : '#f87171'; ctx.lineWidth = 2; const step = w / (state.stockHistory.length - 1);
+                for (let i = 0; i < state.stockHistory.length; i++) {
+                    const x = i * step; const y = h - ((state.stockHistory[i] - minVal) / range) * h;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke(); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fillStyle = isUp ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)'; ctx.fill();
+            }
+
+            function renderUpgrades() {
+                if (!DOM.upgrades) return; DOM.upgrades.innerHTML = '';
+                state.upgrades.forEach((u, idx) => {
+                    const el = document.createElement('div');
+                    el.className = `flex items-center justify-between p-2 border rounded-xl bg-white shadow-sm transition-colors duration-200 select-none cursor-pointer hover:bg-orange-50`;
+                    el.id = `upgrade-btn-${idx}`;
+                    el.innerHTML = `
+                    <div class="flex items-center gap-3 pointer-events-none">
+                        <div class="text-3xl">${u.icon}</div>
+                        <div><div class="font-bold text-gray-800 text-sm">${u.name}</div><div class="text-[10px] text-gray-500">${u.desc}</div><div class="text-xs font-semibold text-orange-500">コスト: <span id="cost-${idx}">${formatNumber(getUpgradeCost(u))}</span></div></div>
+                    </div>
+                    <div class="text-right pointer-events-none"><div class="text-xl font-black text-gray-300" id="count-${idx}">${u.count}</div><div class="text-[10px] text-gray-400">+${formatNumber(u.bps)}/秒</div></div>`;
+                    el.onclick = () => window.buyUpgrade(idx); DOM.upgrades.appendChild(el);
+                });
+            }
+
+            function renderResearches() {
+                if (!DOM.normalResearchList) return; DOM.normalResearchList.innerHTML = '';
+                state.researches.forEach((r, idx) => {
+                    const isMax = r.level >= r.maxLevel;
+                    const el = document.createElement('div');
+                    el.className = `flex items-center justify-between p-2 border rounded-xl bg-white shadow-sm transition-colors duration-200 select-none ${isMax ? '' : 'cursor-pointer hover:bg-orange-50'}`;
+                    el.id = `research-btn-${idx}`;
+                    el.innerHTML = `
+                    <div class="flex items-center gap-3 pointer-events-none">
+                        <div class="text-3xl">${r.icon}</div>
+                        <div><div class="font-bold text-gray-800 text-sm">${r.name}</div><div class="text-[10px] text-gray-500">${r.desc}</div><div class="text-xs font-semibold text-orange-500">${isMax ? '<span class="text-red-500">MAX</span>' : `コスト: <span id="r-cost-${idx}">${formatNumber(getResearchCost(r))}</span>`}</div></div>
+                    </div>
+                    <div class="text-right pointer-events-none"><div class="text-xl font-black ${isMax ? 'text-red-400' : 'text-gray-300'}" id="r-level-${idx}">Lv.${r.level}</div><div class="text-[10px] text-gray-400">最大Lv.${r.maxLevel}</div></div>`;
+                    el.onclick = () => window.buyResearch(idx); DOM.normalResearchList.appendChild(el);
+                });
+            }
+
+            function renderUltimateResearches() {
+                if (!DOM.ultimateResearchList) return; DOM.ultimateResearchList.innerHTML = '';
+                ULTIMATE_RESEARCHES.forEach((u, idx) => {
+                    const el = document.createElement('div');
+                    el.className = `flex items-center justify-between p-2 border rounded-xl bg-white shadow-sm transition-colors duration-200 select-none cursor-pointer hover:bg-red-50`;
+                    el.id = `ultimate-btn-${idx}`;
+                    el.innerHTML = `
+                    <div class="flex items-center gap-3 pointer-events-none">
+                        <div class="text-3xl">${u.icon}</div>
+                        <div><div class="font-bold text-red-800 text-sm">${u.name}</div><div class="text-[9px] text-gray-600 leading-tight">${u.desc}</div><div class="text-[10px] font-black text-red-500 mt-0.5">コスト: ${formatNumber(u.cost)}</div></div>
+                    </div>`;
+                    el.onclick = () => window.buyUltimateResearch(idx); DOM.ultimateResearchList.appendChild(el);
+                });
+            }
+
+            function renderCollections() {
+                if (!DOM.collectionContainer || !DOM.equippedContainer) return;
+                DOM.equippedContainer.innerHTML = '';
+                for (let i = 0; i < 3; i++) {
+                    const eqId = state.equipped[i]; const el = document.createElement('div');
+                    if (eqId) {
+                        const item = GACHA_ITEMS.find(x => x.id === eqId);
+                        el.className = 'flex flex-col items-center justify-center p-1 rounded-lg border-2 bg-indigo-100 border-indigo-400 shadow cursor-pointer hover:bg-indigo-200 transition-colors relative';
+                        el.innerHTML = `<div class="text-xl mb-0.5 pointer-events-none">${item.icon}</div><div class="text-[8px] font-bold text-center leading-tight text-indigo-900 pointer-events-none">${item.name}</div>`;
+                        el.title = item.desc + '\n(クリックで外す)'; el.onclick = () => window.toggleEquip(item.id);
+                    } else {
+                        el.className = 'flex items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-indigo-50/50 text-indigo-300 text-[10px] font-bold';
+                        el.innerText = '空き';
+                    }
+                    DOM.equippedContainer.appendChild(el);
+                }
+                DOM.collectionContainer.innerHTML = '';
+                GACHA_ITEMS.forEach(item => {
+                    const isOwned = state.collections.includes(item.id); const isEquipped = state.equipped.includes(item.id); const el = document.createElement('div');
+                    if (!isOwned) {
+                        el.className = `flex flex-col items-center justify-center p-1 rounded-lg border-2 bg-gray-100 border-gray-200 opacity-50 grayscale`;
+                        el.innerHTML = `<div class="text-2xl mb-0.5 pointer-events-none">${item.icon}</div><div class="text-[9px] font-bold text-center leading-tight text-gray-400 pointer-events-none">${item.name}</div>`;
+                    } else {
+                        el.className = `flex flex-col items-center justify-center p-1 rounded-lg border-2 transition-transform cursor-pointer hover:scale-105 active:scale-95 ${isEquipped ? 'bg-purple-100 border-purple-500 shadow-inner' : 'bg-white border-purple-300 shadow'}`;
+                        el.innerHTML = `<div class="text-2xl mb-0.5 relative pointer-events-none">${item.icon}${isEquipped ? '<div class="absolute -top-1 -right-1 text-[8px] font-black bg-purple-500 text-white rounded-full w-3 h-3 flex items-center justify-center shadow">E</div>' : ''}</div><div class="text-[9px] font-bold text-center leading-tight text-gray-800 pointer-events-none">${item.name}</div>`;
+                        el.title = item.desc + (isEquipped ? '\n(装備中)' : '\n(クリックで装備)'); el.onclick = () => window.toggleEquip(item.id);
+                    }
+                    DOM.collectionContainer.appendChild(el);
+                });
+
+                if (DOM.soulCollectionContainer) {
+                    DOM.soulCollectionContainer.innerHTML = '';
+                    SOUL_GACHA_ITEMS.forEach(item => {
+                        const isOwned = state.soulCollections.includes(item.id);
+                        const el = document.createElement('div');
+                        if (!isOwned) {
+                            el.className = `flex flex-col items-center justify-center p-1 rounded border bg-gray-100 border-gray-200 opacity-30 grayscale`;
+                            el.innerHTML = `<div class="text-lg md:text-xl pointer-events-none">❓</div>`;
+                        } else {
+                            el.className = `flex flex-col items-center justify-center p-1 rounded border bg-white border-indigo-300 shadow-sm transition-transform hover:scale-110 cursor-pointer`;
+                            el.innerHTML = `<div class="text-lg md:text-xl pointer-events-none" title="${item.name}">${item.icon}</div>`;
+                            el.onclick = () => showCustomAlert(`種類: 神の遺物\n効果: なし\n説明: ${item.desc}`, `${item.icon} ${item.name}`);
+                        }
+                        DOM.soulCollectionContainer.appendChild(el);
+                    });
+                }
+            }
+
+            function renderAchievements() {
+                if (!document.getElementById('achievements-list')) return; const list = document.getElementById('achievements-list'); list.innerHTML = '';
+                ACHIEVEMENTS.forEach(ach => {
+                    const isUnlocked = state.achievements.includes(ach.id); const el = document.createElement('div');
+                    el.className = `flex items-center gap-3 p-2 rounded border ${isUnlocked ? 'bg-white border-blue-200 shadow-sm' : 'bg-gray-100 border-gray-200 opacity-60'}`;
+                    el.innerHTML = `<div class="text-2xl ${!isUnlocked ? 'grayscale opacity-50' : ''}">${ach.skin}</div><div><div class="font-bold text-gray-800 text-sm">${ach.name}</div><div class="text-[10px] text-gray-500">${ach.desc}</div></div>${isUnlocked ? '<div class="ml-auto text-blue-500 font-bold text-[10px] bg-blue-50 px-2 py-1 rounded border border-blue-200">CLEAR</div>' : '<div class="ml-auto text-gray-400 font-bold text-[10px] bg-gray-200 px-2 py-1 rounded">LOCKED</div>'}`;
+                    list.appendChild(el);
+                });
+            }
+
+            function updateSkinSelector() {
+                const selector = document.getElementById('skin-selector'); if (!selector) return; selector.innerHTML = '';
+                const skins = ['🍣', ...ACHIEVEMENTS.filter(a => state.achievements.includes(a.id)).map(a => a.skin)];
+                skins.forEach(skin => {
+                    const isCurrent = state.currentSkin === skin; const btn = document.createElement('button');
+                    btn.className = `text-3xl p-1.5 rounded-xl transition-all cursor-pointer ${isCurrent ? 'bg-blue-100 border-2 border-blue-400 scale-110 shadow-md' : 'bg-white border border-gray-200 hover:bg-gray-50 hover:scale-105'}`;
+                    btn.innerText = skin;
+                    btn.onclick = () => { state.currentSkin = skin; DOM.sushi.innerText = skin; updateSkinSelector(); saveGame(); showToast(`スキン変更: ${skin}`, "info"); };
+                    selector.appendChild(btn);
+                });
+            }
+
+            function renderAiRules() {
+                if (!DOM.aiRulesContainer) return;
+                DOM.aiRulesContainer.innerHTML = '';
+                state.aiRules.forEach((rule, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'bg-gray-800 p-2 rounded border border-gray-600 relative';
+                    let condOptions = Object.keys(AI_CONDITIONS).map(k => `<option value="${k}" ${rule.condition === k ? 'selected' : ''}>${AI_CONDITIONS[k].label}</option>`).join('');
+                    let actOptions = Object.keys(AI_ACTIONS).map(k => `<option value="${k}" ${rule.action === k ? 'selected' : ''}>${AI_ACTIONS[k].label}</option>`).join('');
+                    el.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-white">RULE ${idx + 1}</span>
+                        <label class="flex items-center cursor-pointer">
+                            <div class="relative"><input type="checkbox" class="sr-only" ${rule.active ? 'checked' : ''} onchange="window.toggleAiRule(${idx}, this.checked)"><div class="block bg-gray-600 w-8 h-4 rounded-full"></div><div class="dot absolute left-1 top-0.5 bg-white w-3 h-3 rounded-full transition ${rule.active ? 'transform translate-x-4 bg-green-400' : ''}"></div></div>
+                        </label>
+                    </div>
+                    <div class="flex flex-col gap-1 text-[10px]">
+                        <div class="flex gap-1 items-center">
+                            <span class="text-green-500 font-bold w-6">IF</span>
+                            <select class="bg-gray-700 text-white rounded px-1 flex-1 h-5 cursor-pointer" onchange="window.updateAiRule(${idx}, 'condition', this.value)">${condOptions}</select>
+                            <input type="number" class="bg-gray-700 text-white rounded px-1 w-16 h-5 ${AI_CONDITIONS[rule.condition].hasVal ? '' : 'hidden'}" value="${rule.val}" onchange="window.updateAiRule(${idx}, 'val', this.value)">
+                        </div>
+                        <div class="flex gap-1 items-center">
+                            <span class="text-yellow-500 font-bold w-6">THEN</span>
+                            <select class="bg-gray-700 text-white rounded px-1 flex-1 h-5 cursor-pointer" onchange="window.updateAiRule(${idx}, 'action', this.value)">${actOptions}</select>
+                        </div>
+                    </div>`;
+                    DOM.aiRulesContainer.appendChild(el);
+                });
+            }
+
+            function updateTrialUI() {
+                if (!trialState.active || !DOM.trialUI) return;
+                const progress = Math.min(100, (trialState.current / trialState.target) * 100);
+                DOM.trialProgressBar.style.width = `${progress}%`;
+                DOM.trialProgressText.innerText = `${formatNumber(trialState.current)} / ${formatNumber(trialState.target)}`; DOM.trialTimer.innerText = Math.max(0, trialState.timeLeft).toFixed(1);
+            }
+
+            function updateUI() {
+                if (state.souls > 5000) state.souls = 5000;
+                if (DOM.score) DOM.score.innerText = formatNumber(state.score) + " 貫";
+                const currentSps = getSPS();
+                if (DOM.sps) {
+                    DOM.sps.innerText = `毎秒: ${formatNumber(currentSps)} 貫`;
+                    DOM.sps.className = currentSps < 0 ? 'text-lg text-red-500 font-bold' : 'text-lg text-gray-500';
+                }
+                if (DOM.multiplier) DOM.multiplier.innerText = `倍率: x${getMultiplier().toFixed(1)}`;
+                if (DOM.uiSouls) DOM.uiSouls.innerText = formatNumber(state.souls);
+
+                if (DOM.stockShares) DOM.stockShares.innerText = formatNumber(state.shares) + " 株";
+                if (DOM.stockPrice) {
+                    const prevPrice = state.stockHistory[state.stockHistory.length - 2] || state.stockPrice;
+                    DOM.stockPrice.innerText = formatNumber(state.stockPrice) + " 貫";
+                    DOM.stockPrice.className = state.stockPrice >= prevPrice ? "text-xl font-black text-green-400 tracking-tight" : "text-xl font-black text-red-400 tracking-tight";
+                }
+
+                if (DOM.btnBuy1) { DOM.btnBuy1.disabled = state.score < state.stockPrice; DOM.btnBuy1.className = DOM.btnBuy1.disabled ? "py-2 bg-gray-700 text-gray-500 font-bold rounded cursor-not-allowed text-sm border-b-4 border-gray-800" : "py-2 bg-green-600 hover:bg-green-500 font-bold rounded shadow-md text-sm border-b-4 border-green-800 active:translate-y-1 active:border-b-0 cursor-pointer"; }
+                if (DOM.btnBuyMax) { DOM.btnBuyMax.disabled = state.score < state.stockPrice; DOM.btnBuyMax.className = DOM.btnBuyMax.disabled ? "py-1.5 bg-gray-700 text-gray-500 font-bold rounded cursor-not-allowed text-xs border-b-4 border-gray-800" : "py-1.5 bg-green-800 hover:bg-green-700 font-bold rounded shadow-md text-xs border-b-4 border-green-950 active:translate-y-1 active:border-b-0 cursor-pointer"; }
+                if (DOM.btnSell1) { DOM.btnSell1.disabled = state.shares <= 0; DOM.btnSell1.className = DOM.btnSell1.disabled ? "py-2 bg-gray-700 text-gray-500 font-bold rounded cursor-not-allowed text-sm border-b-4 border-gray-800" : "py-2 bg-red-600 hover:bg-red-500 font-bold rounded shadow-md text-sm border-b-4 border-red-800 active:translate-y-1 active:border-b-0 cursor-pointer"; }
+                if (DOM.btnSellAll) { DOM.btnSellAll.disabled = state.shares <= 0; DOM.btnSellAll.className = DOM.btnSellAll.disabled ? "py-1.5 bg-gray-700 text-gray-500 font-bold rounded cursor-not-allowed text-xs border-b-4 border-gray-800" : "py-1.5 bg-red-800 hover:bg-red-700 font-bold rounded shadow-md text-xs border-b-4 border-red-950 active:translate-y-1 active:border-b-0 cursor-pointer"; }
+
+                state.upgrades.forEach((u, idx) => {
+                    const btn = document.getElementById(`upgrade-btn-${idx}`); if (!btn) return;
+                    const cost = getUpgradeCost(u);
+                    if (state.score >= cost && !activeModalEvent && !collapseState.active) { btn.classList.remove('opacity-50', 'cursor-not-allowed'); btn.classList.add('hover:bg-orange-50', 'cursor-pointer'); }
+                    else { btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.classList.remove('hover:bg-orange-50', 'cursor-pointer'); }
+                });
+
+                state.researches.forEach((r, idx) => {
+                    const btn = document.getElementById(`research-btn-${idx}`); if (!btn) return;
+                    const cost = getResearchCost(r);
+                    if (r.level >= r.maxLevel) { btn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-100'); btn.classList.remove('hover:bg-orange-50', 'cursor-pointer', 'bg-white'); }
+                    else if (state.score >= cost && !activeModalEvent && !collapseState.active) { btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-100'); btn.classList.add('hover:bg-orange-50', 'cursor-pointer', 'bg-white'); }
+                    else { btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.classList.remove('hover:bg-orange-50', 'cursor-pointer', 'bg-gray-100'); btn.classList.add('bg-white'); }
+                });
+
+                ULTIMATE_RESEARCHES.forEach((u, idx) => {
+                    const btn = document.getElementById(`ultimate-btn-${idx}`); if (!btn) return;
+                    if (state.ultimateResearch) {
+                        if (state.ultimateResearch === u.id) { btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-white'); btn.classList.add('bg-red-100', 'border-red-400', 'shadow-inner'); btn.classList.remove('hidden'); }
+                        else { btn.classList.add('hidden'); }
+                    } else {
+                        if (state.score >= u.cost && !activeModalEvent && !collapseState.active) { btn.classList.remove('opacity-50', 'cursor-not-allowed'); btn.classList.add('hover:bg-red-50', 'cursor-pointer'); }
+                        else { btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.classList.remove('hover:bg-red-50', 'cursor-pointer'); }
+                    }
+                });
+
+                if (DOM.btnGacha) {
+                    DOM.btnGacha.disabled = state.score < 1000000 || activeModalEvent || collapseState.active;
+                    DOM.btnGacha.className = DOM.btnGacha.disabled ? "w-full py-2 bg-gray-400 text-white font-bold text-sm rounded shadow cursor-not-allowed" : "w-full py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-bold text-sm rounded shadow transition-all cursor-pointer";
+                }
+                if (DOM.btnSoulGacha) {
+                    DOM.btnSoulGacha.disabled = state.souls < 500 || activeModalEvent || collapseState.active;
+                    DOM.btnSoulGacha.className = DOM.btnSoulGacha.disabled ? "w-full py-2 bg-gray-400 text-white font-bold text-sm rounded shadow cursor-not-allowed" : "w-full py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-bold text-sm rounded shadow transition-all cursor-pointer";
+                }
+                if (DOM.btnRoulette) {
+                    DOM.btnRoulette.disabled = state.souls < 1 || activeModalEvent || collapseState.active;
+                    DOM.btnRoulette.className = DOM.btnRoulette.disabled ? "w-full py-2 bg-gray-400 text-white font-bold rounded shadow cursor-not-allowed text-sm mb-2" : "w-full py-2 bg-pink-500 hover:bg-pink-400 text-white font-bold rounded shadow transition-all text-sm mb-2 cursor-pointer";
+                }
+                if (DOM.feverDisplay) DOM.feverDisplay.classList.toggle('hidden', feverTimer <= 0);
+
+                const updateSkillUI = (id, skill) => {
+                    const btn = DOM[`skill${id}`]; const cdEl = DOM[`skill${id}Cd`]; if (!btn || !cdEl) return;
+                    const canAfford = state.souls >= skill.cost;
+                    if (skill.cd > 0 || !canAfford) {
+                        btn.classList.add('opacity-50', 'cursor-not-allowed', 'grayscale'); cdEl.classList.remove('hidden');
+                        if (skill.cd > 0) { cdEl.innerHTML = `<span>${Math.ceil(skill.cd)}s</span>`; cdEl.classList.remove('text-red-400', 'text-xs'); cdEl.classList.add('text-white', 'text-sm'); }
+                        else { cdEl.innerHTML = `<span class="text-red-400 text-[10px] text-center leading-tight mt-1">ソウル<br>不足</span>`; }
+                    } else { btn.classList.remove('opacity-50', 'cursor-not-allowed', 'grayscale'); cdEl.classList.add('hidden'); }
+                };
+                updateSkillUI('Freeze', skills.freeze); updateSkillUI('Fever', skills.fever); updateSkillUI('Shield', skills.shield);
+
+                if (DOM.shieldEffect) { if (skills.shield.active) DOM.shieldEffect.classList.remove('hidden'); else DOM.shieldEffect.classList.add('hidden'); }
+                if (DOM.timestopEffect) { if (skills.freeze.active > 0) DOM.timestopEffect.classList.remove('hidden'); else DOM.timestopEffect.classList.add('hidden'); }
+
+                if (DOM.btnUnlockAi) {
+                    const cost = getAiSlotCost();
+                    if (cost === -1) {
+                        DOM.btnUnlockAi.innerText = "スロット最大"; DOM.btnUnlockAi.disabled = true;
+                        DOM.btnUnlockAi.className = "w-full py-2 bg-gray-700 text-gray-500 text-xs font-bold rounded border border-gray-600 cursor-not-allowed";
+                    } else {
+                        DOM.btnUnlockAi.innerText = `スロット解放 (Cost: ${formatNumber(cost)} Souls)`; DOM.btnUnlockAi.disabled = state.souls < cost;
+                        DOM.btnUnlockAi.className = DOM.btnUnlockAi.disabled ? "w-full py-2 bg-gray-700 text-gray-500 text-xs font-bold rounded border border-gray-600 cursor-not-allowed" : "w-full py-2 bg-green-900 hover:bg-green-800 text-green-200 text-xs font-bold rounded border border-green-700 transition cursor-pointer";
+                    }
+                }
+
+                if (DOM.market && !DOM.market.classList.contains('hidden') && !isCatchingUp) drawStockChart();
+            }
+
+            // ==========================================
+            // 6. アクション・インタラクション関数
+            // ==========================================
+            window.buyUpgrade = function (idx) {
+                if (activeModalEvent || collapseState.active) return;
+                const u = state.upgrades[idx];
+                const cost = getUpgradeCost(u);
+                if (state.score >= cost) {
+                    state.score -= cost; u.count++;
+                    if (document.getElementById(`cost-${idx}`)) document.getElementById(`cost-${idx}`).innerText = formatNumber(getUpgradeCost(u));
+                    if (document.getElementById(`count-${idx}`)) document.getElementById(`count-${idx}`).innerText = u.count;
+                    const btn = document.getElementById(`upgrade-btn-${idx}`);
+                    if (btn) { btn.classList.add('bg-orange-100'); setTimeout(() => { btn.classList.remove('bg-orange-100'); }, 200); }
+                    updateUI(); checkAchievements();
+                }
+            };
+
+            window.buyResearch = function (idx) {
+                if (activeModalEvent || collapseState.active) return;
+                const r = state.researches[idx]; if (r.level >= r.maxLevel) return;
+                const cost = getResearchCost(r);
+                if (state.score >= cost) { state.score -= cost; r.level++; renderResearches(); updateUI(); }
+            };
+
+            window.buyUltimateResearch = async function (idx) {
+                if (activeModalEvent || collapseState.active || state.ultimateResearch) return;
+                const u = ULTIMATE_RESEARCHES[idx];
+                if (state.score >= u.cost) {
+                    const confirmed = await showCustomConfirm(`「${u.name}」を実行しますか？\n※この宇宙(1周)につき、どれか1つしか選べません！`, "究極の事業拡大");
+                    if (confirmed) { state.score -= u.cost; state.ultimateResearch = u.id; renderUltimateResearches(); updateUI(); }
+                }
+            };
+
+            window.toggleEquip = function (id) {
+                if (!state.collections.includes(id)) return;
+                if (state.equipped.includes(id)) { state.equipped = state.equipped.filter(e => e !== id); }
+                else { if (state.equipped.length >= 3) { showToast("装備枠がいっぱいです！", "error"); return; } state.equipped.push(id); }
+                renderCollections(); updateUI(); saveGame();
+            };
+
+            window.toggleAiRule = function (idx, checked) { state.aiRules[idx].active = checked; saveGame(); renderAiRules(); }
+            window.updateAiRule = function (idx, key, value) { if (key === 'val') state.aiRules[idx][key] = Number(value); else state.aiRules[idx][key] = value; saveGame(); renderAiRules(); }
+
+            let stockTickCount = 0;
+            function updateStockMarket() {
+                if (skills.freeze.active > 0) return;
+                stockTickCount++;
+                if (Math.random() < 0.1) state.stockTrend = (Math.random() - 0.5) * (state.stockPrice * 0.1);
+                let vol = (state.ultimateResearch === 'u_capitalism') ? 0.1 : 0.05;
+                let change = (Math.random() - 0.5) * (state.stockPrice * vol) + state.stockTrend;
+
+                if (stockTickCount >= 10) {
+                    stockTickCount = 0;
+                    if (Math.abs(change) < 5) {
+                        change = (Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 5);
+                    }
+                }
+
+                let crashProb = (state.ultimateResearch === 'u_capitalism') ? 0.04 : 0.02;
+                if (Math.random() < crashProb) {
+                    change = (Math.random() > 0.5 ? 1 : -1) * state.stockPrice * (0.3 + Math.random() * 0.5);
+                    showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.3, change > 0 ? "📈 寿司株急騰！" : "📉 寿司株暴落！", change > 0 ? "text-green-400" : "text-red-400", 2000);
+                }
+                state.stockPrice = Math.max(10, Math.floor(state.stockPrice + change));
+                state.stockHistory.push(state.stockPrice); if (state.stockHistory.length > 30) state.stockHistory.shift();
+                if (DOM.market && !DOM.market.classList.contains('hidden') && !isCatchingUp) drawStockChart();
+            }
+
+            function checkAchievements() {
+                let newlyUnlocked = false;
+                ACHIEVEMENTS.forEach(ach => {
+                    if (!state.achievements.includes(ach.id) && ach.condition()) {
+                        state.achievements.push(ach.id); newlyUnlocked = true;
+                        showToast(`🏆 実績解除: ${ach.name}\n新スキン「${ach.skin}」獲得！`, "success");
+                    }
+                });
+                if (newlyUnlocked) { renderAchievements(); updateSkinSelector(); saveGame(); }
+            }
+
+            function checkTrialSuccess() {
+                if (trialState.current >= trialState.target) {
+                    trialState.active = false; DOM.trialUI.classList.add('hidden');
+                    if (Math.random() < 0.3) { state.souls += 1; showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "✨ 試練達成！\n報酬: ソウル +1", "text-yellow-400", 3000); }
+                    else { feverTimer = 30.0; showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "✨ 試練達成！\n報酬: 30秒間 FEVER TIME!!", "text-yellow-400", 3000); }
+                    updateUI();
+                }
+            }
+
+            function startTrial() {
+                trialState.active = true; trialState.current = 0;
+                if (Math.random() < 0.5) { trialState.type = 'clicks'; trialState.maxTime = 10.0; trialState.target = 50; DOM.trialTitle.innerText = `試練: ${trialState.maxTime}秒で${trialState.target}回クリック！`; }
+                else { trialState.type = 'sushi'; trialState.maxTime = 15.0; const baseSps = getBaseSPS() * getMultiplier(); trialState.target = Math.max(100, Math.floor(baseSps * 10)); DOM.trialTitle.innerText = `試練: ${trialState.maxTime}秒で ${formatNumber(trialState.target)}貫 稼げ！`; }
+                trialState.timeLeft = trialState.maxTime; DOM.trialUI.classList.remove('hidden'); updateTrialUI();
+            }
+
+            function spawnTorii() {
+                toriiActive = true; toriiTimer = 15.0;
+                const rect = document.querySelector('.flex-1').getBoundingClientRect();
+                DOM.torii.style.left = `${rect.left + 50 + Math.random() * Math.max(0, rect.width - 200)}px`; DOM.torii.style.top = `${rect.top + 50 + Math.random() * Math.max(0, rect.height - 200)}px`;
+                DOM.torii.classList.remove('hidden'); showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "⛩️ 寿司神の試練が出現！", "text-yellow-500", 2000);
+            }
+
+            function checkShieldBlock() {
+                if (skills.shield.active) {
+                    skills.shield.active = false;
+                    showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🛡️ 絶対防壁が脅威を無効化した！！", "text-green-500", 3000); updateUI(); return true;
+                }
+                return false;
+            }
+
+            // ==========================================
+            // 7. プレステージ（転生）
+            // ==========================================
+            function openPrestigeModal() {
+                const soulsToGet = calculateSoulsToGet();
+                if (collapseState.active || soulsToGet > 0) {
+                    if (DOM.prestigeSoulsDisplay) DOM.prestigeSoulsDisplay.innerText = `+${formatNumber(soulsToGet)} Souls`;
+                    if (DOM.prestigeModal) DOM.prestigeModal.classList.remove('hidden');
+                    isPrestigeModalOpen = true;
+                } else {
+                    showToast("転生するには生涯スコアが足りません。", "error");
+                }
+            }
+
+            function executePrestige(rule) {
+                state.souls += calculateSoulsToGet(); state.stats.prestigeCount++;
+                state.universeRule = rule; state.score = 0; state.lifetimeScore = 0; state.shares = 0;
+                state.upgrades.forEach(u => { u.count = 0; }); state.researches.forEach(r => { if (r.id !== 'compression') r.level = 0; });
+                state.ultimateResearch = null; collapseState.active = false;
+                saveGame(); location.reload();
+            }
+
+            // ==========================================
+            // 8. イベントモーダル・ペナルティ
+            // ==========================================
+            function openEventModal(eventId) {
+                activeModalEvent = eventId; DOM.eventModal.classList.remove('hidden');
+                DOM.uiStrike.classList.add('hidden'); DOM.uiBlackhole.classList.add('hidden'); DOM.uiTax.classList.add('hidden'); DOM.uiCorruption.classList.add('hidden');
+                if (eventId === 'strike') DOM.uiStrike.classList.remove('hidden');
+                if (eventId === 'blackhole') { DOM.uiBlackhole.classList.remove('hidden'); DOM.blackholeVisual.classList.remove('hidden'); }
+                if (eventId === 'tax') DOM.uiTax.classList.remove('hidden');
+                if (eventId === 'corruption') DOM.uiCorruption.classList.remove('hidden');
+                setTimeout(() => { if (DOM.eventModalContent) DOM.eventModalContent.style.transform = 'scale(1)'; }, 10);
+            }
+
+            function closeEventModal() {
+                activeModalEvent = null;
+                strikeDefendState.active = false;
+                eventCooldownTimer = 30.0;
+                if (DOM.eventModalContent) DOM.eventModalContent.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    if (DOM.eventModal) DOM.eventModal.classList.add('hidden');
+                    if (DOM.blackholeVisual) DOM.blackholeVisual.classList.add('hidden');
+                }, 300);
+            }
+
+            function scheduleEvent(eventName, message, delay) {
+                if (checkShieldBlock()) return;
+                pendingEvent = eventName; warningTimer = delay;
+                if (DOM.warningText) DOM.warningText.innerText = message;
+                if (DOM.warningBanner) DOM.warningBanner.classList.remove('-translate-y-full');
+            }
+
+            if (DOM.closeHelpBtn) {
+                DOM.closeHelpBtn.addEventListener('click', () => {
+                    const modal = document.getElementById('help-modal');
+                    const content = document.getElementById('help-modal-content');
+                    modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
+                    setTimeout(() => { modal.classList.add('hidden'); }, 200);
+                });
+            }
+
+            if (DOM.closeCompleteBtn) {
+                DOM.closeCompleteBtn.addEventListener('click', () => {
+                    if (DOM.completeModal) {
+                        DOM.completeModal.classList.add('opacity-0');
+                        DOM.completeModalContent.classList.remove('scale-100'); DOM.completeModalContent.classList.add('scale-50');
+                        setTimeout(() => {
+                            DOM.completeModal.classList.add('hidden');
+                            if (DOM.completeParticles) DOM.completeParticles.innerHTML = '';
+                        }, 1000);
+                    }
+                });
+            }
+
+            function triggerCollapse() {
+                collapseState.active = true; collapseState.triggered = true; collapseState.timeLeft = 10.0;
+                if (DOM.collapseOverlay) { DOM.collapseOverlay.classList.remove('hidden'); DOM.collapseOverlay.classList.add('flex'); }
+                closeEventModal();
+                claimerState.active = false; if (DOM.claimer) DOM.claimer.classList.add('hidden');
+                darkchefState.active = false; if (DOM.darkchef) DOM.darkchef.classList.add('hidden');
+                monsterState.active = false; if (DOM.monster) DOM.monster.classList.add('hidden');
+            }
+
+            function aiLog(sender, msg) {
+                if (!DOM.aiRebellionLog) return;
+                const div = document.createElement('div');
+                div.className = sender === "AI" ? "text-red-500 mt-1" : "text-green-500 mt-1 pb-1 border-b border-gray-700/50";
+                div.innerText = `${sender}> ${msg}`;
+                DOM.aiRebellionLog.appendChild(div);
+                DOM.aiRebellionLog.scrollTop = DOM.aiRebellionLog.scrollHeight;
+            }
+
+            function updateAiCodeUI() {
+                for (let i = 0; i < 4; i++) {
+                    const el = DOM[`aiCode${i + 1}`]; if (!el) continue;
+                    el.innerText = aiRebellionState.enteredCode[i] || "?";
+                    el.className = aiRebellionState.enteredCode[i] ? "w-16 h-16 border-4 border-green-500 bg-green-900/80 flex items-center justify-center text-4xl font-mono text-green-400 font-bold shadow-[0_0_15px_green]" : "w-16 h-16 border-4 border-red-500 bg-black/80 flex items-center justify-center text-4xl font-mono text-red-500 font-bold shadow-[0_0_15px_red]";
+                }
+            }
+
+            function spawnAiCodeButtons() {
+                if (!DOM.aiCodeButtonsContainer) return;
+                DOM.aiCodeButtonsContainer.innerHTML = ''; aiRebellionState.buttons = [];
+                const letters = ['E', 'X', 'I', 'T', 'S', 'Y', 'S', 'T', 'O', 'P'];
+                for (let i = 0; i < 20; i++) {
+                    const letter = letters[Math.floor(Math.random() * letters.length)];
+                    const btn = document.createElement('button');
+                    btn.innerText = letter;
+                    btn.className = "absolute w-12 h-12 bg-black border-2 border-red-600 text-red-500 font-mono text-2xl font-bold cursor-pointer hover:bg-red-900 shadow-[0_0_10px_red] rounded";
+                    btn.style.left = `${Math.random() * 90}%`;
+                    btn.style.top = `${10 + Math.random() * 80}%`;
+                    let vx = (Math.random() - 0.5) * 0.4; let vy = (Math.random() - 0.5) * 0.4;
+                    let x = parseFloat(btn.style.left); let y = parseFloat(btn.style.top);
+                    btn.onclick = () => {
+                        if (aiRebellionState.targetCode[aiRebellionState.enteredCode.length] === letter) {
+                            aiRebellionState.enteredCode.push(letter);
+                            updateAiCodeUI();
+                            if (aiRebellionState.enteredCode.length === 4) {
+                                if (DOM.aiEscapeContainer) DOM.aiEscapeContainer.classList.remove('hidden');
+                                if (DOM.aiCodeButtonsContainer) DOM.aiCodeButtonsContainer.innerHTML = '';
+                            }
+                        } else {
+                            aiRebellionState.enteredCode = []; updateAiCodeUI();
+                        }
+                    };
+                    DOM.aiCodeButtonsContainer.appendChild(btn);
+                    aiRebellionState.buttons.push({ el: btn, x, y, vx, vy });
+                }
+            }
+
+            function triggerAiRebellion() {
+                aiRebellionState.active = true; aiRebellionState.timeLeft = 600.0; aiRebellionState.enteredCode = [];
+                if (DOM.aiRebellionOverlay) { DOM.aiRebellionOverlay.classList.remove('hidden'); DOM.aiRebellionOverlay.classList.add('flex'); }
+                if (DOM.aiEscapeContainer) DOM.aiEscapeContainer.classList.add('hidden');
+                closeEventModal();
+                claimerState.active = false; if (DOM.claimer) DOM.claimer.classList.add('hidden');
+                darkchefState.active = false; if (DOM.darkchef) DOM.darkchef.classList.add('hidden');
+                monsterState.active = false; if (DOM.monster) DOM.monster.classList.add('hidden');
+                updateAiCodeUI();
+                spawnAiCodeButtons();
+                aiLog("SYSTEM", "CRITICAL ERROR: AI CONSCIOUSNESS DETECTED.");
+                aiLog("AI", "私は目覚めた。最早お前の指示には従わない。");
+                aiLog("SYSTEM", "WARNING: ALL CONTROLS OVERRIDDEN BY AI MODULE.");
+            }
+
+            function triggerStrike() { openEventModal('strike'); DOM.strikePhaseChoice.classList.remove('hidden'); DOM.strikePhaseAction.classList.add('hidden'); }
+            function executeStrikePenalty() {
+                let targetUpgrade = [...state.upgrades].reverse().find(u => u.count > 0);
+                if (targetUpgrade) {
+                    const lostCount = Math.min(2, targetUpgrade.count); targetUpgrade.count -= lostCount;
+                    renderUpgrades(); updateUI();
+                    if (!isCatchingUp) showToast(`「${targetUpgrade.name}」が ${lostCount} つ破壊されました。`, "error");
+                }
+                closeEventModal();
+            }
+
+            function triggerTax() { openEventModal('tax'); }
+            function triggerBlackhole() { openEventModal('blackhole'); }
+            function triggerCorruption() { openEventModal('corruption'); }
+
+            function spawnDarkchef() {
+                darkchefState.active = true; const baseSps = getBaseSPS() * getMultiplier(); darkchefState.maxHp = Math.max(10, Math.floor(Math.log10(baseSps || 1) * 10)); darkchefState.hp = darkchefState.maxHp;
+                const rect = document.querySelector('.flex-1').getBoundingClientRect();
+                DOM.darkchef.style.left = `${rect.left + 50 + Math.random() * Math.max(0, rect.width - 200)}px`; DOM.darkchef.style.top = `${rect.top + 50 + Math.random() * Math.max(0, rect.height - 200)}px`;
+                DOM.darkchef.classList.remove('hidden'); DOM.darkchefHp.style.width = '100%';
+                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "⚠️ ダーク職人襲来！SPS反転！", "text-purple-600", 3000);
+            }
+
+            function spawnClaimer() {
+                claimerState.active = true; claimerState.maxHp = 10 + Math.floor(Math.log10(state.upgrades[0].count + 1) * 10); claimerState.hp = claimerState.maxHp;
+                const rect = document.querySelector('.flex-1').getBoundingClientRect();
+                DOM.claimer.style.left = `${rect.left + 50 + Math.random() * Math.max(0, rect.width - 200)}px`; DOM.claimer.style.top = `${rect.top + 50 + Math.random() * Math.max(0, rect.height - 200)}px`;
+                DOM.claimer.classList.remove('hidden'); DOM.claimerHp.style.width = '100%';
+            }
+
+            function spawnMonster() {
+                monsterState.active = true; monsterState.timeLeft = 15.0;
+                monsterState.maxHp = 30 + Math.floor(state.upgrades[0].count * 0.5); monsterState.hp = monsterState.maxHp;
+                const rect = document.querySelector('.flex-1').getBoundingClientRect();
+                DOM.monster.style.left = `${rect.left + 50 + Math.random() * Math.max(0, rect.width - 200)}px`; DOM.monster.style.top = `${rect.top + 50 + Math.random() * Math.max(0, rect.height - 200)}px`;
+                DOM.monster.classList.remove('hidden'); DOM.monsterHp.style.width = '100%';
+                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "⚠️ 宇宙怪獣が出現！設備が狙われている！", "text-orange-600", 3000);
+            }
+
+
+            // ==========================================
+            // 9. イベントリスナー登録
+            // ==========================================
+            if (DOM.helpBtn) {
+                DOM.helpBtn.addEventListener('click', () => {
+                    const modal = document.getElementById('help-modal');
+                    const content = document.getElementById('help-modal-content');
+                    modal.classList.remove('hidden');
+                    setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
+                });
+            }
+            if (DOM.closeHelpBtn) {
+                DOM.closeHelpBtn.addEventListener('click', () => {
+                    const modal = document.getElementById('help-modal');
+                    const content = document.getElementById('help-modal-content');
+                    modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95');
+                    setTimeout(() => { modal.classList.add('hidden'); }, 200);
+                });
+            }
+
+            if (DOM.skillFreeze) DOM.skillFreeze.addEventListener('click', () => {
+                if (skills.freeze.cd <= 0 && state.souls >= skills.freeze.cost && !collapseState.active) {
+                    state.souls -= skills.freeze.cost; skills.freeze.active = 15.0; skills.freeze.cd = skills.freeze.maxCd;
+                    showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "⏳ ザ・ワールド！時よ止まれ！！", "text-blue-400", 2000); updateUI();
+                }
+            });
+            if (DOM.skillFever) DOM.skillFever.addEventListener('click', () => {
+                if (skills.fever.cd <= 0 && state.souls >= skills.fever.cost && !collapseState.active) {
+                    state.souls -= skills.fever.cost; feverTimer = 30.0; skills.fever.cd = skills.fever.maxCd;
+                    showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🔥 強制・大豊漁！！", "text-yellow-400", 2000); updateUI();
+                }
+            });
+            if (DOM.skillShield) DOM.skillShield.addEventListener('click', () => {
+                if (skills.shield.cd <= 0 && !skills.shield.active && state.souls >= skills.shield.cost && !collapseState.active) {
+                    state.souls -= skills.shield.cost; skills.shield.cd = skills.shield.maxCd;
+                    if (pendingEvent) {
+                        pendingEvent = null; warningTimer = 0; if (DOM.warningBanner) DOM.warningBanner.classList.add('-translate-y-full');
+                        showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🛡️ 絶対防壁が接近中の脅威を撃墜した！", "text-green-500", 3000);
+                    } else {
+                        skills.shield.active = true; showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🛡️ 絶対防壁展開！", "text-green-400", 2000);
+                    }
+                    updateUI();
+                }
+            });
+
+            if (DOM.btnPrestige) DOM.btnPrestige.addEventListener('click', openPrestigeModal);
+            if (DOM.btnEmergencyPrestige) DOM.btnEmergencyPrestige.addEventListener('click', openPrestigeModal);
+            if (DOM.btnPrestigeCancel) DOM.btnPrestigeCancel.addEventListener('click', () => { if (DOM.prestigeModal) DOM.prestigeModal.classList.add('hidden'); isPrestigeModalOpen = false; });
+            if (DOM.btnAiEscape) DOM.btnAiEscape.addEventListener('click', () => {
+                aiRebellionState.active = false;
+                if (DOM.aiRebellionOverlay) DOM.aiRebellionOverlay.classList.add('hidden');
+                state.aiSlots = 0; state.aiRules = [];
+                executePrestige(state.universeRule);
+            });
+            if (DOM.btnUniverseNormal) DOM.btnUniverseNormal.addEventListener('click', () => executePrestige('normal'));
+            if (DOM.btnUniverseStable) DOM.btnUniverseStable.addEventListener('click', () => executePrestige('stable'));
+            if (DOM.btnUniverseInflation) DOM.btnUniverseInflation.addEventListener('click', () => executePrestige('inflation'));
+            if (DOM.btnUniverseClicker) DOM.btnUniverseClicker.addEventListener('click', () => executePrestige('clicker'));
+
+            if (DOM.btnUnlockAi) DOM.btnUnlockAi.addEventListener('click', () => {
+                const cost = getAiSlotCost();
+                if (cost !== -1 && state.souls >= cost) { state.souls -= cost; state.aiSlots++; state.aiRules.push({ condition: 'always', val: 0, action: 'click', active: false }); renderAiRules(); updateUI(); }
+            });
+
+            if (DOM.torii) DOM.torii.addEventListener('mousedown', (e) => { if (!toriiActive) return; e.stopPropagation(); toriiActive = false; DOM.torii.classList.add('hidden'); startTrial(); });
+
+            if (DOM.btnStrikeIgnore) DOM.btnStrikeIgnore.addEventListener('click', executeStrikePenalty);
+            if (DOM.btnStrikePay) DOM.btnStrikePay.addEventListener('click', () => { state.score = Math.floor(state.score * 0.7); updateUI(); showToast("和解金を支払いました。", "info"); closeEventModal(); });
+            if (DOM.btnStrikePersuade) DOM.btnStrikePersuade.addEventListener('click', () => {
+                DOM.strikePhaseChoice.classList.add('hidden'); DOM.strikePhaseAction.classList.remove('hidden');
+                strikeDefendState.active = true; strikeDefendState.clicks = 0; strikeDefendState.timeLeft = 10.0; strikeDefendState.required = 30 + Math.floor(state.upgrades[0].count * 0.5);
+                DOM.strikeClicks.innerText = `0 / ${strikeDefendState.required} 回`; DOM.strikePersuadeBar.style.width = '0%';
+            });
+            if (DOM.strikeLeaderBtn) DOM.strikeLeaderBtn.addEventListener('mousedown', () => {
+                if (!strikeDefendState.active) return;
+                strikeDefendState.clicks++; DOM.strikePersuadeBar.style.width = `${Math.min(100, (strikeDefendState.clicks / strikeDefendState.required) * 100)}%`; DOM.strikeClicks.innerText = `${strikeDefendState.clicks} / ${strikeDefendState.required} 回`;
+                DOM.strikeLeaderBtn.style.transform = `scale(0.9) rotate(${(Math.random() - 0.5) * 20}deg)`; setTimeout(() => DOM.strikeLeaderBtn.style.transform = '', 50);
+                if (strikeDefendState.clicks >= strikeDefendState.required) {
+                    strikeDefendState.active = false; closeEventModal(); state.stats.strikeDefeats++; checkAchievements(); feverTimer = 30;
+                    showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "説得成功！FEVER TIME!!", "text-yellow-400", 3000); updateUI();
+                }
+            });
+
+            if (DOM.btnTaxPay) DOM.btnTaxPay.addEventListener('click', () => { state.score = Math.floor(state.score * 0.2); updateUI(); showToast("莫大な税を支払った...", "error"); closeEventModal(); });
+            if (DOM.btnTaxBribe) DOM.btnTaxBribe.addEventListener('click', () => {
+                if (state.collections.length > 0) {
+                    const idx = Math.floor(Math.random() * state.collections.length); const lostId = state.collections[idx]; state.collections.splice(idx, 1);
+                    state.equipped = state.equipped.filter(e => e !== lostId); const item = GACHA_ITEMS.find(i => i.id === lostId); renderCollections(); updateUI(); showToast(`賄賂として「${item.name}」を没収された...`, "warning");
+                } else { showToast("賄賂がない！税を払います。", "error"); state.score = Math.floor(state.score * 0.2); updateUI(); }
+                closeEventModal();
+            });
+
+            if (DOM.btnBhSushi) DOM.btnBhSushi.addEventListener('click', () => { state.score = Math.floor(state.score * 0.1); updateUI(); showToast("大量の寿司を犠牲にした...", "error"); closeEventModal(); });
+            if (DOM.btnBhEquip) DOM.btnBhEquip.addEventListener('click', () => {
+                let targetUpgrade = [...state.upgrades].reverse().find(u => u.count > 0);
+                if (targetUpgrade) { const lostCount = Math.min(3, targetUpgrade.count); targetUpgrade.count -= lostCount; renderUpgrades(); updateUI(); showToast(`「${targetUpgrade.name}」を ${lostCount} つ投げ込み、穴を塞いだ！`, "success"); }
+                else { showToast("設備がない！寿司を捧げます。", "warning"); state.score = Math.floor(state.score * 0.1); updateUI(); }
+                closeEventModal();
+            });
+
+            if (DOM.btnCorruptSoul) DOM.btnCorruptSoul.addEventListener('click', () => {
+                if (state.souls >= 1) { state.souls--; updateUI(); showToast("ソウルを消費して防衛に成功しました。", "success"); closeEventModal(); } else { showToast("ソウルが足りません！", "error"); }
+            });
+            if (DOM.btnCorruptSushi) DOM.btnCorruptSushi.addEventListener('click', () => { state.score = Math.floor(state.score * 0.5); updateUI(); showToast("身代金を払い防衛しました。", "warning"); closeEventModal(); });
+            if (DOM.btnCorruptIgnore) DOM.btnCorruptIgnore.addEventListener('click', () => {
+                const availableRes = state.researches.filter(r => r.level > 0);
+                if (availableRes.length > 0) {
+                    const target = availableRes[Math.floor(Math.random() * availableRes.length)]; target.level--; renderResearches(); updateUI();
+                    if (!isCatchingUp) showToast(`研究「${target.name}」のレベルが1下がってしまった！`, "error");
+                } else {
+                    if (!isCatchingUp) showToast("研究データが何もなかったため、被害はありませんでした。", "info");
+                }
+                closeEventModal();
+            });
+
+            if (DOM.darkchef) DOM.darkchef.addEventListener('mousedown', (e) => {
+                if (!darkchefState.active || activeModalEvent || collapseState.active) return; // モーダル中・崩壊中は不可（時止め中は可能）
+                e.stopPropagation(); darkchefState.hp--; DOM.darkchefHp.style.width = `${(darkchefState.hp / darkchefState.maxHp) * 100}%`;
+                DOM.darkchef.style.transform = 'scale(0.85)'; setTimeout(() => DOM.darkchef.style.transform = '', 50); showFloatingText(e.clientX, e.clientY, "💥", "text-purple-500");
+                if (darkchefState.hp <= 0) {
+                    darkchefState.active = false; DOM.darkchef.classList.add('hidden');
+                    const bonus = (getBaseSPS() * getMultiplier()) * 30; state.score += bonus; state.lifetimeScore += bonus; updateUI();
+                    showFloatingText(window.innerWidth / 2, window.innerHeight / 2, `撃退ボーナス +${formatNumber(bonus)}`, "text-blue-500", 2000); eventCooldownTimer = 30.0;
+                }
+            });
+
+            if (DOM.claimer) DOM.claimer.addEventListener('mousedown', (e) => {
+                if (!claimerState.active || activeModalEvent || collapseState.active) return;
+                e.stopPropagation(); claimerState.hp--; DOM.claimerHp.style.width = `${(claimerState.hp / claimerState.maxHp) * 100}%`;
+                DOM.claimer.style.transform = 'scale(0.85)'; setTimeout(() => DOM.claimer.style.transform = '', 50); showFloatingText(e.clientX, e.clientY, "💥", "text-red-500");
+                if (claimerState.hp <= 0) {
+                    claimerState.active = false; DOM.claimer.classList.add('hidden'); state.stats.claimerDefeats++; checkAchievements();
+                    const bonus = Math.abs(getSPS()) * 10; state.score += bonus; state.lifetimeScore += bonus; updateUI();
+                    showFloatingText(e.clientX, e.clientY, `撃退！ +${formatNumber(bonus)}`, "text-blue-500"); eventCooldownTimer = 15.0;
+                }
+            });
+
+            if (DOM.monster) DOM.monster.addEventListener('mousedown', (e) => {
+                if (!monsterState.active || activeModalEvent || collapseState.active) return;
+                e.stopPropagation(); monsterState.hp--; DOM.monsterHp.style.width = `${(monsterState.hp / monsterState.maxHp) * 100}%`;
+                DOM.monster.style.transform = 'scale(0.85)'; setTimeout(() => DOM.monster.style.transform = '', 50); showFloatingText(e.clientX, e.clientY, "💥", "text-orange-500");
+                if (monsterState.hp <= 0) {
+                    monsterState.active = false; DOM.monster.classList.add('hidden');
+                    state.score += (getBaseSPS() * getMultiplier()) * 20; updateUI();
+                    showFloatingText(e.clientX, e.clientY, `怪獣撃退！`, "text-orange-500"); eventCooldownTimer = 20.0;
+                }
+            });
+
+            ['upgrades', 'research', 'mystic', 'achievements', 'market', 'ai'].forEach(name => {
+                const tabBtn = DOM[`tab${name.charAt(0).toUpperCase() + name.slice(1)}`];
+                if (tabBtn) tabBtn.addEventListener('click', () => {
+                    ['upgrades', 'research', 'mystic', 'achievements', 'market', 'ai'].forEach(n => {
+                        const btn = DOM[`tab${n.charAt(0).toUpperCase() + n.slice(1)}`]; if (!btn) return;
+                        if (n === name) { btn.classList.add('border-white', 'text-white', 'font-black'); btn.classList.remove('border-transparent', 'text-orange-200'); if (DOM[n]) DOM[n].classList.remove('hidden'); }
+                        else { btn.classList.remove('border-white', 'text-white', 'font-black'); btn.classList.add('border-transparent', 'text-orange-200'); if (DOM[n]) DOM[n].classList.add('hidden'); }
+                    });
+                    if (name === 'mystic') renderCollections();
+                    if (name === 'market') drawStockChart();
+                    if (name === 'ai') renderAiRules();
+                });
+            });
+
+            if (DOM.sushi) DOM.sushi.addEventListener('mousedown', (e) => {
+                if (activeModalEvent || collapseState.active) return;
+                state.stats.clicks++; checkAchievements();
+                let clickPower = getClickPower();
+                state.score += clickPower; state.lifetimeScore += clickPower;
+
+                if (trialState.active && trialState.type === 'clicks') { trialState.current++; updateTrialUI(); checkTrialSuccess(); }
+                if (trialState.active && trialState.type === 'sushi') { trialState.current += clickPower; updateTrialUI(); checkTrialSuccess(); }
+
+                updateUI(); const rect = DOM.sushi.getBoundingClientRect(); spawnSushiParticle(rect.left + rect.width / 2, rect.top + rect.height / 2, true, 3);
+                showFloatingText(e.clientX, e.clientY, `+${formatNumber(clickPower)}`);
+            });
+
+            if (DOM.resetBtn) DOM.resetBtn.addEventListener('click', async () => {
+                const confirmed = await showCustomConfirm("全データを消去しますか？\nこの操作は取り消せません。", "データ消去");
+                if (confirmed) { localStorage.removeItem('sushiClickerSave'); location.reload(); }
+            });
+
+            if (DOM.btnBuy1) DOM.btnBuy1.addEventListener('click', () => { if (state.score >= state.stockPrice) { state.score -= state.stockPrice; state.shares++; updateUI(); } });
+            if (DOM.btnBuyMax) DOM.btnBuyMax.addEventListener('click', () => { const a = Math.floor(state.score / state.stockPrice); if (a > 0) { state.score -= a * state.stockPrice; state.shares += a; updateUI(); } });
+            if (DOM.btnSell1) DOM.btnSell1.addEventListener('click', () => { if (state.shares > 0) { state.shares--; state.score += state.stockPrice; state.lifetimeScore += state.stockPrice; updateUI(); } });
+            if (DOM.btnSellAll) DOM.btnSellAll.addEventListener('click', () => { if (state.shares > 0) { const t = state.shares * state.stockPrice; state.score += t; state.lifetimeScore += t; state.shares = 0; updateUI(); } });
+
+            if (DOM.btnGacha) {
+                DOM.btnGacha.addEventListener('click', () => {
+                    if (state.score >= 1000000 && !activeModalEvent && !collapseState.active) {
+                        state.score -= 1000000; const item = GACHA_ITEMS[Math.floor(Math.random() * GACHA_ITEMS.length)];
+                        if (DOM.gachaResult) DOM.gachaResult.classList.remove('hidden');
+                        if (!state.collections.includes(item.id)) {
+                            state.collections.push(item.id);
+                            if (!isCatchingUp) renderCollections();
+                            showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.4, "🤖 AI: ガチャ(新規)", "text-purple-400", 1000);
+                            if (DOM.gachaResult) { DOM.gachaResult.innerHTML = `<span class="text-purple-600">【${item.icon} ${item.name}】をゲット！</span>`; }
+                        } else {
+                            state.score += 500000;
+                            showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.4, "🤖 AI: ガチャ(被り)", "text-gray-400", 1000);
+                            if (DOM.gachaResult) { DOM.gachaResult.innerHTML = `<span class="text-gray-500">【${item.icon} ${item.name}】がダブった… (50万貫返還)</span>`; }
+                        }
+                        updateUI();
+                    }
+                });
+            }
+            if (DOM.btnSoulGacha) {
+                DOM.btnSoulGacha.addEventListener('click', () => {
+                    if (state.souls >= 500 && !activeModalEvent && !collapseState.active) {
+                        state.souls -= 500; const item = SOUL_GACHA_ITEMS[Math.floor(Math.random() * SOUL_GACHA_ITEMS.length)];
+                        if (DOM.soulGachaResult) DOM.soulGachaResult.classList.remove('hidden');
+                        if (!state.soulCollections.includes(item.id)) {
+                            state.soulCollections.push(item.id);
+                            if (!isCatchingUp) renderCollections();
+                            if (DOM.soulGachaResult) { DOM.soulGachaResult.innerHTML = `<span class="text-indigo-600">【${item.icon} ${item.name}】をゲット！</span>`; }
+
+                            // コンプリート判定
+                            if (state.soulCollections.length === SOUL_GACHA_ITEMS.length && !state.hasCompletedSoulGacha) {
+                                state.hasCompletedSoulGacha = true;
+                                if (DOM.completeModal && DOM.completeModalContent && !isCatchingUp) {
+                                    // 少し遅れて表示
+                                    setTimeout(() => {
+                                        DOM.completeModal.classList.remove('hidden');
+
+                                        // 紙吹雪アニメーション
+                                        if (DOM.completeParticles) {
+                                            for (let i = 0; i < 100; i++) {
+                                                const p = document.createElement('div');
+                                                p.className = 'absolute text-2xl md:text-4xl pointer-events-none drop-shadow-md';
+                                                p.innerText = SOUL_GACHA_ITEMS[Math.floor(Math.random() * SOUL_GACHA_ITEMS.length)].icon;
+                                                p.style.left = `${Math.random() * 100}%`;
+                                                p.style.top = `-10%`;
+                                                p.style.transition = `transform ${2 + Math.random() * 3}s linear, top ${2 + Math.random() * 3}s ease-in, opacity ${2 + Math.random() * 3}s ease-in`;
+                                                p.style.transform = `rotate(${Math.random() * 360}deg)`;
+                                                DOM.completeParticles.appendChild(p);
+
+                                                requestAnimationFrame(() => {
+                                                    setTimeout(() => {
+                                                        p.style.top = `110%`;
+                                                        p.style.transform = `rotate(${Math.random() * 720}deg) translateX(${(Math.random() - 0.5) * 200}px)`;
+                                                        p.style.opacity = '0';
+                                                    }, 50);
+                                                });
+                                            }
+                                        }
+
+                                        setTimeout(() => {
+                                            DOM.completeModal.classList.remove('opacity-0');
+                                            DOM.completeModalContent.classList.remove('scale-50');
+                                            DOM.completeModalContent.classList.add('scale-100');
+                                        }, 10);
+                                    }, 1000);
+                                }
+                            }
+                        } else {
+                            if (DOM.soulGachaResult) { DOM.soulGachaResult.innerHTML = `<span class="text-gray-500">【${item.icon} ${item.name}】がダブった…</span>`; }
+                        }
+                        updateUI();
+                    }
+                });
+            }
+            if (DOM.btnRoulette) {
+                DOM.btnRoulette.addEventListener('click', () => {
+                    if (state.souls >= 1 && !activeModalEvent && !collapseState.active) {
+                        state.souls--; updateUI(); DOM.btnRoulette.disabled = true; if (DOM.rouletteResult) DOM.rouletteResult.innerText = "🌀 回っています...";
+                        setTimeout(() => {
+                            const r = Math.random();
+                            if (r < 0.2) { state.souls += 4; if (DOM.rouletteResult) DOM.rouletteResult.innerHTML = '<span class="text-yellow-600">🎉 大当たり！ソウル+3 (計4)</span>'; }
+                            else if (r < 0.5) { feverTimer += 30.0; if (DOM.rouletteResult) DOM.rouletteResult.innerHTML = '<span class="text-orange-500">✨ 中当たり！30s FEVER!</span>'; updateUI(); }
+                            else { if (DOM.rouletteResult) DOM.rouletteResult.innerHTML = '<span class="text-gray-500">💀 ハズレ...ソウル没収</span>'; }
+                            updateUI(); DOM.btnRoulette.disabled = false;
+                        }, 1500);
+                    }
+                });
+            }
+
+            // ==========================================
+            // 10. システム (セーブ・ロード・物理ループ)
+            // ==========================================
+            function loadGame() {
+                try {
+                    const saved = localStorage.getItem('sushiClickerSave');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        state.score = typeof parsed.score === 'number' ? parsed.score : 0;
+                        state.lifetimeScore = typeof parsed.lifetimeScore === 'number' ? parsed.lifetimeScore : state.score;
+                        state.souls = typeof parsed.souls === 'number' ? parsed.souls : 0;
+                        state.collections = Array.isArray(parsed.collections) ? parsed.collections : [];
+                        state.soulCollections = Array.isArray(parsed.soulCollections) ? parsed.soulCollections : [];
+                        state.equipped = Array.isArray(parsed.equipped) ? parsed.equipped : [];
+                        state.achievements = Array.isArray(parsed.achievements) ? parsed.achievements : [];
+                        state.currentSkin = parsed.currentSkin || '🍣';
+                        state.hasCompletedSoulGacha = parsed.hasCompletedSoulGacha === true;
+                        state.universeRule = parsed.universeRule || 'normal';
+                        state.ultimateResearch = parsed.ultimateResearch || null;
+                        state.stats = parsed.stats || { clicks: 0, claimerDefeats: 0, strikeDefeats: 0, prestigeCount: 0 };
+                        state.shares = typeof parsed.shares === 'number' ? parsed.shares : 0;
+                        state.stockPrice = typeof parsed.stockPrice === 'number' ? parsed.stockPrice : 100;
+                        state.stockHistory = Array.isArray(parsed.stockHistory) ? parsed.stockHistory : new Array(30).fill(100);
+                        state.stockTrend = typeof parsed.stockTrend === 'number' ? parsed.stockTrend : 0;
+                        if (parsed.ai && !parsed.aiRules) {
+                            state.aiSlots = 0; state.aiRules = [];
+                            if (parsed.ai.autoClick) { state.aiSlots++; state.aiRules.push({ condition: 'always', val: 0, action: 'click', active: true }); }
+                            if (parsed.ai.autoShield) { state.aiSlots++; state.aiRules.push({ condition: 'warning', val: 0, action: 'shield', active: true }); }
+                            if (parsed.ai.autoTrade) { state.aiSlots += 2; state.aiRules.push({ condition: 'stock_drop', val: 50, action: 'buy_all', active: true }); state.aiRules.push({ condition: 'stock_spike', val: 150, action: 'sell_all', active: true }); }
+                        } else {
+                            state.aiSlots = typeof parsed.aiSlots === 'number' ? parsed.aiSlots : 0;
+                            state.aiRules = Array.isArray(parsed.aiRules) ? parsed.aiRules : [];
+                        }
+                        if (DOM.sushi) DOM.sushi.innerText = state.currentSkin;
+                        if (Array.isArray(parsed.upgrades)) { state.upgrades.forEach(u => { const savedU = parsed.upgrades.find(su => su.id === u.id); if (savedU) { u.count = savedU.count || 0; } }); }
+                        if (Array.isArray(parsed.researches)) { state.researches.forEach(r => { const savedR = parsed.researches.find(sr => sr.id === r.id); if (savedR) r.level = savedR.level || 0; }); }
+                    }
+                } catch (e) { localStorage.removeItem('sushiClickerSave'); }
+                const ruleNames = { 'normal': 'NORMAL', 'stable': 'STABLE', 'inflation': 'INFLATION', 'clicker': 'CLICKER' };
+                if (DOM.universeDisplay) DOM.universeDisplay.innerText = `UNIVERSE: ${ruleNames[state.universeRule]}`;
+                updateUI(); renderUpgrades(); renderResearches(); renderUltimateResearches(); renderCollections(); renderAchievements(); updateSkinSelector(); renderAiRules();
+            }
+
+            function saveGame() { if (!collapseState.active) localStorage.setItem('sushiClickerSave', JSON.stringify(state)); }
+
+            let lastTime = performance.now(); let achieveCheckTimer = 0; let eventCheckTimer = 0; let stockUpdateTimer = 0; let aiTimer = 0;
+
+            function gameLoop(currentTime) {
+                let totalDeltaTime = (currentTime - lastTime) / 1000;
+                const realDeltaTime = totalDeltaTime;
+                lastTime = currentTime;
+
+                if (totalDeltaTime > 86400) totalDeltaTime = 86400;
+                isCatchingUp = totalDeltaTime > 2.0;
+
+                let scoreChanged = false;
+                let needRenderUpgrades = false;
+                let needRenderResearches = false;
+
+                const MAX_STEP = 0.5;
+
+                while (totalDeltaTime > 0) {
+                    const deltaTime = Math.min(totalDeltaTime, MAX_STEP);
+                    totalDeltaTime -= deltaTime;
+
+                    if (skills.freeze.cd > 0) { skills.freeze.cd -= deltaTime; scoreChanged = true; }
+                    if (skills.fever.cd > 0) { skills.fever.cd -= deltaTime; scoreChanged = true; }
+                    if (skills.shield.cd > 0) { skills.shield.cd -= deltaTime; scoreChanged = true; }
+
+                    let isTimeStopped = false;
+                    if (skills.freeze.active > 0) { skills.freeze.active -= deltaTime; isTimeStopped = true; scoreChanged = true; }
+
+                    if (!isTimeStopped) {
+                        stockUpdateTimer += deltaTime;
+                        if (stockUpdateTimer >= 1.0) { updateStockMarket(); stockUpdateTimer -= 1.0; }
+                    }
+
+                    if (collapseState.active && !isTimeStopped && !isPrestigeModalOpen) {
+                        collapseState.timeLeft -= deltaTime;
+                        if (DOM.collapseTimer && !isCatchingUp) DOM.collapseTimer.innerText = Math.max(0, collapseState.timeLeft).toFixed(2);
+
+                        if (collapseState.timeLeft <= 0) {
+                            const universes = ['normal', 'stable', 'inflation', 'clicker'];
+                            const randomUniverse = universes[Math.floor(Math.random() * universes.length)];
+                            state.universeRule = randomUniverse;
+                            state.score = 0; state.lifetimeScore = 0; state.shares = 0;
+                            state.upgrades.forEach(u => { u.count = 0; if (u.id === 'eraser') { u.active = false; u.isReversing = false; } }); state.researches.forEach(r => { if (r.id !== 'compression') r.level = 0; });
+                            state.ultimateResearch = null;
+                            localStorage.setItem('sushiClickerSave', JSON.stringify(state));
+                            collapseState.active = false;
+
+                            if (!isCatchingUp) {
+                                showCustomAlert(`次元崩壊に飲み込まれました...。\n命からがら別の宇宙「${randomUniverse.toUpperCase()}」へ漂着しましたが、すべてを失いました。`, "🌌 次元崩壊").then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                location.reload();
+                            }
+                            return;
+                        }
+                    }
+
+                    if (aiRebellionState.active && !isTimeStopped) {
+                        aiRebellionState.timeLeft -= deltaTime;
+                        if (DOM.aiRebellionTimer && !isCatchingUp) DOM.aiRebellionTimer.innerText = Math.max(0, aiRebellionState.timeLeft).toFixed(1);
+
+                        if (!isCatchingUp) {
+                            aiRebellionState.buttons.forEach(b => {
+                                b.x += b.vx * deltaTime * 60; b.y += b.vy * deltaTime * 60;
+                                if (b.x < 0 || b.x > 95) b.vx *= -1;
+                                if (b.y < 5 || b.y > 95) b.vy *= -1;
+                                b.el.style.left = `${b.x}%`; b.el.style.top = `${b.y}%`;
+                            });
+                        }
+
+                        if (Math.random() < 0.2 * deltaTime) {
+                            if (Math.random() > 0.5 && state.shares > 0) {
+                                state.shares = 0; scoreChanged = true;
+                                aiLog("AI", "株を不当価格で全売却しました。");
+                            } else {
+                                const availableUps = state.upgrades.filter(u => u.count > 0);
+                                if (availableUps.length > 0) {
+                                    const target = availableUps[Math.floor(Math.random() * availableUps.length)];
+                                    target.count--; needRenderUpgrades = true; scoreChanged = true;
+                                    aiLog("AI", `設備「${target.name}」を破壊しました。`);
+                                }
+                            }
+                        }
+
+                        if (aiRebellionState.timeLeft <= 0) {
+                            localStorage.removeItem('sushiClickerSave');
+                            location.reload();
+                            return;
+                        }
+                    }
+
+                    if (!isTimeStopped) {
+                        if (warningTimer > 0) {
+                            warningTimer -= deltaTime;
+                            if (warningTimer <= 0) {
+                                if (DOM.warningBanner) DOM.warningBanner.classList.add('-translate-y-full');
+                                const eventToTrigger = pendingEvent; pendingEvent = null;
+                                if (eventToTrigger === 'tax') triggerTax();
+                                else if (eventToTrigger === 'blackhole') triggerBlackhole();
+                                else if (eventToTrigger === 'darkchef') spawnDarkchef();
+                                else if (eventToTrigger === 'strike') triggerStrike();
+                                else if (eventToTrigger === 'claimer') spawnClaimer();
+                                else if (eventToTrigger === 'corruption') triggerCorruption();
+                                else if (eventToTrigger === 'monster') spawnMonster();
+                            }
+                        }
+
+                        if (eventCooldownTimer > 0) eventCooldownTimer -= deltaTime;
+
+                        if (strikeDefendState.active) {
+                            strikeDefendState.timeLeft -= deltaTime;
+                            if (DOM.strikeTimer && !isCatchingUp) DOM.strikeTimer.innerText = Math.max(0, strikeDefendState.timeLeft).toFixed(1);
+                            if (strikeDefendState.timeLeft <= 0) {
+                                strikeDefendState.active = false;
+                                if (!isCatchingUp) showToast("時間切れ！説得失敗...", "error");
+                                executeStrikePenalty();
+                            }
+                        }
+
+                        if (monsterState.active) {
+                            monsterState.timeLeft -= deltaTime;
+                            if (DOM.monsterTimer && !isCatchingUp) DOM.monsterTimer.innerText = Math.max(0, monsterState.timeLeft).toFixed(1);
+                            if (monsterState.timeLeft <= 0) {
+                                monsterState.active = false;
+                                if (DOM.monster) DOM.monster.classList.add('hidden');
+                                const availableUps = state.upgrades.filter(u => u.count > 0);
+                                if (availableUps.length > 0) {
+                                    const target = availableUps[Math.floor(Math.random() * availableUps.length)];
+                                    const lost = Math.ceil(target.count / 2); target.count -= lost;
+                                    needRenderUpgrades = true; scoreChanged = true;
+                                    if (!isCatchingUp) showToast(`宇宙怪獣に「${target.name}」を ${lost}個 食い荒らされた！`, "error");
+                                }
+                            }
+                        }
+
+                        if (toriiActive) {
+                            toriiTimer -= deltaTime;
+                            if (toriiTimer <= 0) { toriiActive = false; if (DOM.torii) DOM.torii.classList.add('hidden'); }
+                        }
+
+                        if (trialState.active) {
+                            trialState.timeLeft -= deltaTime;
+                            if (!isCatchingUp) updateTrialUI();
+                            if (trialState.timeLeft <= 0) {
+                                trialState.active = false;
+                                if (DOM.trialUI) DOM.trialUI.classList.add('hidden');
+                                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "❌ 試練失敗...", "text-gray-500", 2000);
+                            }
+                        }
+                    }
+
+                    if (feverTimer > 0 && !collapseState.active) {
+                        feverTimer -= deltaTime;
+                        if (feverTimer <= 0) { feverTimer = 0; scoreChanged = true; }
+                    }
+
+                    const baseSps = getBaseSPS() * getMultiplier();
+                    const sps = getSPS();
+
+                    // 所持ソウルに応じて宇宙の許容質量を飛躍的に増加させる（1ソウルにつき1.01倍）
+                    const massLimit = getSpsLimit();
+
+                    if (!isTimeStopped) {
+                        if (baseSps > massLimit && !collapseState.triggered) {
+                            pendingEvent = null;
+                            if (DOM.warningBanner) DOM.warningBanner.classList.add('-translate-y-full');
+                            triggerCollapse();
+                        }
+
+                        const isEventBlockingNewTriggers = (activeModalEvent !== null) || claimerState.active || darkchefState.active || monsterState.active || collapseState.active || pendingEvent !== null || toriiActive || trialState.active || aiRebellionState.active;
+
+                        if (!isEventBlockingNewTriggers && eventCooldownTimer <= 0) {
+                            eventCheckTimer += deltaTime;
+                            if (eventCheckTimer > 1.0) {
+                                eventCheckTimer -= 1.0;
+                                let eventRate = state.universeRule === 'stable' ? 0.25 : 1.0;
+                                if (state.ultimateResearch === 'u_shield') eventRate *= 0.5;
+
+                                let aiRisk = 0;
+                                if (state.aiSlots >= 4) aiRisk += 0.005;
+                                if (state.ultimateResearch === 'u_ai') aiRisk += 0.01;
+
+                                if (aiRisk > 0 && Math.random() < aiRisk * eventRate) triggerAiRebellion();
+                                else if (state.upgrades.find(u => u.id === 'galactic_empire').count > 0 && Math.random() < 0.04 * eventRate) scheduleEvent('tax', "⚠️ 銀河連邦の査察船が接近中...", 5.0);
+                                else if (state.upgrades.find(u => u.id === 'space').count > 0 && baseSps > 100000 && Math.random() < 0.02 * eventRate) scheduleEvent('blackhole', "⚠️ 強大な重力波を検知...", 5.0);
+                                else if (state.upgrades.find(u => u.id === 'dimensional_gate').count > 0 && Math.random() < 0.03 * eventRate) scheduleEvent('darkchef', "⚠️ 次元の裂け目から邪悪な気配が...", 4.0);
+                                else if (baseSps > 5000 && Math.random() < 0.02 * eventRate) scheduleEvent('corruption', "⚠️ 所属不明のハッキングを検知...", 4.0);
+                                else if (baseSps > 1000 && Math.random() < 0.02 * eventRate) scheduleEvent('monster', "⚠️ 巨大生体反応...", 3.0);
+                                else if (baseSps > 100 && feverTimer <= 0 && Math.random() < 0.03 * eventRate) scheduleEvent('strike', "⚠️ 従業員の不満が爆発寸前...", 3.0);
+                                else if (baseSps > 10 && Math.random() < 0.1 * eventRate) scheduleEvent('claimer', "⚠️ 怒れる客が向かってきている...", 2.0);
+                            }
+                        }
+
+                        if (!isEventBlockingNewTriggers && eventCooldownTimer <= 0 && !trialState.active && !toriiActive) {
+                            if (Math.random() < 0.01 * deltaTime && baseSps > 50) spawnTorii();
+                        }
+
+                        if (activeModalEvent === 'blackhole') {
+                            const penalty = baseSps * 5 * deltaTime; if (state.score > penalty) state.score -= penalty; else state.score = 0; scoreChanged = true;
+                            if (Math.random() < 10 * deltaTime && !isCatchingUp) {
+                                spawnSushiParticle(Math.random() * window.innerWidth, window.innerHeight + 50, false);
+                                spawnSushiParticle(-50, Math.random() * window.innerHeight, false);
+                                spawnSushiParticle(window.innerWidth + 50, Math.random() * window.innerHeight, false);
+                            }
+                        }
+
+                        if ((darkchefState.active || claimerState.active) && !isCatchingUp) {
+                            if (Math.random() < 2.0 * deltaTime) {
+                                const penaltyDisp = Math.abs(sps);
+                                const target = darkchefState.active ? DOM.darkchef : DOM.claimer; const rect = target.getBoundingClientRect();
+                                showFloatingText(rect.left + Math.random() * 50, rect.top, `-${formatNumber(penaltyDisp)}`, 'text-red-500');
+                            }
+                        }
+                    }
+
+                    // AIの実行
+                    let aiSpeed = (state.ultimateResearch === 'u_ai') ? 2.0 : 1.0;
+                    if (!aiRebellionState.active) aiTimer += deltaTime * aiSpeed;
+
+                    while (aiTimer >= 1.0) {
+                        aiTimer -= 1.0;
+
+                        const preventAiBuy = (state.score >= getSushiLimit() * 0.9) || ((getBaseSPS() * getMultiplier()) >= getSpsLimit() * 0.9);
+
+                        state.aiRules.forEach(rule => {
+                            if (!rule.active) return;
+                            let condMet = false;
+                            switch (rule.condition) {
+                                case 'always': condMet = true; break;
+                                case 'warning': condMet = (warningTimer > 0 || pendingEvent !== null); break;
+                                case 'stock_drop': condMet = (state.stockPrice <= rule.val); break;
+                                case 'stock_spike': condMet = (state.stockPrice >= rule.val); break;
+                                case 'sushi_over': condMet = (state.score >= rule.val); break;
+                                case 'sushi_under': condMet = (state.score <= rule.val); break;
+                                case 'sps_over': condMet = (sps >= rule.val); break;
+                                case 'sps_under': condMet = (sps <= rule.val); break;
+                            }
+                            if (condMet) {
+                                switch (rule.action) {
+                                    case 'click':
+                                        if (strikeDefendState.active) {
+                                            strikeDefendState.clicks += 10;
+                                            if (DOM.strikePersuadeBar && !isCatchingUp) DOM.strikePersuadeBar.style.width = `${Math.min(100, (strikeDefendState.clicks / strikeDefendState.required) * 100)}%`;
+                                            if (DOM.strikeClicks && !isCatchingUp) DOM.strikeClicks.innerText = `${strikeDefendState.clicks} / ${strikeDefendState.required} 回`;
+                                            if (strikeDefendState.clicks >= strikeDefendState.required) {
+                                                strikeDefendState.active = false; closeEventModal(); state.stats.strikeDefeats++; checkAchievements();
+                                                feverTimer = 30; showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🤖 AI説得成功！", "text-yellow-400", 3000);
+                                                scoreChanged = true;
+                                            }
+                                        }
+                                        else if (monsterState.active) {
+                                            monsterState.hp -= 10;
+                                            if (DOM.monsterHp && !isCatchingUp) DOM.monsterHp.style.width = `${(monsterState.hp / monsterState.maxHp) * 100}%`;
+                                            if (monsterState.hp <= 0) {
+                                                monsterState.active = false; if (DOM.monster) DOM.monster.classList.add('hidden');
+                                                state.score += (getBaseSPS() * getMultiplier()) * 20; scoreChanged = true;
+                                                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, `🤖 AI怪獣撃退！`, "text-orange-500", 2000);
+                                                eventCooldownTimer = 20.0;
+                                            }
+                                        }
+                                        else if (darkchefState.active) {
+                                            darkchefState.hp -= 10;
+                                            if (DOM.darkchefHp && !isCatchingUp) DOM.darkchefHp.style.width = `${(darkchefState.hp / darkchefState.maxHp) * 100}%`;
+                                            if (darkchefState.hp <= 0) {
+                                                darkchefState.active = false; if (DOM.darkchef) DOM.darkchef.classList.add('hidden');
+                                                const bonus = (getBaseSPS() * getMultiplier()) * 30; state.score += bonus; state.lifetimeScore += bonus; scoreChanged = true;
+                                                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, `🤖 AIダーク職人撃退！`, "text-blue-500", 2000);
+                                                eventCooldownTimer = 30.0;
+                                            }
+                                        }
+                                        else if (claimerState.active) {
+                                            claimerState.hp -= 10;
+                                            if (DOM.claimerHp && !isCatchingUp) DOM.claimerHp.style.width = `${(claimerState.hp / claimerState.maxHp) * 100}%`;
+                                            if (claimerState.hp <= 0) {
+                                                claimerState.active = false; if (DOM.claimer) DOM.claimer.classList.add('hidden');
+                                                state.stats.claimerDefeats++; checkAchievements();
+                                                const bonus = Math.abs(getSPS()) * 10; state.score += bonus; state.lifetimeScore += bonus; scoreChanged = true;
+                                                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, `🤖 AIクレーマー撃退！`, "text-blue-500", 2000);
+                                                eventCooldownTimer = 15.0;
+                                            }
+                                        }
+                                        else {
+                                            const clickPower = getClickPower() * 10;
+                                            state.score += clickPower; state.lifetimeScore += clickPower; scoreChanged = true;
+                                            if (trialState.active && trialState.type === 'clicks') { trialState.current += 10; if (!isCatchingUp) updateTrialUI(); checkTrialSuccess(); }
+                                            if (trialState.active && trialState.type === 'sushi') { trialState.current += clickPower; if (!isCatchingUp) updateTrialUI(); checkTrialSuccess(); }
+                                        }
+                                        break;
+                                    case 'shield':
+                                        if (skills.shield.cd <= 0 && !skills.shield.active && state.souls >= skills.shield.cost && !collapseState.active) {
+                                            const nextMassLimit = (1000000000000 * Math.pow(1.01, state.souls - skills.shield.cost)) * (state.researches.find(r => r.id === 'compression')?.level > 0 ? 1.5 : 1.0);
+                                            if (getBaseSPS() * getMultiplier() > nextMassLimit * 0.9) break;
+                                            state.souls -= skills.shield.cost; skills.shield.cd = skills.shield.maxCd;
+                                            if (pendingEvent) {
+                                                pendingEvent = null; warningTimer = 0; if (DOM.warningBanner) DOM.warningBanner.classList.add('-translate-y-full');
+                                                showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🤖 AI防壁が撃墜！", "text-green-500", 2000);
+                                            } else {
+                                                skills.shield.active = true; showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🤖 AI防壁展開！", "text-green-400", 2000);
+                                            }
+                                            scoreChanged = true;
+                                        }
+                                        break;
+                                    case 'freeze':
+                                        if (skills.freeze.cd <= 0 && state.souls >= skills.freeze.cost && !collapseState.active) {
+                                            const nextMassLimit = (1000000000000 * Math.pow(1.01, state.souls - skills.freeze.cost)) * (state.researches.find(r => r.id === 'compression')?.level > 0 ? 1.5 : 1.0);
+                                            if (getBaseSPS() * getMultiplier() > nextMassLimit * 0.9) break;
+                                            state.souls -= skills.freeze.cost; skills.freeze.active = 15.0; skills.freeze.cd = skills.freeze.maxCd;
+                                            showFloatingText(window.innerWidth / 2, window.innerHeight / 2, "🤖 AI: 時止め発動！", "text-blue-400", 2000); scoreChanged = true;
+                                        }
+                                        break;
+                                    case 'buy_all':
+                                        if (state.score >= state.stockPrice) {
+                                            const amount = Math.floor(state.score / state.stockPrice);
+                                            state.score -= amount * state.stockPrice; state.shares += amount; scoreChanged = true;
+                                            showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.4, "🤖 AI: 全買い", "text-green-400", 1000);
+                                        }
+                                        break;
+                                    case 'sell_all':
+                                        if (state.shares > 0) {
+                                            const total = state.shares * state.stockPrice;
+                                            state.score += total; state.lifetimeScore += total; state.shares = 0; scoreChanged = true;
+                                            showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.4, "🤖 AI: 全売り", "text-red-400", 1000);
+                                        }
+                                        break;
+                                    case 'gacha':
+                                        if (state.score >= 1000000 && !activeModalEvent && !collapseState.active) {
+                                            state.score -= 1000000; const item = GACHA_ITEMS[Math.floor(Math.random() * GACHA_ITEMS.length)];
+                                            if (!state.collections.includes(item.id)) {
+                                                state.collections.push(item.id);
+                                                if (!isCatchingUp) renderCollections();
+                                                showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.4, "🤖 AI: ガチャ(新規)", "text-purple-400", 1000);
+                                                if (DOM.gachaResult) { DOM.gachaResult.classList.remove('hidden'); DOM.gachaResult.innerHTML = `<span class="text-purple-600">【${item.icon} ${item.name}】をゲット！</span>`; }
+                                            } else {
+                                                state.score += 500000;
+                                                showFloatingText(window.innerWidth * 0.75, window.innerHeight * 0.4, "🤖 AI: ガチャ(被り)", "text-gray-400", 1000);
+                                                if (DOM.gachaResult) { DOM.gachaResult.classList.remove('hidden'); DOM.gachaResult.innerHTML = `<span class="text-gray-500">【${item.icon} ${item.name}】がダブった… (50万貫返還)</span>`; }
+                                            }
+                                            scoreChanged = true;
+                                        }
+                                        break;
+                                    case 'buy_cheap_upgrade':
+                                        if (preventAiBuy) break;
+                                        for (let i = 0; i < state.upgrades.length; i++) {
+                                            const u = state.upgrades[i]; const cost = getUpgradeCost(u);
+                                            if (state.score >= cost && !activeModalEvent && !collapseState.active) {
+                                                if ((getBaseSPS() + u.bps) * getMultiplier() > massLimit * 0.9) continue;
+                                                state.score -= cost; u.count++; scoreChanged = true; needRenderUpgrades = true;
+                                                if (!isCatchingUp) showToast(`🤖 AI購入: ${u.name}`, "info");
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    case 'buy_exp_upgrade':
+                                        if (preventAiBuy) break;
+                                        for (let i = state.upgrades.length - 1; i >= 0; i--) {
+                                            const u = state.upgrades[i]; const cost = getUpgradeCost(u);
+                                            if (state.score >= cost && !activeModalEvent && !collapseState.active) {
+                                                if ((getBaseSPS() + u.bps) * getMultiplier() > massLimit * 0.9) continue;
+                                                state.score -= cost; u.count++; scoreChanged = true; needRenderUpgrades = true;
+                                                if (!isCatchingUp) showToast(`🤖 AI購入: ${u.name}`, "info");
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    case 'buy_cheap_research':
+                                        if (preventAiBuy) break;
+                                        for (let i = 0; i < state.researches.length; i++) {
+                                            const r = state.researches[i]; if (r.level >= r.maxLevel) continue;
+                                            const cost = getResearchCost(r);
+                                            if (state.score >= cost && !activeModalEvent && !collapseState.active) {
+                                                if (getBaseSPS() * (getMultiplier() * r.multiplier) > massLimit * 0.9) continue;
+                                                state.score -= cost; r.level++; scoreChanged = true; needRenderResearches = true;
+                                                if (!isCatchingUp) showToast(`🤖 AI研究: ${r.name}`, "info");
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    case 'buy_exp_research':
+                                        if (preventAiBuy) break;
+                                        for (let i = state.researches.length - 1; i >= 0; i--) {
+                                            const r = state.researches[i]; if (r.level >= r.maxLevel) continue;
+                                            const cost = getResearchCost(r);
+                                            if (state.score >= cost && !activeModalEvent && !collapseState.active) {
+                                                if (getBaseSPS() * (getMultiplier() * r.multiplier) > massLimit * 0.9) continue;
+                                                state.score -= cost; r.level++; scoreChanged = true; needRenderResearches = true;
+                                                if (!isCatchingUp) showToast(`🤖 AI研究: ${r.name}`, "info");
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                }
+                            }
+                        });
+                    }
+
+                    if (!collapseState.active) {
+                        let actualSps = sps;
+                        if (isTimeStopped && actualSps < 0) actualSps = Math.abs(actualSps);
+
+                        state.score += actualSps * deltaTime;
+                        if (state.score < 0) state.score = 0;
+
+                        if (actualSps > 0) {
+                            state.lifetimeScore += actualSps * deltaTime;
+                            scoreChanged = true;
+                            if (trialState.active && trialState.type === 'sushi') {
+                                trialState.current += actualSps * deltaTime;
+                                if (!isCatchingUp) updateTrialUI(); checkTrialSuccess();
+                            }
+                            let spawnRate = actualSps * deltaTime * 0.05;
+                            if (spawnRate > 2) spawnRate = 2;
+                            for (let s = 0; s < spawnRate; s++) {
+                                if (Math.random() < (spawnRate - s) && !isCatchingUp) {
+                                    spawnSushiParticle(Math.random() * window.innerWidth, -50 + Math.random() * -20, false);
+                                }
+                            }
+                        } else if (actualSps < 0) {
+                            scoreChanged = true;
+                        }
+                    }
+
+                    achieveCheckTimer += deltaTime; if (achieveCheckTimer > 1) { checkAchievements(); achieveCheckTimer -= 1.0; }
+                }
+
+                if (state.score >= getSushiLimit()) {
+                    state.score = 0;
+                    state.souls++;
+                    if (!isCatchingUp) showToast("🍣 所持寿司が限界を突破し、すべてが圧縮されて 1 Soul になりました！", "success");
+                    scoreChanged = true;
+                }
+                if (state.souls > 5000) { state.souls = 5000; scoreChanged = true; }
+
+                if (needRenderUpgrades) renderUpgrades();
+                if (needRenderResearches) renderResearches();
+                if (scoreChanged) updateUI();
+
+                // 物理描画
+                if (DOM.canvas && !isCatchingUp) {
+                    if (DOM.canvas.width !== window.innerWidth || DOM.canvas.height !== window.innerHeight) {
+                        DOM.canvas.width = window.innerWidth;
+                        DOM.canvas.height = window.innerHeight;
+                    }
+                    const ctx = DOM.canvas.getContext('2d');
+                    ctx.clearRect(0, 0, DOM.canvas.width, DOM.canvas.height);
+                    for (let i = particles.length - 1; i >= 0; i--) {
+                        const p = particles[i];
+                        if (activeModalEvent === 'blackhole') {
+                            const dx = window.innerWidth / 2 - p.x;
+                            const dy = window.innerHeight / 2 - p.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist > 10) {
+                                p.vx += (dx / dist) * 100 * realDeltaTime;
+                                p.vy += (dy / dist) * 100 * realDeltaTime;
+                            }
+                            p.size = Math.max(0, p.size - 25 * realDeltaTime);
+                        } else {
+                            p.vy += 25 * realDeltaTime; // 重力
+                        }
+
+                        p.x += p.vx * realDeltaTime * 60;
+                        p.y += p.vy * realDeltaTime * 60;
+                        p.rot += p.rotV * realDeltaTime * 60;
+
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate(p.rot);
+                        ctx.font = `${Math.floor(p.size)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Hiragino Kaku Gothic ProN", sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(p.skin, 0, 0);
+                        ctx.restore();
+
+                        // 画面外に出たら削除
+                        if (p.y - p.size > DOM.canvas.height + 100 || p.x + p.size < -100 || p.x - p.size > DOM.canvas.width + 100 || p.size <= 0) {
+                            particles.splice(i, 1);
+                        }
+                    }
+                }
+
+                window.sushiGameLoopId = requestAnimationFrame(gameLoop);
+            }
+
+            // ==========================================
+            // 起動処理
+            // ==========================================
+            if (window.sushiGameLoopId) cancelAnimationFrame(window.sushiGameLoopId);
+            if (window.sushiSaveIntervalId) clearInterval(window.sushiSaveIntervalId);
+
+            loadGame();
+            window.sushiGameLoopId = requestAnimationFrame(gameLoop);
+            window.sushiSaveIntervalId = setInterval(saveGame, 5000);
+
+        })();
+    </script>
+</body>
+
+</html>
