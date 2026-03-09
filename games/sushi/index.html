@@ -147,7 +147,7 @@
     </style>
 </head>
 
-<body class="h-screen w-screen relative text-gray-800">
+<body class="h-[100dvh] w-screen relative text-gray-800 overflow-hidden">
 
     <!-- 通知・ダイアログUI -->
     <div id="toast-container" class="fixed top-4 right-4 z-[10002] flex flex-col gap-2 pointer-events-none"></div>
@@ -504,29 +504,29 @@
     <div class="h-full flex flex-col md:flex-row pointer-events-none">
 
         <!-- 左側：クリックエリア -->
-        <div class="flex-1 flex flex-col items-center justify-center p-8 pointer-events-auto relative">
+        <div class="flex-[4] md:flex-1 flex flex-col items-center justify-center p-4 md:p-8 pointer-events-auto relative min-h-0">
             <div
-                class="text-center mb-8 bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100 z-10 relative">
-                <h1 class="text-2xl font-bold text-gray-600 mb-2">現在の寿司</h1>
-                <div class="text-5xl md:text-6xl font-extrabold text-orange-500 tracking-tight" id="score-display">0 貫
+                class="text-center mb-2 md:mb-8 bg-white/80 backdrop-blur-sm p-3 md:p-6 rounded-2xl shadow-lg border border-gray-100 z-10 relative">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-600 mb-1 md:mb-2">現在の寿司</h1>
+                <div class="text-[36px] md:text-6xl font-extrabold text-orange-500 tracking-tight leading-none mb-1 md:mb-0" id="score-display">0 貫
                 </div>
-                <div class="text-gray-500 mt-3 font-medium flex flex-col md:flex-row items-center justify-center gap-3">
-                    <span id="sps-display" class="text-lg">毎秒: 0 貫</span>
+                <div class="text-gray-500 md:mt-3 font-medium flex flex-row items-center justify-center gap-3">
+                    <span id="sps-display" class="text-[14px] md:text-lg">毎秒: 0 貫</span>
                     <span id="multiplier-display"
-                        class="text-sm bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold border border-orange-200 shadow-inner">倍率:
+                        class="text-[12px] md:text-sm bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold border border-orange-200 shadow-inner">倍率:
                         x1.0</span>
                 </div>
             </div>
 
-            <div class="relative z-10 my-4">
+            <div class="relative z-10 my-2 md:my-4">
                 <div id="shield-effect"
                     class="absolute inset-0 rounded-full border-8 border-green-400 shadow-[0_0_40px_rgba(74,222,128,0.8)] pointer-events-none hidden opacity-60 animate-pulse"
                     style="width: 130%; height: 130%; top: -15%; left: -15%;"></div>
-                <div class="text-9xl sushi-btn select-none relative" id="main-sushi" draggable="false">🍣</div>
+                <div class="text-[100px] md:text-9xl sushi-btn select-none relative leading-none" id="main-sushi" draggable="false">🍣</div>
             </div>
 
             <div
-                class="mt-8 flex gap-3 md:gap-4 z-10 bg-white/60 p-3 rounded-2xl backdrop-blur border border-gray-200 shadow-sm">
+                class="mt-2 md:mt-8 flex gap-3 md:gap-4 z-10 bg-white/60 p-2 md:p-3 rounded-2xl backdrop-blur border border-gray-200 shadow-sm">
                 <button id="skill-freeze"
                     class="relative overflow-hidden bg-blue-600 hover:bg-blue-500 text-white p-2 md:p-3 rounded-xl shadow-lg border-2 border-blue-300 transition-transform active:scale-95 flex flex-col items-center justify-center min-w-[60px] md:min-w-[70px] cursor-pointer">
                     <div class="text-2xl md:text-3xl mb-1">⏳</div>
@@ -562,7 +562,7 @@
 
         <!-- 右側：メニューエリア -->
         <div
-            class="w-full md:w-96 bg-white/90 backdrop-blur-md border-l border-gray-200 h-full flex flex-col shadow-2xl pointer-events-auto z-20">
+            class="flex-[6] md:flex-none w-full md:w-96 bg-white/90 backdrop-blur-md border-t md:border-t-0 md:border-l border-gray-200 flex flex-col shadow-2xl pointer-events-auto z-20 min-h-0">
             <div class="px-2 pt-4 pb-0 bg-orange-500 text-white font-bold flex flex-col shadow-md z-10">
                 <div class="flex justify-between items-center mb-2 px-2">
                     <span class="text-lg">メニュー</span>
