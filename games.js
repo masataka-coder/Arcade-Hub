@@ -125,5 +125,16 @@ const ALL_GAMES = [
         movie: "assets/movies/color.mp4",
         movie_cg: "assets/movies/color-cg.mp4",
         link: "games/color/index.html"
+    },
+    {
+        id: "sushi",
+        ja: {
+            "title": "寿司職人クリッカー",
+            "description": "クリックして寿司を稼ぎ、設備を購入して自動化への道を歩もう。寿司であふれた世界が君を待っている。"
+        },
+        image: "assets/thumbnails/sushi.png",
+        movie: "assets/movies/sushi.mp4",
+        movie_cg: "assets/movies/sushi-cg.mp4",
+        link: "games/sushi/index.html"
     }
 ];
