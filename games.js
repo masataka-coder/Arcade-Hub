@@ -70,7 +70,7 @@ const ALL_GAMES = [
             description: "農園経営からM&A、恐竜＆サイバーパンクタイムトラベルまで！至高の店舗経営シミュレーション。"
         },
         copyright: "&copy; 2026 Takahide Kohata",
-        image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>☕ Happy Cafe</text></svg>",
+        image: "assets/thumbnails/cafe.png",
         movie: null,
         movie_cg: null,
         link: "games/cafe/index.html"
@@ -82,7 +82,7 @@ const ALL_GAMES = [
             description: "資源を集め、村を発展させ、襲来する敵から村を守り抜こう。交易所や遠征を活用して村をレベルアップ！"
         },
         copyright: "&copy; 2026 Takahide Kohata",
-        image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' style='background:%230f172a'><text x='50%25' y='50%25' fill='%23fff' font-size='48' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>🏕️ Village</text></svg>",
+        image: "assets/thumbnails/village.png",
         movie: null,
         movie_cg: "assets/movies/village-cg.mp4",
         link: "games/village/index.html"

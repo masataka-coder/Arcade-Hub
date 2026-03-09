@@ -56,8 +56,8 @@ function renderGames() {
             <div class="game-card" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
                 <div class="card-img-container">
                     <img src="${game.image || ''}" alt="${info.title}" class="preview-img" ${!game.image ? 'style="display:none"' : ''}>
-                    ${game.movie ? `<video src="${game.movie}" muted loop class="preview-video"></video>` : ''}
-                    ${!game.image && !game.movie ? '<div class="w-full h-full bg-slate-800 flex items-center justify-center text-4xl">🎮</div>' : ''}
+                    ${game.movie_cg || game.movie ? `<video src="${game.movie_cg || game.movie}" muted playsinline class="preview-video" data-cg="${game.movie_cg || ''}" data-movie="${game.movie || ''}"></video>` : ''}
+                    ${!game.image && !game.movie && !game.movie_cg ? '<div class="w-full h-full bg-slate-800 flex items-center justify-center text-4xl">🎮</div>' : ''}
                 </div>
                 <div class="card-content">
                     <h2>${info.title}</h2>
@@ -93,7 +93,33 @@ function renderGames() {
 
         card.addEventListener('mouseenter', () => {
             const video = card.querySelector('.preview-video');
-            if (video) video.play().catch(e => console.log("Video play failed:", e));
+            if (video) {
+                const cg = video.getAttribute('data-cg');
+                const mv = video.getAttribute('data-movie');
+
+                if (cg && mv) {
+                    if (!video.src.includes(cg)) {
+                        video.src = cg;
+                    }
+                    video.loop = false;
+                    video.onended = () => {
+                        video.src = mv;
+                        video.loop = true;
+                        const playPromise = video.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(e => console.log("Gameplay video play failed:", e));
+                        }
+                    };
+                } else {
+                    video.loop = true;
+                    video.onended = null;
+                }
+
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.log("Video play failed:", e));
+                }
+            }
         });
 
         card.addEventListener('mouseleave', () => {
@@ -101,6 +127,7 @@ function renderGames() {
             const video = card.querySelector('.preview-video');
             if (video) {
                 video.pause();
+                video.onended = null;
                 video.currentTime = 0;
             }
         });
