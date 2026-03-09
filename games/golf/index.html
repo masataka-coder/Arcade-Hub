@@ -201,7 +201,8 @@
         <div class="title-sub">惑星軌道ゴルフ</div>
         <button class="btn-start" id="btn-start">MISSION START</button>
         <div style="margin-top: 50px;">
-            <a href="../../index.html" style="color: rgba(255,255,255,0.3); text-decoration: none; font-size: 14px;">◀ ArcadeHubに戻る</a>
+            <a href="../../index.html" style="color: rgba(255,255,255,0.3); text-decoration: none; font-size: 14px;">◀
+                ArcadeHubに戻る</a>
         </div>
     </div>
 
@@ -313,13 +314,13 @@
                 ballStart: { x: 0.1, y: 0.5 },
                 goalPoint: { x: 0.9, y: 0.5, radius: 25 },
                 planetsData: [
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 40, mass: 100, color: '#ff9ff3',
-                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 150, orbitSpeed: 0.02, orbitAngle: 0 
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 150, orbitSpeed: 0.02, orbitAngle: 0
                     },
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 40, mass: 100, color: '#feca57',
-                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 150, orbitSpeed: 0.02, orbitAngle: Math.PI 
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 150, orbitSpeed: 0.02, orbitAngle: Math.PI
                     }
                 ]
             },
@@ -328,13 +329,13 @@
                 ballStart: { x: 0.5, y: 0.85 },
                 goalPoint: { x: 0.5, y: 0.15, radius: 25 },
                 planetsData: [
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 50, mass: 120, color: '#48dbfb',
-                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 200, orbitSpeed: -0.015, orbitAngle: 0 
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 200, orbitSpeed: -0.015, orbitAngle: 0
                     },
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 30, mass: 80, color: '#1dd1a1',
-                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 100, orbitSpeed: 0.03, orbitAngle: Math.PI / 2 
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 100, orbitSpeed: 0.03, orbitAngle: Math.PI / 2
                     }
                 ]
             },
@@ -344,19 +345,19 @@
                 goalPoint: { x: 0.9, y: 0.1, radius: 20 },
                 planetsData: [
                     { x: 0.5, y: 0.5, radius: 80, mass: 300, color: '#ffcc00' }, // 中心星
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 20, mass: 40, color: '#ff4dd2',
-                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 130, orbitSpeed: 0.04, orbitAngle: 0 
+                        isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 130, orbitSpeed: 0.04, orbitAngle: 0
                     },
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 25, mass: 50, color: '#33ccff',
                         isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 200, orbitSpeed: 0.02, orbitAngle: Math.PI * 0.5
                     },
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 30, mass: 60, color: '#cc66ff',
                         isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 280, orbitSpeed: 0.012, orbitAngle: Math.PI
                     },
-                    { 
+                    {
                         x: 0.5, y: 0.5, radius: 35, mass: 70, color: '#ff6666',
                         isOrbiting: true, orbitCenter: { x: 0.5, y: 0.5 }, orbitRadius: 360, orbitSpeed: 0.008, orbitAngle: Math.PI * 1.5
                     }
@@ -398,9 +399,14 @@
             gameState = 'title'; // 起動時はタイトル
         }
 
+        let bgm = new Audio('../../assets/musics/golf/bgm.mp3');
+        bgm.loop = true;
+        bgm.volume = 0.5;
+
         function startGame() {
             document.getElementById('title-screen').classList.add('hidden');
             gameState = 'aiming';
+            bgm.play().catch(e => console.log('BGM play failed:', e));
         }
 
         function draw() {
@@ -706,14 +712,14 @@
             let t = frameCount * 0.01;
             noStroke();
             drawingContext.shadowBlur = 40;
-            
+
             // 紫の惑星
             let x1 = width * 0.5 + cos(t) * 200;
             let y1 = height * 0.5 + sin(t) * 100;
             drawingContext.shadowColor = '#8e44ad';
             fill('#8e44ad');
             circle(x1, y1, 80);
-            
+
             // 青の惑星
             let x2 = width * 0.5 + cos(t + PI) * 250;
             let y2 = height * 0.5 + sin(t + PI) * 150;

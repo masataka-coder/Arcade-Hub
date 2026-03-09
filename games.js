@@ -97,18 +97,33 @@ const ALL_GAMES = [
         link: "games/golf/index.html"
     },
     {
-        id:"color",
-        ja:{
-            title:"ネオン流体錬金術",
-            description:"3色のインクを注いで混ぜ合わせ、目的の色を作り出そう。1滴が成功を左右する。"
+        id: "lost",
+        ja: {
+            title: "ロスト＆ファウンド・シティ",
+            description: "現実の時間に合わせて景色が変わる街で、落とし物を探そう。アイテムから失われた記憶を紡ぐ、静寂の探索ゲーム。"
         },
-        en:{
-            title:"Neon Fluid Alchemy",
-            description:"Pour and mix three ink colors to create your desired color. Every drop counts."
+        en: {
+            title: "Lost & Found City",
+            description: "Search for lost items in a city where the scenery changes with real-world time. A quiet exploration game that pieces together forgotten memories."
         },
-        image:"assets/thumbnails/color.png",
-        movie:"assets/movies/color.mp4",
-        movie_cg:"assets/movies/color-cg.mp4",
-        link:"games/color/index.html"
+        image: "assets/thumbnails/lost.png",
+        movie: null,
+        movie_cg: "assets/movies/lost-cg.mp4",
+        link: "games/lost/index.html"
+    },
+    {
+        id: "color",
+        ja: {
+            title: "ネオン流体錬金術",
+            description: "3色のインクを注いで混ぜ合わせ、目的の色を作り出そう。1滴が成功を左右する。"
+        },
+        en: {
+            title: "Neon Fluid Alchemy",
+            description: "Pour and mix three ink colors to create your desired color. Every drop counts."
+        },
+        image: "assets/thumbnails/color.png",
+        movie: "assets/movies/color.mp4",
+        movie_cg: "assets/movies/color-cg.mp4",
+        link: "games/color/index.html"
     }
 ];
