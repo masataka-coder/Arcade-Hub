@@ -239,6 +239,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const installToast = document.getElementById('install-toast');
     const installBtn = document.getElementById('install-confirm-btn');
 
+    // iOS Safari detection
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isIos && !isInStandaloneMode) {
+        // Show PWA install instruction for iOS
+        const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+        const msgSpan = installToast.querySelector('span');
+        msgSpan.innerHTML = lang === 'ja' 
+            ? "アプリとしてインストールするには、ブラウザの[共有]メニューから「ホーム画面に追加」を選択してください。" 
+            : "To install as an app, tap the Share menu and select 'Add to Home Screen'.";
+        installBtn.style.display = 'none';
+        installToast.classList.remove('hidden');
+    }
+
     window.addEventListener('beforeinstallprompt', (e) => {
         // Prevent Chrome 67 and earlier from automatically showing the prompt
         e.preventDefault();
