@@ -72,7 +72,7 @@ const ALL_GAMES = [
         copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/cafe.png",
         movie: null,
-        movie_cg: null,
+        movie_cg: "assets/movies/cafe-cg.mp4",
         link: "games/cafe/index.html"
     },
     {

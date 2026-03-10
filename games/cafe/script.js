@@ -209,10 +209,10 @@ const loadGame = () => {
             state.inventory.oil_cyber = 0; state.inventory.chip = 0;
         }
         if (!state.trayTimers) state.trayTimers = [];
-        
+
         // 追加スキル等の初期化
         for (let key in SKILLS) { if (state.skills[key] === undefined) state.skills[key] = 0; }
-        
+
         return true;
     }
     return false;
@@ -536,11 +536,11 @@ const gameTick = () => {
                 const reqs = state.isPartyDay
                     ? state.party.reqs.filter(r => state.recipes[r.id].type === type && r.curr < r.max).flatMap(r => Array(r.max - r.curr).fill(r.id))
                     : state.slots.filter(s => s && s.type === 'customer' && s.state === 'waiting').flatMap(s => s.orders).filter(id => state.recipes[id].type === type);
-                
+
                 // 必要数から、すでにトレイにある分と調理中の分を差し引く
                 const counts = {};
                 reqs.forEach(id => counts[id] = (counts[id] || 0) + 1);
-                
+
                 const finalReqs = [];
                 for (const [id, needed] of Object.entries(counts)) {
                     const onTray = state.tray.filter(tid => tid === id).length;
@@ -556,7 +556,7 @@ const gameTick = () => {
                 let pCount = power;
                 for (let rId of reqs) {
                     if (pCount <= 0) break;
-                    
+
                     const pIds = state.upgrades.dualMachine ? [rId + '_0', rId + '_1'] : [rId];
                     let acted = false;
 
@@ -923,7 +923,7 @@ const handleAction = (e) => {
     else if (action === 'prep-item') {
         const recipeId = id;
         const pIds = state.upgrades.dualMachine ? [recipeId + '_0', recipeId + '_1'] : [recipeId];
-        
+
         // 修理優先
         if (state.troubles.broken && state.troubles.broken.recipeId === recipeId) {
             state.troubles.broken.tapsRemaining--;
@@ -936,7 +936,7 @@ const handleAction = (e) => {
 
         // 完了タップ優先
         let targetId = null;
-        for(const pid of pIds) {
+        for (const pid of pIds) {
             if (state.preparing[pid] && state.preparing[pid].waitingNextTap) {
                 targetId = pid; break;
             }
@@ -1177,7 +1177,7 @@ const renderGameUI = () => {
     state.activeRecipes.forEach(rId => {
         const r = state.recipes[rId];
         const pIds = state.upgrades.dualMachine ? [rId + '_0', rId + '_1'] : [rId];
-        
+
         // 表示用の状態（スロットが複数ある場合は優先度の高いものをメインに表示）
         let mainPid = pIds.find(pid => state.preparing[pid]?.waitingNextTap) || pIds.find(pid => state.preparing[pid]) || pIds[0];
         const pData = state.preparing[mainPid];
@@ -1225,12 +1225,12 @@ const renderGameUI = () => {
                 ${outOfStock ? `<div class="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-sm text-center">不足</div>` : ''}
                 ${isPrep && !waitingTap && !isBroken ? `<div class="absolute inset-x-1.5 bottom-1 flex flex-col gap-0.5">
                     ${pIds.map(pid => {
-                        const pd = state.preparing[pid];
-                        if (pd && !pd.waitingNextTap) {
-                            return `<div class="h-1 bg-gray-200 rounded-full overflow-hidden w-full"><div id="prep-bar-${pid}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pd.elapsed / pd.duration) * 100}%"></div></div>`;
-                        }
-                        return '';
-                    }).join('')}
+            const pd = state.preparing[pid];
+            if (pd && !pd.waitingNextTap) {
+                return `<div class="h-1 bg-gray-200 rounded-full overflow-hidden w-full"><div id="prep-bar-${pid}" class="h-full bg-amber-500 progress-bar-inner" style="width: ${(pd.elapsed / pd.duration) * 100}%"></div></div>`;
+            }
+            return '';
+        }).join('')}
                 </div>` : ''}
             </div>
         `;
@@ -1483,6 +1483,9 @@ const renderApp = () => {
                         <div id="ui-time" class="text-sm md:text-xl font-bold bg-white/20 px-2 md:px-4 py-0.5 md:py-1 rounded-full">⏱ <span class="hidden md:inline">残り</span> ${Math.ceil(state.timeRemaining)}秒</div>
                         <button data-action="toggle-bgm" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-sm md:text-xl bg-white/10 text-white rounded-full border border-white/20 hover:bg-white/20 transition-all">
                             ${isBgmMuted ? '🔇' : '🔊'}
+                        </button>
+                        <button data-action="goto-title" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-sm md:text-xl bg-white/10 text-white rounded-full border border-white/20 hover:bg-white/20 transition-all" title="タイトルへ">
+                            🏠
                         </button>
                     </div>
                 </header>
