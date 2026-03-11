@@ -15,8 +15,11 @@ const translations = {
         tag_strategy: "ストラテジー",
         tag_simulation: "シミュレーション",
         tag_shooter: "シューティング",
+        tag_simulation: "シミュレーション",
+        tag_shooter: "シューティング",
         tag_casual: "カジュアル",
-        tag_exploration: "探索"
+        tag_exploration: "探索",
+        tag_favorites: "★ お気に入り"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -34,13 +37,36 @@ const translations = {
         tag_strategy: "Strategy",
         tag_simulation: "Simulation",
         tag_shooter: "Shooter",
+        tag_simulation: "Simulation",
+        tag_shooter: "Shooter",
         tag_casual: "Casual",
-        tag_exploration: "Exploration"
+        tag_exploration: "Exploration",
+        tag_favorites: "★ Favorites"
     }
 };
 
 let activeFilter = 'all';
-const AVAILABLE_TAGS = ['all', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration'];
+const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration'];
+
+function getFavorites() {
+    try {
+        return JSON.parse(localStorage.getItem('arcade_hub_favorites')) || [];
+    } catch {
+        return [];
+    }
+}
+
+function toggleFavorite(id, event) {
+    if (event) event.stopPropagation();
+    let favs = getFavorites();
+    if (favs.includes(id)) {
+        favs = favs.filter(f => f !== id);
+    } else {
+        favs.push(id);
+    }
+    localStorage.setItem('arcade_hub_favorites', JSON.stringify(favs));
+    renderGames();
+}
 
 // Game data is now loaded from ALL_GAMES in games.js
 
@@ -89,16 +115,27 @@ function renderGames() {
     const listGames = ALL_GAMES.filter(game => game[lang]);
     
     let filteredGames = listGames;
-    if (activeFilter !== 'all') {
+    const favorites = getFavorites();
+
+    if (activeFilter === 'favorites') {
+        filteredGames = filteredGames.filter(game => favorites.includes(game.id));
+    } else if (activeFilter !== 'all') {
         filteredGames = filteredGames.filter(game => game.tags && game.tags.includes(activeFilter));
     }
 
     grid.innerHTML = filteredGames.map((game, index) => {
         const info = game[lang];
         const tagsHtml = game.tags ? game.tags.map(t => `<span class="game-tag">${dict['tag_' + t] || t}</span>`).join('') : '';
+        const isFav = favorites.includes(game.id);
+        
         return `
             <div class="game-card" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
                 <div class="card-img-container">
+                    <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${game.id}', event)" title="Toggle Favorite">
+                        <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        </svg>
+                    </button>
                     <img src="${game.image || ''}" alt="${info.title}" class="preview-img" ${!game.image ? 'style="display:none"' : ''}>
                     ${game.movie_cg || game.movie ? `<video src="${game.movie_cg || game.movie}" muted playsinline class="preview-video" data-cg="${game.movie_cg || ''}" data-movie="${game.movie || ''}"></video>` : ''}
                     ${!game.image && !game.movie && !game.movie_cg ? '<div class="w-full h-full bg-slate-800 flex items-center justify-center text-4xl">🎮</div>' : ''}
