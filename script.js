@@ -49,6 +49,7 @@ const translations = {
 
 let activeFilter = 'all';
 const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration'];
+let currentFeaturedGameId = null;
 
 function getFavorites() {
     try {
@@ -109,6 +110,7 @@ function renderFilters() {
 
 function setFilter(tag) {
     activeFilter = tag;
+    currentFeaturedGameId = null;
     renderFilters();
     renderGames();
 }
@@ -130,13 +132,27 @@ function renderGames() {
         filteredGames = filteredGames.filter(game => game.tags && game.tags.includes(activeFilter));
     }
 
-    grid.innerHTML = filteredGames.map((game, index) => {
+    if (filteredGames.length === 0) {
+        grid.innerHTML = `<p style="text-align: center; grid-column: 1/-1; color: var(--text-secondary); padding: 40px;">${lang === 'ja' ? '該当するゲームがありません。' : 'No games found.'}</p>`;
+        return;
+    }
+
+    if (!currentFeaturedGameId || !filteredGames.some(g => g.id === currentFeaturedGameId)) {
+        const randomIndex = Math.floor(Math.random() * filteredGames.length);
+        currentFeaturedGameId = filteredGames[randomIndex].id;
+    }
+
+    const featuredGame = filteredGames.find(g => g.id === currentFeaturedGameId);
+    const otherGames = filteredGames.filter(g => g.id !== currentFeaturedGameId);
+
+    function createCardHtml(game, isFeatured) {
         const info = game[lang];
         const tagsHtml = game.tags ? game.tags.map(t => `<span class="game-tag">${dict['tag_' + t] || t}</span>`).join('') : '';
         const isFav = favorites.includes(game.id);
+        const classes = `game-card ${isFeatured ? 'featured' : ''}`;
         
         return `
-            <div class="game-card" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
+            <div class="${classes}" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
                 <div class="card-img-container">
                     <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${game.id}', event)" title="Toggle Favorite">
                         <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -158,7 +174,13 @@ function renderGames() {
                 </div>
             </div>
         `;
-    }).join('');
+    }
+
+    let html = '';
+    if (featuredGame) html += createCardHtml(featuredGame, true);
+    html += otherGames.map(game => createCardHtml(game, false)).join('');
+
+    grid.innerHTML = html;
 
     // Attach interactions to newly created cards
     const cards = grid.querySelectorAll('.game-card');
@@ -170,6 +192,7 @@ function renderGames() {
         }, 80 * (index + 1));
 
         card.addEventListener('mousemove', (e) => {
+            if (card.classList.contains('featured')) return;
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -212,7 +235,9 @@ function renderGames() {
         });
 
         card.addEventListener('mouseleave', () => {
-            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0) scale(1)';
+            if (!card.classList.contains('featured')) {
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0) scale(1)';
+            }
             const video = card.querySelector('.preview-video');
             if (video) {
                 video.pause();
