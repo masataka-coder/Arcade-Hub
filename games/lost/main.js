@@ -375,6 +375,18 @@ function getRandomItem(forceRare = false) {
     if (pool.length === 0) pool = ITEMS.filter(item => item.area === state.currentArea);
     if (pool.length === 0) pool = ITEMS;
 
+    const unfoundPool = pool.filter(item => !state.foundItems.includes(item.id));
+    const foundPool = pool.filter(item => state.foundItems.includes(item.id));
+
+    if (unfoundPool.length > 0 && foundPool.length > 0) {
+        // 発見済みアイテムの出現確率をEPIC相当(10%)に下げる
+        if (Math.random() < 0.1) {
+            return foundPool[Math.floor(Math.random() * foundPool.length)];
+        } else {
+            return unfoundPool[Math.floor(Math.random() * unfoundPool.length)];
+        }
+    }
+
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
