@@ -385,14 +385,52 @@ header p {
     box-shadow: none;
 }
 
-/* Language Toggle */
-.lang-toggle {
+/* Header Controls */
+.header-controls {
     position: fixed;
     top: 2rem;
+    left: 2rem;
     right: 2rem;
     display: flex;
-    gap: 2px;
+    justify-content: space-between;
     z-index: 1000;
+    pointer-events: none; /* Let clicks pass through empty space */
+}
+
+.header-controls > * {
+    pointer-events: auto; /* Re-enable clicks on buttons */
+}
+
+.control-btn {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: var(--text-secondary);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.control-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+.control-btn:hover {
+    color: var(--text-primary);
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: rotate(30deg);
+}
+
+.lang-toggle {
+    display: flex;
+    gap: 2px;
     background: rgba(255, 255, 255, 0.5);
     padding: 4px;
     border-radius: 100px;

@@ -19,7 +19,8 @@ const translations = {
         tag_shooter: "シューティング",
         tag_casual: "カジュアル",
         tag_exploration: "探索",
-        tag_favorites: "★ お気に入り"
+        tag_favorites: "★ お気に入り",
+        clear_cache_title: "キャッシュを削除して再読み込み"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -41,7 +42,8 @@ const translations = {
         tag_shooter: "Shooter",
         tag_casual: "Casual",
         tag_exploration: "Exploration",
-        tag_favorites: "★ Favorites"
+        tag_favorites: "★ Favorites",
+        clear_cache_title: "Clear Cache & Reload"
     }
 };
 
@@ -79,6 +81,11 @@ function applyTranslations() {
             el.innerHTML = dict[key];
         }
     });
+
+    const clearBtn = document.getElementById('btn-clear-cache');
+    if (clearBtn) {
+        clearBtn.title = dict.clear_cache_title;
+    }
 
     renderFilters();
     renderGames(); // Build game grid dynamically
@@ -300,6 +307,29 @@ function closeModal() {
 function setLanguage(lang) {
     localStorage.setItem('arcade_hub_lang', lang);
     applyTranslations();
+}
+
+async function clearCacheAndReload() {
+    try {
+        // Clear all Service Worker caches
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        
+        // Unregister service workers
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                await registration.unregister();
+            }
+        }
+        
+        // Reload
+        window.location.reload(true);
+    } catch (err) {
+        console.error('Failed to clear cache', err);
+        // Fallback reload
+        window.location.reload(true);
+    }
 }
 
 // Basic interactions for the portal page
