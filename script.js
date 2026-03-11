@@ -8,7 +8,15 @@ const translations = {
         video_label_gameplay: "プレイ映像",
         pwa_install_btn: "インストール",
         pwa_install_msg: "Arcade Hub をアプリとして追加しますか？",
-        footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
+        footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved.",
+        tag_all: "すべて",
+        tag_action: "アクション",
+        tag_puzzle: "パズル",
+        tag_strategy: "ストラテジー",
+        tag_simulation: "シミュレーション",
+        tag_shooter: "シューティング",
+        tag_casual: "カジュアル",
+        tag_exploration: "探索"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -19,9 +27,20 @@ const translations = {
         video_label_gameplay: "Gameplay",
         pwa_install_btn: "Install",
         pwa_install_msg: "Do you want to add Arcade Hub as an app?",
-        footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved."
+        footer_copy: "&copy; 2026 Takahide Kohata. All rights reserved.",
+        tag_all: "All",
+        tag_action: "Action",
+        tag_puzzle: "Puzzle",
+        tag_strategy: "Strategy",
+        tag_simulation: "Simulation",
+        tag_shooter: "Shooter",
+        tag_casual: "Casual",
+        tag_exploration: "Exploration"
     }
 };
+
+let activeFilter = 'all';
+const AVAILABLE_TAGS = ['all', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration'];
 
 // Game data is now loaded from ALL_GAMES in games.js
 
@@ -35,11 +54,30 @@ function applyTranslations() {
         }
     });
 
+    renderFilters();
     renderGames(); // Build game grid dynamically
 
     // Update active button
     document.getElementById('lang-ja').classList.toggle('active', lang === 'ja');
     document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+}
+
+function renderFilters() {
+    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+    const dict = translations[lang] || translations['ja'];
+    const filterBar = document.getElementById('filter-bar');
+    if (!filterBar) return;
+    
+    filterBar.innerHTML = AVAILABLE_TAGS.map(tag => {
+        const label = dict['tag_' + tag] || tag;
+        return `<button class="filter-btn ${activeFilter === tag ? 'active' : ''}" onclick="setFilter('${tag}')">${label}</button>`;
+    }).join('');
+}
+
+function setFilter(tag) {
+    activeFilter = tag;
+    renderFilters();
+    renderGames();
 }
 
 function renderGames() {
@@ -48,10 +86,16 @@ function renderGames() {
     const grid = document.getElementById('game-grid');
     if (!grid) return;
 
-    const filteredGames = ALL_GAMES.filter(game => game[lang]);
+    const listGames = ALL_GAMES.filter(game => game[lang]);
+    
+    let filteredGames = listGames;
+    if (activeFilter !== 'all') {
+        filteredGames = filteredGames.filter(game => game.tags && game.tags.includes(activeFilter));
+    }
 
     grid.innerHTML = filteredGames.map((game, index) => {
         const info = game[lang];
+        const tagsHtml = game.tags ? game.tags.map(t => `<span class="game-tag">${dict['tag_' + t] || t}</span>`).join('') : '';
         return `
             <div class="game-card" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
                 <div class="card-img-container">
@@ -60,6 +104,7 @@ function renderGames() {
                     ${!game.image && !game.movie && !game.movie_cg ? '<div class="w-full h-full bg-slate-800 flex items-center justify-center text-4xl">🎮</div>' : ''}
                 </div>
                 <div class="card-content">
+                    <div class="card-tags">${tagsHtml}</div>
                     <h2>${info.title}</h2>
                     <p>${info.description}</p>
                     ${game.copyright ? `<small style="color: #94a3b8; display: block; margin-top: 8px;">${game.copyright}</small>` : ''}
