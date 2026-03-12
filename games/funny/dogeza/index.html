@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>謝罪会見シミュレーター：エクストリーム土下座</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@700;900&display=swap');
+
+        body {
+            font-family: 'M PLUS 1p', sans-serif;
+            background-color: #1a202c;
+            color: #fff;
+            overflow: hidden;
+            /* Prevent scrolling during gameplay */
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #4a5568 0%, #2d3748 60%, #1a202c 100%);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ui-content {
+            pointer-events: auto;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Flash animation for hitting notes */
+        @keyframes flash {
+            0% {
+                background-color: rgba(255, 255, 255, 0.8);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .flash-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .flash-active {
+            animation: flash 0.2s ease-out;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex items-center justify-center relative">
+
+    <!-- Game Canvas -->
+    <div class="relative">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="flashOverlay" class="flash-screen"></div>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="ui-menu" class="ui-layer">
+        <div
+            class="ui-content bg-gray-900 bg-opacity-90 p-6 rounded-xl border-4 border-yellow-500 shadow-2xl max-w-3xl w-full mx-4">
+            <h1 class="text-3xl md:text-5xl text-yellow-400 mb-2 font-black tracking-widest drop-shadow-md">謝罪会見シミュレーター
+            </h1>
+            <h2 class="text-xl md:text-2xl text-red-500 mb-6 font-bold">〜 エクストリーム土下座 〜</h2>
+
+            <div
+                class="mb-6 text-gray-300 text-sm md:text-base bg-gray-800 p-4 rounded text-left border border-gray-700">
+                <span class="text-yellow-400 font-bold">【ルール】</span><br>
+                1. 飛んでくる怒号（ノーツ）に合わせて <kbd class="bg-gray-700 px-2 py-1 rounded">D F J K</kbd>（スマホはボタン）を叩き言い訳しろ！<br>
+                2. 怒りが頂点に達したら <kbd class="bg-gray-700 px-2 py-1 rounded">スペース</kbd> 長押しでパワーを限界まで溜めろ！<br>
+                3. キーを離して、渾身の土下座をぶちかませ！！！
+            </div>
+
+            <h3 class="text-lg md:text-xl mb-3 text-yellow-200 font-bold">不祥事（難易度）を選択：</h3>
+            <div id="scenario-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm md:text-base">
+                <!-- Dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Rhythm Controls -->
+    <div id="mobile-rhythm-controls" class="ui-layer hidden" style="justify-content: flex-end; padding-bottom: 20px;">
+        <div class="flex gap-4 pointer-events-auto">
+            <button id="btn-0"
+                class="w-16 h-16 bg-blue-600 rounded-full opacity-70 active:opacity-100 text-2xl font-bold shadow-lg text-white">D</button>
+            <button id="btn-1"
+                class="w-16 h-16 bg-red-600 rounded-full opacity-70 active:opacity-100 text-2xl font-bold shadow-lg text-white">F</button>
+            <button id="btn-2"
+                class="w-16 h-16 bg-green-600 rounded-full opacity-70 active:opacity-100 text-2xl font-bold shadow-lg text-white">J</button>
+            <button id="btn-3"
+                class="w-16 h-16 bg-yellow-600 rounded-full opacity-70 active:opacity-100 text-2xl font-bold shadow-lg text-black">K</button>
+        </div>
+    </div>
+
+    <!-- Mobile Climax Controls -->
+    <div id="mobile-climax-controls" class="ui-layer hidden" style="justify-content: flex-end; padding-bottom: 50px;">
+        <div class="pointer-events-auto w-full px-8 max-w-md mx-auto">
+            <button id="btn-space"
+                class="w-full py-6 bg-red-600 rounded-xl opacity-90 active:opacity-100 text-2xl font-black shadow-2xl animate-pulse text-white border-4 border-yellow-400">長押しでパワーを溜めろ！</button>
+        </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="ui-result" class="ui-layer hidden">
+        <div
+            class="ui-content bg-black bg-opacity-95 p-8 rounded-xl border-4 border-red-600 shadow-2xl max-w-2xl w-full">
+            <h1 class="text-5xl text-red-500 mb-6 font-black animate-pulse" id="result-title">会見終了</h1>
+
+            <div class="bg-gray-800 p-6 rounded-lg mb-6 border border-gray-600">
+                <p class="text-2xl mb-4 leading-relaxed" id="result-text">
+                    <!-- Result text injected here -->
+                </p>
+                <div class="grid grid-cols-2 gap-4 text-left text-lg mt-4 border-t border-gray-600 pt-4">
+                    <div>最大怒りゲージ: <span id="res-anger" class="font-bold text-red-400">0%</span></div>
+                    <div>土下座スピード: <span id="res-speed" class="font-bold text-yellow-400">0 km/h</span></div>
+                    <div>吹き飛ばした記者: <span id="res-reporters" class="font-bold text-blue-400">0 人</span></div>
+                    <div>世間の反応: <span id="res-status" class="font-bold text-green-400">鎮火</span></div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 justify-center">
+                <button onclick="shareResult()"
+                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transition transform hover:scale-105 flex items-center gap-2">
+                    <span>📋 結果をコピーしてシェア</span>
+                </button>
+                <button onclick="resetToMenu()"
+                    class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transition transform hover:scale-105">
+                    タイトルへ
+                </button>
+            </div>
+            <p id="share-msg" class="text-green-400 mt-3 h-6 font-bold opacity-0 transition-opacity">クリップボードにコピーしました！
+            </p>
+        </div>
+    </div>
+
+    <script>
+        /** @type {HTMLCanvasElement} */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const flashOverlay = document.getElementById('flashOverlay');
+
+        // Game Constants & States
+        const STATE = { MENU: 0, RHYTHM: 1, CLIMAX: 2, ANIMATION: 3, RESULT: 4 };
+        let currentState = STATE.MENU;
+
+        let difficulty = 1;
+        let frameCount = 0;
+        let lastTime = 0;
+
+        // Scenarios & Lanes
+        const LANES = [160, 240, 320, 400];
+        const LANE_CHARS = ['D', 'F', 'J', 'K'];
+        let currentScenario = null;
+
+        const SCENARIOS = [
+            { id: 1, title: "初級：他人のプリンを勝手に食べた", diff: 1, complaints: ["プリン泥棒！", "名前書いてあった！", "弁償しろ！", "信じられない！"], excuses: ["記憶にございません", "プリンなど知らない", "遺憾の意"] },
+            { id: 2, title: "中級：SNSで裏垢がバレた", diff: 2, complaints: ["裏表ありすぎ！", "暴言ひどい！", "失望しました", "ファンやめます"], excuses: ["乗っ取られました", "AIの生成です", "事実無根です"] },
+            { id: 3, title: "上級：会社の経費で豪華な家を建てた", diff: 3, complaints: ["税金泥棒！", "説明責任を果たせ！", "辞任しろ！", "ふざけるな！"], excuses: ["秘書が勝手に", "記憶にない", "適正な処理です"] },
+            { id: 4, title: "超級：月を爆破した", diff: 4, complaints: ["地球がヤバい！", "潮汐力どうすんだ！", "宇宙のチリとなれ！", "人類への反逆！"], excuses: ["不可抗力です", "星屑の意", "新たな月を作ります"] },
+            { id: 5, title: "絶望：地球外生命体に宣戦布告した", diff: 5, complaints: ["侵略される！", "勝てるわけないだろ！", "土下座で済むか！", "お前が前線に行け！"], excuses: ["平和目的の通信でした", "翻訳ミスです", "遺憾の意"] },
+        ];
+
+        // Rhythm Phase
+        let anger = 20; // 0 to 100+
+        let notes = [];
+        let hitTexts = [];
+        const TARGET_X = 150;
+        let rhythmPhaseTime = 0;
+        const RHYTHM_MAX_TIME = 15000; // 15 seconds
+
+        // Climax Phase
+        let isCharging = false;
+        let chargePower = 0;
+        let climaxPhaseTime = 0;
+        const CLIMAX_MAX_TIME = 10000; // 10秒の制限時間
+
+        // Animation Phase
+        let dogezaX = 800;
+        let dogezaY = 480;
+        let dogezaSpeed = 0;
+        let dogezaType = 1;
+        let dogezaRotation = 0;
+        let finalDogezaName = "";
+        let finalSpeedKm = 0;
+        let shakeAmount = 0;
+        let reporters = [];
+        let particles = [];
+        let finalResult = {};
+
+        // Input handling
+        let keys = { space: false, d: false, f: false, j: false, k: false };
+        let justPressed = { space: false, d: false, f: false, j: false, k: false };
+        let spaceJustReleased = false;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!keys.space) justPressed.space = true;
+                keys.space = true;
+                e.preventDefault(); // Prevent scrolling
+            }
+            if (e.code === 'KeyD') { if (!keys.d) justPressed.d = true; keys.d = true; }
+            if (e.code === 'KeyF') { if (!keys.f) justPressed.f = true; keys.f = true; }
+            if (e.code === 'KeyJ') { if (!keys.j) justPressed.j = true; keys.j = true; }
+            if (e.code === 'KeyK') { if (!keys.k) justPressed.k = true; keys.k = true; }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                keys.space = false;
+                spaceJustReleased = true;
+            }
+            if (e.code === 'KeyD') keys.d = false;
+            if (e.code === 'KeyF') keys.f = false;
+            if (e.code === 'KeyJ') keys.j = false;
+            if (e.code === 'KeyK') keys.k = false;
+        });
+
+        // Mobile Controls Setup
+        function setupMobileControls() {
+            const keyMap = ['d', 'f', 'j', 'k'];
+            for (let i = 0; i < 4; i++) {
+                const btn = document.getElementById(`btn-${i}`);
+                if (!btn) continue;
+                btn.addEventListener('touchstart', (e) => {
+                    if (!keys[keyMap[i]]) justPressed[keyMap[i]] = true;
+                    keys[keyMap[i]] = true;
+                    e.preventDefault();
+                }, { passive: false });
+                btn.addEventListener('touchend', (e) => {
+                    keys[keyMap[i]] = false;
+                    e.preventDefault();
+                }, { passive: false });
+            }
+
+            const btnSpace = document.getElementById('btn-space');
+            if (btnSpace) {
+                btnSpace.addEventListener('touchstart', (e) => {
+                    if (!keys.space) justPressed.space = true;
+                    keys.space = true;
+                    e.preventDefault();
+                }, { passive: false });
+                btnSpace.addEventListener('touchend', (e) => {
+                    keys.space = false;
+                    spaceJustReleased = true;
+                    e.preventDefault();
+                }, { passive: false });
+            }
+        }
+        setupMobileControls();
+
+        // Initialization
+        function initMenu() {
+            const container = document.getElementById('scenario-container');
+            container.innerHTML = '';
+            SCENARIOS.forEach(sc => {
+                const btn = document.createElement('button');
+                btn.className = `bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-bold py-3 px-6 rounded text-lg transition transform hover:scale-105`;
+                btn.innerText = sc.title;
+                btn.onclick = () => startGame(sc.id);
+                container.appendChild(btn);
+            });
+        }
+        initMenu();
+
+        function startGame(scenarioId) {
+            currentScenario = SCENARIOS.find(s => s.id === scenarioId);
+            difficulty = currentScenario.diff;
+            currentState = STATE.RHYTHM;
+            anger = 20;
+            notes = [];
+            hitTexts = [];
+            rhythmPhaseTime = 0;
+            climaxPhaseTime = 0;
+            chargePower = 0;
+            isCharging = false;
+            frameCount = 0;
+
+            document.getElementById('ui-menu').classList.add('hidden');
+            document.getElementById('ui-result').classList.add('hidden');
+
+            // Show mobile rhythm controls if touch device
+            if ('ontouchstart' in window) {
+                document.getElementById('mobile-rhythm-controls').classList.remove('hidden');
+            }
+
+            // Generate Notes based on difficulty
+            const noteCount = difficulty * 20; // 4レーンになったのでノーツ数増加
+            const noteSpeed = 3 + difficulty * 1.5;
+            for (let i = 0; i < noteCount; i++) {
+                const laneIdx = Math.floor(Math.random() * 4);
+                notes.push({
+                    x: 800 + i * (200 - difficulty * 20) + Math.random() * 80,
+                    y: LANES[laneIdx],
+                    lane: laneIdx,
+                    speed: noteSpeed,
+                    text: currentScenario.complaints[Math.floor(Math.random() * currentScenario.complaints.length)],
+                    active: true
+                });
+            }
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetToMenu() {
+            currentState = STATE.MENU;
+            document.getElementById('ui-result').classList.add('hidden');
+            document.getElementById('ui-menu').classList.remove('hidden');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Main Loop
+        function gameLoop(timestamp) {
+            if (currentState === STATE.MENU) return;
+
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            frameCount++;
+
+            update(dt);
+            draw();
+
+            // Reset input triggers
+            for (let k in justPressed) justPressed[k] = false;
+            spaceJustReleased = false;
+
+            if (currentState !== STATE.MENU) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Logic Update
+        function update(dt) {
+            if (currentState === STATE.RHYTHM) {
+                rhythmPhaseTime += dt;
+                let activeNotes = 0;
+
+                // Move notes
+                notes.forEach(note => {
+                    if (!note.active) return;
+                    note.x -= note.speed * (dt / 16);
+                    activeNotes++;
+
+                    // Miss
+                    if (note.x < 50) {
+                        note.active = false;
+                        anger = Math.min(200, anger + 10);
+                        addHitText("怒り上昇！", 50, note.y, "#ff4444");
+                        shakeAmount = 10;
+                    }
+                });
+
+                // Hit Detection for 4 lanes
+                const keyMap = ['d', 'f', 'j', 'k'];
+                keyMap.forEach((key, laneIdx) => {
+                    if (justPressed[key]) {
+                        let hit = false;
+                        for (let i = 0; i < notes.length; i++) {
+                            let note = notes[i];
+                            if (note.active && note.lane === laneIdx && note.x > TARGET_X - 60 && note.x < TARGET_X + 60) {
+                                note.active = false;
+                                anger = Math.max(0, anger - 2);
+                                addHitText(currentScenario.excuses[Math.floor(Math.random() * currentScenario.excuses.length)], note.x, note.y, "#44ff44");
+                                hit = true;
+                                flashScreen();
+                                break;
+                            }
+                        }
+                        if (!hit) {
+                            anger = Math.min(200, anger + 5); // Spam penalty
+                        }
+                    }
+                });
+
+                // Update hit texts
+                hitTexts.forEach(t => { t.life -= dt; t.y -= 1; });
+                hitTexts = hitTexts.filter(t => t.life > 0);
+
+                // Transition to Climax
+                if (rhythmPhaseTime >= RHYTHM_MAX_TIME || activeNotes === 0) {
+                    currentState = STATE.CLIMAX;
+                    hitTexts = [];
+                    climaxPhaseTime = 0;
+                    document.getElementById('mobile-rhythm-controls').classList.add('hidden');
+                    if ('ontouchstart' in window) {
+                        document.getElementById('mobile-climax-controls').classList.remove('hidden');
+                    }
+                }
+
+            } else if (currentState === STATE.CLIMAX) {
+                climaxPhaseTime += dt;
+
+                // Auto increase anger slightly to build tension
+                anger = Math.min(300, anger + dt * 0.05);
+
+                if (keys.space) {
+                    isCharging = true;
+                    // チャージ速度をマイルドにし、最大1000でストップさせる
+                    chargePower += dt * 0.1 * (1 + chargePower * 0.002);
+                    if (chargePower > 1000) chargePower = 1000;
+                    shakeAmount = Math.min(20, chargePower * 0.02);
+                } else if (spaceJustReleased && isCharging) {
+                    // 一定以上溜まっていない場合（連打）はキャンセルしてやり直し
+                    if (chargePower > 50) {
+                        startDogezaAnimation();
+                    } else {
+                        isCharging = false;
+                        chargePower = 0;
+                    }
+                }
+
+                // 制限時間を過ぎたら強制発動
+                if (climaxPhaseTime >= CLIMAX_MAX_TIME) {
+                    startDogezaAnimation();
+                }
+
+                // 強制発動を削除し、プレイヤーが離すまでキープできるように変更（MAX時は画面が揺れるのみ）
+                if (chargePower >= 1000) {
+                    shakeAmount = 25 + Math.random() * 10;
+                }
+
+            } else if (currentState === STATE.ANIMATION) {
+                if (dogezaType === 4 && dogezaY < 480) {
+                    // メテオの落下軌道
+                    dogezaX -= dogezaSpeed * (dt / 16) * 0.7;
+                    dogezaY += dogezaSpeed * (dt / 16);
+                    if (dogezaY >= 480) {
+                        dogezaY = 480;
+                        shakeAmount = 100; // 着弾時の激しい揺れ
+                        flashScreen();
+                        // 爆発パーティクル大量発生
+                        for (let i = 0; i < 40; i++) {
+                            particles.push({
+                                x: dogezaX + (Math.random() - 0.5) * 100, y: 480,
+                                vx: (Math.random() - 0.5) * 25, vy: -(Math.random() * 20 + 5),
+                                life: 60, color: Math.random() > 0.5 ? '#ff4400' : '#ffaa00'
+                            });
+                        }
+                    }
+                } else {
+                    // 通常の横移動（メテオ着弾後含む）
+                    const currentSpeed = (dogezaType === 4) ? dogezaSpeed * 0.5 : dogezaSpeed;
+                    dogezaX -= currentSpeed * (dt / 16);
+
+                    if (dogezaType === 3) {
+                        dogezaRotation -= 0.3 * (dt / 16); // トルネード回転
+                    }
+                }
+
+                // Spawn sparks if fast
+                if (dogezaSpeed > 30 && frameCount % 2 === 0) {
+                    particles.push({
+                        x: dogezaX + 50,
+                        y: 500,
+                        vx: Math.random() * 5 + 2,
+                        vy: Math.random() * -10,
+                        life: 30,
+                        color: dogezaSpeed > 100 ? '#ffaa00' : '#cccccc'
+                    });
+                }
+
+                // Move particles
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life--;
+                });
+                particles = particles.filter(p => p.life > 0);
+
+                // Hit reporters
+                reporters.forEach(rep => {
+                    if (!rep.hit && dogezaX < rep.x + 80) { // 当たり判定を少し広げた
+                        rep.hit = true;
+                        // メテオなら吹っ飛び方を激しく
+                        const impact = (dogezaType === 4) ? 2.0 : 1.0;
+                        rep.vx = (Math.random() * 15 + 10) * impact * (Math.random() > 0.5 ? 1 : -1);
+                        rep.vy = -(Math.random() * 20 + 15) * impact;
+                        rep.rot = 0;
+                        rep.rotSpeed = (Math.random() - 0.5) * 1.0;
+                        shakeAmount = Math.max(shakeAmount, dogezaSpeed * 0.2);
+                    }
+                    if (rep.hit) {
+                        rep.x += rep.vx;
+                        rep.y += rep.vy;
+                        rep.vy += 0.8; // gravity
+                        rep.rot += rep.rotSpeed;
+                    }
+                });
+
+                // End animation when stopped or off screen
+                if (dogezaSpeed <= 0.1 && dogezaX < 150) {
+                    dogezaSpeed = 0;
+                    setTimeout(showResult, 1500);
+                    currentState = STATE.RESULT; // Wait state essentially
+                } else {
+                    // Friction
+                    if (dogezaX < 150) {
+                        dogezaX = 150;
+                        dogezaSpeed *= 0.8; // Sudden stop
+                        if (dogezaSpeed > 50) {
+                            shakeAmount = dogezaSpeed * 0.5; // Big impact
+                            flashScreen();
+                        }
+                    }
+                }
+
+                if (shakeAmount > 0) shakeAmount *= 0.9;
+            }
+
+            if (shakeAmount > 0) shakeAmount *= 0.9;
+        }
+
+        function startDogezaAnimation() {
+            currentState = STATE.ANIMATION;
+            shakeAmount = 0;
+            dogezaRotation = 0;
+
+            // パワーに応じて土下座の種類と速度を決定
+            if (chargePower < 300) {
+                dogezaType = 1; finalDogezaName = "土下座";
+                dogezaSpeed = 20 + chargePower * 0.1;
+            } else if (chargePower < 600) {
+                dogezaType = 2; finalDogezaName = "スライディング土下座";
+                dogezaSpeed = 50 + chargePower * 0.1;
+            } else if (chargePower < 990) {
+                dogezaType = 3; finalDogezaName = "トルネード土下座";
+                dogezaSpeed = 100 + chargePower * 0.1;
+            } else {
+                dogezaType = 4; finalDogezaName = "メテオストライク土下座";
+                dogezaSpeed = 250;
+            }
+
+            finalSpeedKm = Math.floor(dogezaSpeed * 3); // 表示用のスピード
+
+            // メテオの場合は上空から、それ以外は右端から
+            if (dogezaType === 4) {
+                dogezaX = 600;
+                dogezaY = -200;
+            } else {
+                dogezaX = 850;
+                dogezaY = 480;
+            }
+
+            // Setup reporters to bowl over
+            const repCount = Math.floor(anger / 10) + difficulty * 5;
+            reporters = [];
+            for (let i = 0; i < repCount; i++) {
+                reporters.push({
+                    x: 150 + Math.random() * 300,
+                    y: 450 + Math.random() * 50,
+                    hit: false,
+                    vx: 0, vy: 0, rot: 0
+                });
+            }
+
+            document.getElementById('mobile-climax-controls').classList.add('hidden');
+        }
+
+        // Drawing
+        function draw() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Screen Shake
+            if (shakeAmount > 0.5) {
+                const sx = (Math.random() - 0.5) * shakeAmount;
+                const sy = (Math.random() - 0.5) * shakeAmount;
+                ctx.translate(sx, sy);
+            }
+
+            // Draw Background (Press Conference Room)
+            drawBackground();
+
+            if (currentState === STATE.RHYTHM) {
+                drawRhythmPhase();
+            } else if (currentState === STATE.CLIMAX) {
+                drawClimaxPhase();
+            } else if (currentState === STATE.ANIMATION || currentState === STATE.RESULT) {
+                drawAnimationPhase();
+            }
+
+            // Draw Global Anger Meter
+            if (currentState === STATE.RHYTHM || currentState === STATE.CLIMAX) {
+                drawAngerMeter();
+            }
+
+            ctx.restore();
+        }
+
+        function drawBackground() {
+            // Gold folding screen (金屏風)
+            const stripeWidth = 80;
+            for (let i = 0; i < canvas.width / stripeWidth + 1; i++) {
+                ctx.fillStyle = i % 2 === 0 ? '#d4af37' : '#c5a017'; // Gold colors
+                ctx.fillRect(i * stripeWidth, 50, stripeWidth, 400);
+            }
+            // Floor
+            ctx.fillStyle = '#2d3748';
+            ctx.fillRect(0, 450, canvas.width, 150);
+
+            // Camera flashes occasionally
+            if (Math.random() < (anger / 500) && currentState !== STATE.ANIMATION) {
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function drawRhythmPhase() {
+            // Target Zone Background
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.1)';
+            ctx.fillRect(TARGET_X - 40, LANES[0] - 40, 80, LANES[3] - LANES[0] + 80);
+
+            // Lanes
+            ctx.lineWidth = 2;
+            LANES.forEach((y, i) => {
+                const keyName = ['d', 'f', 'j', 'k'][i];
+                // Lane Line
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.beginPath();
+                ctx.moveTo(TARGET_X, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+
+                // Target Circle/Box
+                ctx.fillStyle = keys[keyName] ? '#ffff00' : 'rgba(0,0,0,0.5)';
+                ctx.strokeStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(TARGET_X, y, 25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Key Hint
+                ctx.font = 'bold 24px Arial';
+                ctx.fillStyle = keys[keyName] ? '#000' : '#fff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(LANE_CHARS[i], TARGET_X, y);
+            });
+            ctx.textBaseline = 'alphabetic'; // reset
+
+            // Player character
+            ctx.font = '80px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🕴️', TARGET_X - 80, LANES[1] + 40);
+
+            // Notes
+            ctx.font = '24px "M PLUS 1p"';
+            ctx.textAlign = 'left';
+            notes.forEach(note => {
+                if (!note.active) return;
+                ctx.fillStyle = '#ff4444';
+                // speech bubble
+                ctx.beginPath();
+                ctx.roundRect(note.x, note.y - 20, ctx.measureText(note.text).width + 20, 40, 10);
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.fillText(note.text, note.x + 10, note.y + 8);
+            });
+
+            // Hit Texts
+            hitTexts.forEach(t => {
+                ctx.font = 'bold 30px "M PLUS 1p"';
+                ctx.fillStyle = t.color;
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 4;
+                ctx.textAlign = 'center';
+                const alpha = Math.min(1, t.life / 500);
+                ctx.globalAlpha = alpha;
+                ctx.strokeText(t.text, t.x, t.y);
+                ctx.fillText(t.text, t.x, t.y);
+                ctx.globalAlpha = 1.0;
+            });
+
+            // Instructions
+            ctx.font = 'bold 20px "M PLUS 1p"';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText('ノーツが来たら D, F, J, K キーを押して言い訳！', canvas.width / 2, 40);
+        }
+
+        function drawClimaxPhase() {
+            // Player character sweating heavily
+            ctx.font = '80px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🕴️', TARGET_X + (Math.random() - 0.5) * 10, 420 + (Math.random() - 0.5) * 10);
+
+            // Giant warning text
+            ctx.font = 'bold 40px "M PLUS 1p"';
+            ctx.fillStyle = '#ff3333';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 6;
+            ctx.strokeText('限界突破！スペースキーを長押ししろ！', canvas.width / 2, 200);
+            ctx.fillText('限界突破！スペースキーを長押ししろ！', canvas.width / 2, 200);
+
+            // 残り時間の表示
+            const timeLeft = Math.max(0, (CLIMAX_MAX_TIME - climaxPhaseTime) / 1000).toFixed(1);
+            ctx.font = 'bold 36px "M PLUS 1p"';
+            ctx.fillStyle = timeLeft <= 1.5 ? '#ff4444' : '#ffcc00';
+            ctx.strokeText(`発動まで: ${timeLeft}秒`, canvas.width / 2, 260);
+            ctx.fillText(`発動まで: ${timeLeft}秒`, canvas.width / 2, 260);
+
+            // Charge Bar
+            const barWidth = 600;
+            const barHeight = 40;
+            const barX = (canvas.width - barWidth) / 2;
+            const barY = 300;
+
+            ctx.fillStyle = '#333';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            const fillPct = Math.min(1, chargePower / 1000);
+            ctx.fillStyle = `hsl(${120 - fillPct * 120}, 100%, 50%)`;
+            ctx.fillRect(barX, barY, barWidth * fillPct, barHeight);
+
+            ctx.strokeStyle = '#fff';
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+            ctx.font = 'bold 24px "M PLUS 1p"';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`土下座パワー: ${Math.floor(chargePower)}%`, canvas.width / 2, barY + 28);
+        }
+
+        function drawAnimationPhase() {
+            // Reporters
+            ctx.font = '60px Arial';
+            ctx.textAlign = 'center';
+            reporters.forEach(rep => {
+                ctx.save();
+                ctx.translate(rep.x, rep.y);
+                ctx.rotate(rep.rot);
+                ctx.fillText('📸', 0, 0);
+                ctx.restore();
+            });
+
+            // Particles (Sparks/Dust)
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, Math.max(0, p.life / 5), 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Player (Dogeza)
+            ctx.save();
+            ctx.translate(dogezaX, dogezaY);
+
+            if (dogezaType === 1) {
+                // 1: 普通の土下座
+                ctx.scale(1.5, 1.5);
+                ctx.font = '80px Arial';
+                ctx.fillText('🙇‍♂️', 0, 0);
+            } else if (dogezaType === 2) {
+                // 2: スライディング
+                ctx.rotate(-Math.PI / 4);
+                ctx.font = '100px Arial';
+                ctx.fillText('🏃‍♂️', 0, 0);
+                // Speed lines
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(50, -50); ctx.lineTo(150 + dogezaSpeed, -50);
+                ctx.moveTo(30, 0); ctx.lineTo(100 + dogezaSpeed, 0);
+                ctx.stroke();
+            } else if (dogezaType === 3) {
+                // 3: トルネード
+                ctx.rotate(dogezaRotation);
+                ctx.font = '100px Arial';
+                ctx.fillText('🤸‍♂️', 0, 0);
+                // Tornado lines
+                ctx.strokeStyle = 'rgba(200, 255, 255, 0.6)';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.arc(0, 0, 70, dogezaRotation, dogezaRotation + Math.PI);
+                ctx.stroke();
+            } else if (dogezaType === 4) {
+                // 4: メテオストライク
+                ctx.rotate(Math.PI / 4); // 落下姿勢
+                // まとう炎
+                ctx.font = '150px Arial';
+                ctx.globalAlpha = 0.5 + Math.random() * 0.5;
+                ctx.fillText('🔥', -30 + (Math.random() - 0.5) * 20, -30 + (Math.random() - 0.5) * 20);
+                ctx.globalAlpha = 1.0;
+
+                ctx.font = '120px Arial';
+                ctx.fillText('🙇‍♂️', 0, 0);
+            }
+            ctx.restore();
+
+            // クレーター描画 (メテオ着弾後)
+            if (dogezaType === 4 && dogezaY >= 480) {
+                ctx.save();
+                ctx.translate(dogezaX, 480);
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(-80, 20); ctx.lineTo(80, 20);
+                ctx.moveTo(-60, 20); ctx.lineTo(-90, 40);
+                ctx.moveTo(60, 20); ctx.lineTo(90, 35);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function drawAngerMeter() {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(20, 20, 300, 30);
+
+            const angerPct = Math.min(1, anger / 100);
+            ctx.fillStyle = `rgb(${255 * angerPct}, ${255 * (1 - angerPct)}, 0)`;
+            ctx.fillRect(20, 20, 300 * angerPct, 30);
+
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(20, 20, 300, 30);
+
+            ctx.font = 'bold 20px "M PLUS 1p"';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left';
+            ctx.fillText(`記者怒りゲージ: ${Math.floor(anger)}%`, 30, 42);
+        }
+
+        function addHitText(text, x, y, color) {
+            hitTexts.push({ text, x, y, color, life: 1000 });
+        }
+
+        function flashScreen() {
+            flashOverlay.classList.remove('flash-active');
+            void flashOverlay.offsetWidth; // trigger reflow
+            flashOverlay.classList.add('flash-active');
+        }
+
+        // Result Logic
+        function showResult() {
+            document.getElementById('ui-result').classList.remove('hidden');
+
+            const blownAway = reporters.filter(r => r.hit).length;
+            const maxAnger = Math.floor(anger);
+
+            let status = "";
+            let resultMessage = "";
+
+            // Determine Forgiveness
+            let isForgiven = false;
+            if (blownAway >= reporters.length * 0.8 && dogezaType >= 3) {
+                // Overwhelming force forces forgiveness (トルネードかメテオ)
+                isForgiven = true;
+                status = "圧倒的武力により許された";
+                resultMessage = `記者の怒りは${maxAnger}%に達したが、時速${finalSpeedKm}kmの『${finalDogezaName}』が炸裂！\n${blownAway}人の記者を物理的に吹き飛ばし、会場を更地にしたことで強制的に会見は終了。世間はその勢いに圧され、なぜか許した。`;
+            } else if (anger < 50 && dogezaType >= 2) {
+                // Properly appeased (怒り低めでスライディング以上)
+                isForgiven = true;
+                status = "誠意が伝わり鎮火";
+                resultMessage = `見事な言い訳で怒りを${maxAnger}%に抑えつつ、時速${finalSpeedKm}kmの『${finalDogezaName}』で誠意を見せた！\n記者${blownAway}人をなぎ倒すほどの熱意が伝わり、見事炎上を鎮火させた。`;
+            } else {
+                // Failed
+                isForgiven = false;
+                status = "大炎上（燃料投下）";
+                resultMessage = `記者の怒りは${maxAnger}%に達した。\nさらに時速${finalSpeedKm}kmの『${finalDogezaName}』で記者${blownAway}人に重傷を負わせたため、傷害罪が追加され大炎上した。`;
+            }
+
+            finalResult = { speedKm: finalSpeedKm, dogezaName: finalDogezaName, blownAway, isForgiven, maxAnger, resultMessage };
+
+            // Update DOM
+            document.getElementById('result-title').innerText = isForgiven ? "✨ 炎上回避 ✨" : "🔥 大・炎・上 🔥";
+            document.getElementById('result-title').className = `text-5xl mb-6 font-black animate-pulse ${isForgiven ? 'text-yellow-400' : 'text-red-500'}`;
+
+            document.getElementById('result-text').innerText = resultMessage;
+            document.getElementById('res-anger').innerText = `${maxAnger}%`;
+            document.getElementById('res-speed').innerText = `${finalSpeedKm} km/h`;
+            document.getElementById('res-reporters').innerText = `${blownAway} 人`;
+
+            const statusEl = document.getElementById('res-status');
+            statusEl.innerText = status;
+            statusEl.className = `font-bold ${isForgiven ? 'text-green-400' : 'text-red-500'}`;
+        }
+
+        function shareResult() {
+            const text = `【謝罪会見シミュレーター】\n難易度: ${currentScenario.title}\n怒り度${finalResult.maxAnger}%から、時速${finalResult.speedKm}kmの『${finalResult.dogezaName}』を放ち、記者を${finalResult.blownAway}人吹き飛ばして... ${finalResult.isForgiven ? '許された！' : '大炎上した！'}\n#エクストリーム土下座`;
+
+            // Fallback for clipboard copy
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const msg = document.getElementById('share-msg');
+                msg.style.opacity = 1;
+                setTimeout(() => msg.style.opacity = 0, 3000);
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+    </script>
+</body>
+
+</html>
