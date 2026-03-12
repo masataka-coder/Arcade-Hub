@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粉体シミュレーション (Falling Sand)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a202c;
+            /* Tailwind gray-900 */
+            color: #e2e8f0;
+            /* Tailwind gray-200 */
+            touch-action: none;
+            /* スマホでのスワイプスクロール防止 */
+        }
+
+        #canvas-container {
+            image-rendering: pixelated;
+            /* ドット絵感を強調 */
+        }
+
+        .tool-btn.active {
+            border-color: #63b3ed;
+            background-color: #2b6cb0;
+        }
+
+        input[type=range] {
+            accent-color: #4299e1;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- タイトル画面 -->
+    <div id="title-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 text-white">
+        <h1 class="text-4xl md:text-6xl font-bold mb-8 flex items-center gap-4">
+            <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                </path>
+            </svg>
+            粉体シミュレーション
+        </h1>
+        <div class="flex gap-4">
+            <button id="btn-play"
+                class="bg-blue-600 hover:bg-blue-500 text-xl px-8 py-3 rounded-lg font-bold transition-colors">プレイ</button>
+            <a href="../../index.html"
+                class="bg-gray-700 hover:bg-gray-600 text-xl px-8 py-3 rounded-lg font-bold transition-colors flex items-center justify-center">ホームに戻る</a>
+        </div>
+    </div>
+
+    <!-- ヘッダー -->
+    <header id="game-header" class="bg-gray-800 p-4 shadow-md flex justify-between items-center z-10 hidden">
+        <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                </path>
+            </svg>
+            粉体シミュレーション
+        </h1>
+        <div class="flex gap-2">
+            <button id="btn-back-to-title"
+                class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded text-sm transition-colors text-white">タイトルに戻る</button>
+            <button id="btn-pause"
+                class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm transition-colors">一時停止</button>
+            <button id="btn-clear"
+                class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-sm transition-colors">クリア</button>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main id="game-main" class="flex-1 flex flex-col md:flex-row overflow-hidden hidden">
+
+        <!-- キャンバスエリア -->
+        <div class="flex-1 flex items-center justify-center bg-black overflow-hidden relative" id="canvas-wrapper">
+            <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"
+                style="image-rendering: pixelated; touch-action: none;"></canvas>
+
+            <!-- FPS表示 -->
+            <div class="absolute top-4 left-4 text-xs text-gray-400 bg-gray-800/80 px-2 py-1 rounded">
+                FPS: <span id="fps-counter">60</span>
+            </div>
+        </div>
+
+        <!-- ツールバー -->
+        <aside class="w-full md:w-80 bg-gray-800 p-4 shadow-lg overflow-y-auto flex flex-col gap-6 z-10">
+
+            <section>
+                <h2 class="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">ブラシ設定</h2>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm w-12 text-right">サイズ:</span>
+                    <input type="range" id="brush-size" min="1" max="20" value="5"
+                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    <span id="brush-size-display" class="text-sm w-6">5</span>
+                </div>
+            </section>
+
+            <section class="flex-1">
+                <h2 class="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">要素 (Elements)</h2>
+                <div class="grid grid-cols-2 gap-2" id="toolbar"></div>
+            </section>
+
+            <section class="bg-gray-700/50 p-3 rounded text-xs text-gray-300">
+                <h3 class="font-bold text-gray-200 mb-1">💡 相互作用のヒント</h3>
+                <ul class="list-disc pl-4 space-y-1">
+                    <li><span class="text-blue-400">水</span>は<span class="text-green-400">植物</span>を成長させる</li>
+                    <li><span class="text-red-500">火</span>は<span class="text-green-400">植物</span>や<span
+                            class="text-amber-700">木</span>を燃やす</li>
+                    <li><span class="text-orange-500">溶岩</span>と<span class="text-blue-400">水</span>が触れると<span
+                            class="text-gray-400">石</span>になる</li>
+                    <li><span class="text-lime-400">酸</span>はほぼ全てを溶かす</li>
+                </ul>
+            </section>
+        </aside>
+    </main>
+
+    <script>
+        // --- 設定と定数 ---
+        const PIXEL_SCALE = 4;
+        let WIDTH = 0;
+        let HEIGHT = 0;
+
+        const TYPES = {
+            EMPTY: 0, WALL: 1, SAND: 2, WATER: 3, PLANT: 4,
+            WOOD: 5, FIRE: 6, SMOKE: 7, LAVA: 8, STONE: 9, ACID: 10
+        };
+
+        const ELEMENTS = [
+            { id: TYPES.SAND, name: "砂", color: "#eab308", desc: "重力で積もる", type: "powder" },
+            { id: TYPES.WATER, name: "水", color: "#3b82f6", desc: "流れる液体", type: "liquid" },
+            { id: TYPES.FIRE, name: "火", color: "#ef4444", desc: "燃える", type: "gas" },
+            { id: TYPES.PLANT, name: "植物", color: "#22c55e", desc: "水で育つ", type: "solid" },
+            { id: TYPES.ACID, name: "酸", color: "#84cc16", desc: "溶かす液体", type: "liquid" },
+            { id: TYPES.LAVA, name: "溶岩", color: "#f97316", desc: "熱い液体", type: "liquid" },
+            { id: TYPES.WOOD, name: "木", color: "#92400e", desc: "燃える建材", type: "solid" },
+            { id: TYPES.STONE, name: "石", color: "#9ca3af", desc: "固い壁", type: "solid" },
+            { id: TYPES.EMPTY, name: "消しゴム", color: "#000000", desc: "消去", type: "special" }
+        ];
+
+        const BASE_COLORS = {
+            [TYPES.EMPTY]: [0, 0, 0], [TYPES.WALL]: [50, 50, 50], [TYPES.SAND]: [234, 179, 8],
+            [TYPES.WATER]: [59, 130, 246], [TYPES.PLANT]: [34, 197, 94], [TYPES.WOOD]: [146, 64, 14],
+            [TYPES.FIRE]: [239, 68, 68], [TYPES.SMOKE]: [156, 163, 175], [TYPES.LAVA]: [249, 115, 22],
+            [TYPES.STONE]: [156, 163, 175], [TYPES.ACID]: [132, 204, 22]
+        };
+
+        // --- シミュレーション状態 ---
+        let grid = null;
+        let colorsR, colorsG, colorsB, state, updated;
+        let imageData = null;
+
+        let currentTool = TYPES.SAND;
+        let brushSize = 5;
+        let isPaused = false;
+        let isDrawing = false;
+        let mouseX = 0, mouseY = 0;
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        function initSimulation(isResize = false) {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const rect = wrapper.getBoundingClientRect();
+
+            const newWidth = Math.floor(rect.width / PIXEL_SCALE);
+            const newHeight = Math.floor(rect.height / PIXEL_SCALE);
+
+            if (newWidth < 10 || newHeight < 10) return;
+            if (isResize && newWidth === WIDTH && newHeight === HEIGHT) return;
+
+            const newSize = newWidth * newHeight;
+            const newGrid = new Uint8Array(newSize);
+            const newColorsR = new Uint8Array(newSize);
+            const newColorsG = new Uint8Array(newSize);
+            const newColorsB = new Uint8Array(newSize);
+            const newState = new Uint8Array(newSize);
+            const newUpdated = new Uint8Array(newSize);
+
+            if (isResize && grid) {
+                for (let oldY = 0; oldY < HEIGHT; oldY++) {
+                    const newY = oldY + (newHeight - HEIGHT);
+                    if (newY >= 0 && newY < newHeight) {
+                        for (let oldX = 0; oldX < WIDTH; oldX++) {
+                            if (oldX < newWidth) {
+                                const oldIdx = oldY * WIDTH + oldX;
+                                const newIdx = newY * newWidth + oldX;
+                                newGrid[newIdx] = grid[oldIdx];
+                                newColorsR[newIdx] = colorsR[oldIdx];
+                                newColorsG[newIdx] = colorsG[oldIdx];
+                                newColorsB[newIdx] = colorsB[oldIdx];
+                                newState[newIdx] = state[oldIdx];
+                            }
+                        }
+                    }
+                }
+            }
+
+            WIDTH = newWidth;
+            HEIGHT = newHeight;
+            grid = newGrid;
+            colorsR = newColorsR;
+            colorsG = newColorsG;
+            colorsB = newColorsB;
+            state = newState;
+            updated = newUpdated;
+
+            canvas.width = WIDTH;
+            canvas.height = HEIGHT;
+            imageData = ctx.createImageData(WIDTH, HEIGHT);
+
+            if (!isResize) {
+                const groundHeight = Math.max(5, Math.floor(HEIGHT * 0.05));
+                for (let x = 0; x < WIDTH; x++) {
+                    for (let y = HEIGHT - groundHeight; y < HEIGHT; y++) {
+                        setParticle(x, y, TYPES.STONE);
+                    }
+                }
+            }
+        }
+
+        function inBounds(x, y) {
+            return x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT;
+        }
+
+        function getIdx(x, y) {
+            return y * WIDTH + x;
+        }
+
+        function varyColor(r, g, b, variance = 15) {
+            const vr = Math.min(255, Math.max(0, r + (Math.random() * variance * 2 - variance)));
+            const vg = Math.min(255, Math.max(0, g + (Math.random() * variance * 2 - variance)));
+            const vb = Math.min(255, Math.max(0, b + (Math.random() * variance * 2 - variance)));
+            return [vr, vg, vb];
+        }
+
+        function setParticle(x, y, type) {
+            if (!inBounds(x, y) || !grid) return;
+            const idx = getIdx(x, y);
+            grid[idx] = type;
+            updated[idx] = 1;
+
+            if (type === TYPES.EMPTY) {
+                colorsR[idx] = 0; colorsG[idx] = 0; colorsB[idx] = 0;
+            } else {
+                let v = 15;
+                if (type === TYPES.WATER || type === TYPES.ACID) v = 5;
+                if (type === TYPES.FIRE || type === TYPES.LAVA) v = 25;
+                const [r, g, b] = varyColor(BASE_COLORS[type][0], BASE_COLORS[type][1], BASE_COLORS[type][2], v);
+                colorsR[idx] = r; colorsG[idx] = g; colorsB[idx] = b;
+                if (type === TYPES.FIRE) state[idx] = Math.floor(Math.random() * 30) + 10;
+                else if (type === TYPES.SMOKE) state[idx] = Math.floor(Math.random() * 50) + 20;
+                else state[idx] = 0;
+            }
+        }
+
+        function swap(x1, y1, x2, y2) {
+            const idx1 = getIdx(x1, y1);
+            const idx2 = getIdx(x2, y2);
+            const tT = grid[idx1]; grid[idx1] = grid[idx2]; grid[idx2] = tT;
+            const tR = colorsR[idx1]; colorsR[idx1] = colorsR[idx2]; colorsR[idx2] = tR;
+            const tG = colorsG[idx1]; colorsG[idx1] = colorsG[idx2]; colorsG[idx2] = tG;
+            const tB = colorsB[idx1]; colorsB[idx1] = colorsB[idx2]; colorsB[idx2] = tB;
+            const tS = state[idx1]; state[idx1] = state[idx2]; state[idx2] = tS;
+            updated[idx1] = 1; updated[idx2] = 1;
+        }
+
+        function isLiquid(t) { return t === TYPES.WATER || t === TYPES.ACID || t === TYPES.LAVA; }
+        function isFlammable(t) { return t === TYPES.WOOD || t === TYPES.PLANT; }
+
+        function updateGrid() {
+            if (!grid || !updated) return;
+            updated.fill(0);
+
+            for (let y = HEIGHT - 1; y >= 0; y--) {
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                const startX = dir === 1 ? 0 : WIDTH - 1;
+                const endX = dir === 1 ? WIDTH : -1;
+
+                for (let x = startX; x !== endX; x += dir) {
+                    const idx = getIdx(x, y);
+                    if (updated[idx] || grid[idx] === TYPES.EMPTY) continue;
+
+                    const type = grid[idx];
+                    let moved = false;
+
+                    if (type === TYPES.SAND) {
+                        const down = y + 1;
+                        if (down < HEIGHT) {
+                            if (grid[getIdx(x, down)] === TYPES.EMPTY || isLiquid(grid[getIdx(x, down)])) {
+                                swap(x, y, x, down); moved = true;
+                            } else {
+                                const ro = Math.random() > 0.5 ? 1 : -1;
+                                if (inBounds(x + ro, down) && (grid[getIdx(x + ro, down)] === TYPES.EMPTY || isLiquid(grid[getIdx(x + ro, down)]))) {
+                                    swap(x, y, x + ro, down); moved = true;
+                                } else if (inBounds(x - ro, down) && (grid[getIdx(x - ro, down)] === TYPES.EMPTY || isLiquid(grid[getIdx(x - ro, down)]))) {
+                                    swap(x, y, x - ro, down); moved = true;
+                                }
+                            }
+                        }
+                    } else if (isLiquid(type)) {
+                        const down = y + 1;
+                        if (type === TYPES.ACID) {
+                            const ns = [[0, 1], [-1, 0], [1, 0], [0, -1]];
+                            for (let n of ns) {
+                                const nx = x + n[0], ny = y + n[1];
+                                if (inBounds(nx, ny)) {
+                                    const nt = grid[getIdx(nx, ny)];
+                                    if (nt !== TYPES.EMPTY && nt !== TYPES.WALL && nt !== TYPES.ACID && nt !== TYPES.STONE) {
+                                        setParticle(nx, ny, TYPES.EMPTY);
+                                        if (Math.random() < 0.2) { setParticle(x, y, TYPES.EMPTY); moved = true; break; }
+                                    }
+                                }
+                            }
+                            if (moved) continue;
+                        }
+                        if (type === TYPES.LAVA) {
+                            const ns = [[0, 1], [-1, 0], [1, 0], [0, -1]];
+                            for (let n of ns) {
+                                const nx = x + n[0], ny = y + n[1];
+                                if (inBounds(nx, ny)) {
+                                    const nt = grid[getIdx(nx, ny)];
+                                    if (nt === TYPES.WATER) {
+                                        setParticle(x, y, TYPES.STONE); setParticle(nx, ny, TYPES.SMOKE);
+                                        moved = true; break;
+                                    } else if (isFlammable(nt)) { setParticle(nx, ny, TYPES.FIRE); }
+                                }
+                            }
+                            if (moved) continue;
+                            if (Math.random() < 0.05 && inBounds(x, y - 1) && grid[getIdx(x, y - 1)] === TYPES.EMPTY) setParticle(x, y - 1, TYPES.FIRE);
+                        }
+                        if (down < HEIGHT) {
+                            if (grid[getIdx(x, down)] === TYPES.EMPTY) {
+                                swap(x, y, x, down); moved = true;
+                            } else {
+                                const ro = Math.random() > 0.5 ? 1 : -1;
+                                if (inBounds(x + ro, down) && grid[getIdx(x + ro, down)] === TYPES.EMPTY) {
+                                    swap(x, y, x + ro, down); moved = true;
+                                } else if (inBounds(x - ro, down) && grid[getIdx(x - ro, down)] === TYPES.EMPTY) {
+                                    swap(x, y, x - ro, down); moved = true;
+                                } else {
+                                    let spr = type === TYPES.LAVA ? 1 : 4;
+                                    let tx = x;
+                                    for (let s = 1; s <= spr; s++) {
+                                        if (inBounds(x + ro * s, y) && grid[getIdx(x + ro * s, y)] === TYPES.EMPTY) tx = x + ro * s;
+                                        else break;
+                                    }
+                                    if (tx !== x) { swap(x, y, tx, y); moved = true; }
+                                }
+                            }
+                        }
+                    } else if (type === TYPES.FIRE) {
+                        state[idx]--;
+                        if (state[idx] <= 0) { setParticle(x, y, Math.random() < 0.3 ? TYPES.SMOKE : TYPES.EMPTY); continue; }
+                        const up = y - 1;
+                        if (up >= 0) {
+                            const ro = Math.floor(Math.random() * 3) - 1;
+                            const nx = x + ro;
+                            if (inBounds(nx, up)) {
+                                const tt = grid[getIdx(nx, up)];
+                                if (tt === TYPES.EMPTY) { swap(x, y, nx, up); moved = true; }
+                                else if (tt === TYPES.WATER) { setParticle(x, y, TYPES.SMOKE); moved = true; }
+                            }
+                        }
+                        if (!moved) {
+                            const ns = [[0, 1], [-1, 0], [1, 0], [0, -1]];
+                            for (let n of ns) {
+                                const nx = x + n[0], ny = y + n[1];
+                                if (inBounds(nx, ny)) {
+                                    const nt = grid[getIdx(nx, ny)];
+                                    if (isFlammable(nt) && Math.random() < 0.1) setParticle(nx, ny, TYPES.FIRE);
+                                    else if (nt === TYPES.WATER) setParticle(x, y, TYPES.SMOKE);
+                                }
+                            }
+                        }
+                        const [r, g, b] = varyColor(BASE_COLORS[TYPES.FIRE][0], BASE_COLORS[TYPES.FIRE][1], 0, 40);
+                        colorsR[idx] = r; colorsG[idx] = Math.max(0, g - state[idx] * 2);
+                    } else if (type === TYPES.SMOKE) {
+                        state[idx]--;
+                        if (state[idx] <= 0) { setParticle(x, y, TYPES.EMPTY); continue; }
+                        const up = y - 1;
+                        if (up >= 0) {
+                            const ro = Math.random() > 0.5 ? 1 : -1;
+                            if (inBounds(x, up) && grid[getIdx(x, up)] === TYPES.EMPTY) { if (Math.random() < 0.5) swap(x, y, x, up); }
+                            else if (inBounds(x + ro, up) && grid[getIdx(x + ro, up)] === TYPES.EMPTY) swap(x, y, x + ro, up);
+                            else if (inBounds(x + ro, y) && grid[getIdx(x + ro, y)] === TYPES.EMPTY) swap(x, y, x + ro, y);
+                        }
+                    } else if (type === TYPES.PLANT) {
+                        if (Math.random() < 0.02) {
+                            const ns = [[0, 1], [-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+                            let hw = false;
+                            for (let n of ns) {
+                                const nx = x + n[0], ny = y + n[1];
+                                if (inBounds(nx, ny) && grid[getIdx(nx, ny)] === TYPES.WATER) {
+                                    hw = true; setParticle(nx, ny, TYPES.EMPTY); break;
+                                }
+                            }
+                            if (hw) {
+                                for (let n of ns) {
+                                    const nx = x + n[0], ny = y + n[1];
+                                    if (inBounds(nx, ny) && grid[getIdx(nx, ny)] === TYPES.EMPTY && Math.random() < 0.5) {
+                                        setParticle(nx, ny, TYPES.PLANT); break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function render() {
+            if (!grid || !imageData) return;
+            const data = imageData.data;
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                const p = i * 4;
+                if (grid[i] === TYPES.EMPTY) {
+                    data[p] = 0; data[p + 1] = 0; data[p + 2] = 0; data[p + 3] = 255;
+                } else {
+                    data[p] = colorsR[i]; data[p + 1] = colorsG[i]; data[p + 2] = colorsB[i]; data[p + 3] = 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function drawBrush(cx, cy) {
+            const r = Math.floor(brushSize / 2);
+            for (let y = -r; y <= r; y++) {
+                for (let x = -r; x <= r; x++) {
+                    if (x * x + y * y <= r * r) {
+                        if (currentTool === TYPES.EMPTY || Math.random() < 0.8) {
+                            setParticle(Math.floor(cx + x), Math.floor(cy + y), currentTool);
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleInput(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let cX = e.clientX, cY = e.clientY;
+            if (e.touches && e.touches.length > 0) { cX = e.touches[0].clientX; cY = e.touches[0].clientY; }
+            const canvasX = (cX - rect.left) * scaleX;
+            const canvasY = (cY - rect.top) * scaleY;
+            if (mouseX !== undefined && mouseY !== undefined && (Math.abs(canvasX - mouseX) > 1 || Math.abs(canvasY - mouseY) > 1)) {
+                const steps = Math.max(Math.abs(canvasX - mouseX), Math.abs(canvasY - mouseY));
+                for (let i = 0; i <= steps; i++) drawBrush(mouseX + (canvasX - mouseX) * (i / steps), mouseY + (canvasY - mouseY) * (i / steps));
+            } else drawBrush(canvasX, canvasY);
+            mouseX = canvasX; mouseY = canvasY;
+        }
+
+        canvas.addEventListener('mousedown', (e) => { isDrawing = true; mouseX = undefined; mouseY = undefined; handleInput(e); });
+        window.addEventListener('mouseup', () => { isDrawing = false; mouseX = undefined; mouseY = undefined; });
+        canvas.addEventListener('mousemove', handleInput);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; mouseX = undefined; mouseY = undefined; handleInput(e); }, { passive: false });
+        window.addEventListener('touchend', () => { isDrawing = false; mouseX = undefined; mouseY = undefined; });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleInput(e); }, { passive: false });
+
+        const toolbar = document.getElementById('toolbar');
+        ELEMENTS.forEach(el => {
+            const btn = document.createElement('button');
+            btn.className = `tool-btn w-full text-left flex items-center gap-2 p-2 rounded border-2 border-gray-700 bg-gray-800 hover:bg-gray-700 transition-colors ${el.id === currentTool ? 'active' : ''}`;
+            btn.innerHTML = `<span class="w-4 h-4 rounded-full border border-gray-900 shrink-0" style="background-color: ${el.color}"></span><span class="font-bold text-sm">${el.name}</span>`;
+            btn.onclick = () => {
+                currentTool = el.id;
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+            toolbar.appendChild(btn);
+        });
+
+        document.getElementById('brush-size').addEventListener('input', (e) => {
+            brushSize = parseInt(e.target.value);
+            document.getElementById('brush-size-display').textContent = brushSize;
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            if (grid) grid.fill(TYPES.EMPTY);
+            if (colorsR) { colorsR.fill(0); colorsG.fill(0); colorsB.fill(0); }
+        });
+
+        document.getElementById('btn-play').addEventListener('click', () => {
+            document.getElementById('title-screen').classList.add('hidden');
+            document.getElementById('game-header').classList.remove('hidden');
+            document.getElementById('game-header').classList.add('flex');
+            document.getElementById('game-main').classList.remove('hidden');
+            document.getElementById('game-main').classList.add('flex');
+            // リサイズイベントを発火させてキャンバスサイズを調整
+            window.dispatchEvent(new Event('resize'));
+            isPaused = false;
+        });
+
+        document.getElementById('btn-back-to-title').addEventListener('click', () => {
+            document.getElementById('title-screen').classList.remove('hidden');
+            document.getElementById('game-header').classList.add('hidden');
+            document.getElementById('game-header').classList.remove('flex');
+            document.getElementById('game-main').classList.add('hidden');
+            document.getElementById('game-main').classList.remove('flex');
+            isPaused = true;
+        });
+
+        const pauseBtn = document.getElementById('btn-pause');
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '再生' : '一時停止';
+            pauseBtn.className = isPaused ? 'bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm transition-colors' : 'bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm transition-colors';
+        });
+
+        let lastTime = performance.now();
+        let frames = 0;
+        const fpsCounter = document.getElementById('fps-counter');
+
+        function loop() {
+            if (!isPaused) updateGrid();
+            render();
+            frames++;
+            const now = performance.now();
+            if (now - lastTime >= 1000) { fpsCounter.textContent = frames; frames = 0; lastTime = now; }
+            requestAnimationFrame(loop);
+        }
+
+        // 初期化を確実に行う
+        initSimulation();
+        isPaused = true; // タイトル画面では停止しておく
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resT);
+            window.resT = setTimeout(() => initSimulation(true), 200);
+        });
+
+        // 描画ループ開始
+        loop();
+    </script>
+</body>
+
+</html>

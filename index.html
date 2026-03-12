@@ -34,9 +34,16 @@
     </div>
 
     <header>
-        <div class="lang-toggle">
-            <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
-            <button onclick="setLanguage('en')" id="lang-en">EN</button>
+        <div class="header-controls">
+            <button onclick="clearCacheAndReload()" id="btn-clear-cache" class="control-btn" title="Clear Cache & Reload">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+            </button>
+            <div class="lang-toggle">
+                <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
+                <button onclick="setLanguage('en')" id="lang-en">EN</button>
+            </div>
         </div>
         <div class="header-content">
             <h1 data-i18n="portal_title">Arcade Hub</h1>
@@ -45,6 +52,12 @@
                 Management, all in one place.</p>
         </div>
     </header>
+
+    <div class="filter-container">
+        <div id="filter-bar" class="filter-bar">
+            <!-- Filter buttons will be injected here by script.js -->
+        </div>
+    </div>
 
     <main id="game-grid" class="game-grid">
         <!-- Games will be injected here by script.js -->

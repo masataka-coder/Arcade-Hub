@@ -1,379 +1,388 @@
+html,
 body {
-            background-color: #0a0a1a;
-            color: #e2e8f0;
-            overflow: hidden;
-            touch-action: none;
-        }
-
-        /* Glassmorphism Utilities */
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .glass-panel {
-            background: rgba(10, 10, 26, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Animations */
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        @keyframes subtle-gleam {
-
-            0%,
-            85%,
-            100% {
-                opacity: 0;
-                transform: scale(0.5);
-            }
-
-            90% {
-                opacity: 0.5;
-                transform: scale(1.2);
-            }
-
-            95% {
-                opacity: 0.1;
-                transform: scale(1.0);
-            }
-        }
-
-        @keyframes rain-fall {
-            0% {
-                transform: translateY(-10vh);
-                opacity: 0;
-            }
-
-            10% {
-                opacity: 0.5;
-            }
-
-            90% {
-                opacity: 0.5;
-            }
-
-            100% {
-                transform: translateY(100vh);
-                opacity: 0;
-            }
-        }
-
-        @keyframes pulse-slow {
-
-            0%,
-            100% {
-                opacity: 0.5;
-            }
-
-            50% {
-                opacity: 1;
-            }
-        }
-
-        .trash-node {
-            position: absolute;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            transform: scale(0.8);
-            z-index: 10;
-        }
-
-        .trash-node:hover {
-            transform: scale(1.2) translateY(-5px) !important;
-            filter: brightness(1.2) grayscale(0) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)) !important;
-            opacity: 1 !important;
-        }
-
-        .trash-glow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            filter: blur(8px);
-            animation: subtle-gleam 4s infinite;
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        /* Rarity Colors */
-        .rarity-common .trash-glow {
-            background-color: rgba(255, 255, 255, 0.4);
-        }
-
-        .rarity-rare .trash-glow {
-            background-color: rgba(0, 243, 255, 0.6);
-        }
-
-        .rarity-epic .trash-glow {
-            background-color: rgba(176, 38, 255, 0.6);
-        }
-
-        .rarity-legendary .trash-glow {
-            background-color: rgba(255, 215, 0, 0.8);
-        }
-
-        .rarity-text-common {
-            color: #94a3b8;
-        }
-
-        .rarity-text-rare {
-            color: #00f3ff;
-            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
-        }
-
-        .rarity-text-epic {
-            color: #b026ff;
-            text-shadow: 0 0 8px rgba(176, 38, 255, 0.5);
-        }
-
-        .rarity-text-legendary {
-            color: #ffd700;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-        }
-
-        /* Layers & Scenery Base */
-        .city-bg {
-            position: absolute;
-            inset: 0;
-            z-index: -10;
-            transition: background 2s ease;
-        }
-
-        .building {
-            position: absolute;
-            bottom: 20%;
-            z-index: -5;
-        }
-
-        .window {
-            position: absolute;
-            width: 4px;
-            height: 8px;
-            box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-            transition: opacity 1s;
-        }
-
-        .ground {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 25%;
-            z-index: -2;
-            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
-        }
-
-        .rain-drop {
-            position: absolute;
-            width: 1px;
-            height: 15px;
-            animation: rain-fall linear infinite;
-        }
-
-        /* --- TIME OF DAY VARIATIONS --- */
-
-        /* Night (19:00 - 5:59) */
-        body[data-time="night"] .city-bg {
-            background: linear-gradient(to bottom, #050510 0%, #151530 60%, #0a0a1a 100%);
-        }
-
-        body[data-time="night"] .building {
-            background: linear-gradient(to bottom, #111122, #05050a);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        body[data-time="night"] .ground {
-            background: linear-gradient(to bottom, #0a0a1a, #000);
-            border-top: 2px solid rgba(0, 243, 255, 0.1);
-        }
-
-        body[data-time="night"] .window {
-            opacity: 0.3;
-            background-color: #ffd700;
-        }
-
-        body[data-time="night"] .rain-drop {
-            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3));
-        }
-
-        body[data-time="night"] .trash-node {
-            filter: brightness(0.2) grayscale(0.8) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.8));
-            opacity: 0.2;
-        }
-
-        body[data-time="night"] .trash-node.in-light {
-            filter: brightness(0.5) grayscale(0.6) drop-shadow(0 0 3px rgba(255, 255, 255, 0.1));
-            opacity: 0.5;
-        }
-
-        /* Morning (6:00 - 10:59) */
-        body[data-time="morning"] .city-bg {
-            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 60%, #B0E2FF 100%);
-        }
-
-        body[data-time="morning"] .building {
-            background: linear-gradient(to bottom, #636e72, #2d3436);
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        body[data-time="morning"] .ground {
-            background: linear-gradient(to bottom, #2d3436, #1e272e);
-            border-top: 2px solid rgba(135, 206, 250, 0.4);
-        }
-
-        body[data-time="morning"] .window {
-            opacity: 0.05;
-            background-color: #ffd700;
-        }
-
-        body[data-time="morning"] .rain-drop {
-            background: linear-gradient(to bottom, transparent, rgba(100, 150, 255, 0.4));
-        }
-
-        body[data-time="morning"] .trash-node {
-            filter: brightness(0.7) grayscale(0.2) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
-            opacity: 0.7;
-        }
-
-        body[data-time="morning"] .trash-node.in-light {
-            filter: brightness(1) grayscale(0) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
-            opacity: 1;
-        }
-
-        /* Day (11:00 - 15:59) */
-        body[data-time="day"] .city-bg {
-            background: linear-gradient(to bottom, #4A90E2 0%, #87CEFA 60%, #E0F6FF 100%);
-        }
-
-        body[data-time="day"] .building {
-            background: linear-gradient(to bottom, #636e72, #2d3436);
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        body[data-time="day"] .ground {
-            background: linear-gradient(to bottom, #2d3436, #1e272e);
-            border-top: 2px solid rgba(135, 206, 250, 0.4);
-        }
-
-        body[data-time="day"] .window {
-            opacity: 0.05;
-            background-color: #ffd700;
-        }
-
-        body[data-time="day"] .rain-drop {
-            background: linear-gradient(to bottom, transparent, rgba(100, 150, 255, 0.4));
-        }
-
-        body[data-time="day"] .trash-node {
-            filter: brightness(0.8) grayscale(0.2) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
-            opacity: 0.8;
-        }
-
-        body[data-time="day"] .trash-node.in-light {
-            filter: brightness(1.1) grayscale(0) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
-            opacity: 1;
-        }
-
-        /* Evening (16:00 - 18:59) */
-        body[data-time="evening"] .city-bg {
-            background: linear-gradient(to bottom, #FF7E5F 0%, #FEB47B 60%, #FFD2A5 100%);
-        }
-
-        body[data-time="evening"] .building {
-            background: linear-gradient(to bottom, #4b3621, #2d1e10);
-            border-top: 1px solid rgba(253, 203, 110, 0.3);
-        }
-
-        body[data-time="evening"] .ground {
-            background: linear-gradient(to bottom, #2d1e10, #110a05);
-            border-top: 2px solid rgba(253, 203, 110, 0.4);
-        }
-
-        body[data-time="evening"] .window {
-            opacity: 0.5;
-            background-color: #ffeaa7;
-        }
-
-        body[data-time="evening"] .rain-drop {
-            background: linear-gradient(to bottom, transparent, rgba(255, 200, 100, 0.4));
-        }
-
-        body[data-time="evening"] .trash-node {
-            filter: brightness(0.5) grayscale(0.4) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
-            opacity: 0.5;
-        }
-
-        body[data-time="evening"] .trash-node.in-light {
-            filter: brightness(0.9) grayscale(0.1) drop-shadow(0 0 5px rgba(255, 200, 100, 0.3));
-            opacity: 0.9;
-        }
-
-        /* Effects Layers */
-        #flashlight-layer {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 20;
-            opacity: 0;
-            transition: opacity 1s ease;
-        }
-
-        #fog-layer {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(to top, rgba(150, 160, 180, 0.4), transparent);
-            backdrop-filter: blur(3px);
-            pointer-events: none;
-            opacity: 0;
-            z-index: 15;
-            transition: opacity 3s ease;
-        }
-
-        /* Modals & UI */
-        .ui-layer {
-            z-index: 30;
-        }
-
-        .modal-enter {
-            opacity: 0;
-            transform: scale(0.9) translateY(20px);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .modal-enter-active {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-        }
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-color: #0a0a1a;
+    color: #e2e8f0;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-panel {
+    background: rgba(10, 10, 26, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Animations */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes subtle-gleam {
+
+    0%,
+    85%,
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    90% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+
+    95% {
+        opacity: 0.1;
+        transform: scale(1.0);
+    }
+}
+
+@keyframes rain-fall {
+    0% {
+        transform: translateY(-10vh);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.5;
+    }
+
+    90% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse-slow {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.trash-node {
+    position: absolute;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    transform: scale(0.8);
+    z-index: 10;
+}
+
+.trash-node:hover {
+    transform: scale(1.2) translateY(-5px) !important;
+    filter: brightness(1.2) grayscale(0) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)) !important;
+    opacity: 1 !important;
+}
+
+.trash-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    filter: blur(8px);
+    animation: subtle-gleam 4s infinite;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Rarity Colors */
+.rarity-common .trash-glow {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.rarity-rare .trash-glow {
+    background-color: rgba(0, 243, 255, 0.6);
+}
+
+.rarity-epic .trash-glow {
+    background-color: rgba(176, 38, 255, 0.6);
+}
+
+.rarity-legendary .trash-glow {
+    background-color: rgba(255, 215, 0, 0.8);
+}
+
+.rarity-text-common {
+    color: #94a3b8;
+}
+
+.rarity-text-rare {
+    color: #00f3ff;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+}
+
+.rarity-text-epic {
+    color: #b026ff;
+    text-shadow: 0 0 8px rgba(176, 38, 255, 0.5);
+}
+
+.rarity-text-legendary {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+/* Layers & Scenery Base */
+.city-bg {
+    position: absolute;
+    inset: 0;
+    z-index: -10;
+    transition: background 2s ease;
+}
+
+.building {
+    position: absolute;
+    bottom: 20%;
+    z-index: -5;
+}
+
+.window {
+    position: absolute;
+    width: 4px;
+    height: 8px;
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    transition: opacity 1s;
+}
+
+.ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 25%;
+    z-index: -2;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.rain-drop {
+    position: absolute;
+    width: 1px;
+    height: 15px;
+    animation: rain-fall linear infinite;
+}
+
+/* --- TIME OF DAY VARIATIONS --- */
+
+/* Night (19:00 - 5:59) */
+body[data-time="night"] .city-bg {
+    background: linear-gradient(to bottom, #050510 0%, #151530 60%, #0a0a1a 100%);
+}
+
+body[data-time="night"] .building {
+    background: linear-gradient(to bottom, #111122, #05050a);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body[data-time="night"] .ground {
+    background: linear-gradient(to bottom, #0a0a1a, #000);
+    border-top: 2px solid rgba(0, 243, 255, 0.1);
+}
+
+body[data-time="night"] .window {
+    opacity: 0.3;
+    background-color: #ffd700;
+}
+
+body[data-time="night"] .rain-drop {
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3));
+}
+
+body[data-time="night"] .trash-node {
+    filter: brightness(0.2) grayscale(0.8) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.8));
+    opacity: 0.2;
+}
+
+body[data-time="night"] .trash-node.in-light {
+    filter: brightness(0.5) grayscale(0.6) drop-shadow(0 0 3px rgba(255, 255, 255, 0.1));
+    opacity: 0.5;
+}
+
+/* Morning (6:00 - 10:59) */
+body[data-time="morning"] .city-bg {
+    background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 60%, #B0E2FF 100%);
+}
+
+body[data-time="morning"] .building {
+    background: linear-gradient(to bottom, #636e72, #2d3436);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+body[data-time="morning"] .ground {
+    background: linear-gradient(to bottom, #2d3436, #1e272e);
+    border-top: 2px solid rgba(135, 206, 250, 0.4);
+}
+
+body[data-time="morning"] .window {
+    opacity: 0.05;
+    background-color: #ffd700;
+}
+
+body[data-time="morning"] .rain-drop {
+    background: linear-gradient(to bottom, transparent, rgba(100, 150, 255, 0.4));
+}
+
+body[data-time="morning"] .trash-node {
+    filter: brightness(0.7) grayscale(0.2) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+    opacity: 0.7;
+}
+
+body[data-time="morning"] .trash-node.in-light {
+    filter: brightness(1) grayscale(0) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    opacity: 1;
+}
+
+/* Day (11:00 - 15:59) */
+body[data-time="day"] .city-bg {
+    background: linear-gradient(to bottom, #4A90E2 0%, #87CEFA 60%, #E0F6FF 100%);
+}
+
+body[data-time="day"] .building {
+    background: linear-gradient(to bottom, #636e72, #2d3436);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+body[data-time="day"] .ground {
+    background: linear-gradient(to bottom, #2d3436, #1e272e);
+    border-top: 2px solid rgba(135, 206, 250, 0.4);
+}
+
+body[data-time="day"] .window {
+    opacity: 0.05;
+    background-color: #ffd700;
+}
+
+body[data-time="day"] .rain-drop {
+    background: linear-gradient(to bottom, transparent, rgba(100, 150, 255, 0.4));
+}
+
+body[data-time="day"] .trash-node {
+    filter: brightness(0.8) grayscale(0.2) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+    opacity: 0.8;
+}
+
+body[data-time="day"] .trash-node.in-light {
+    filter: brightness(1.1) grayscale(0) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    opacity: 1;
+}
+
+/* Evening (16:00 - 18:59) */
+body[data-time="evening"] .city-bg {
+    background: linear-gradient(to bottom, #FF7E5F 0%, #FEB47B 60%, #FFD2A5 100%);
+}
+
+body[data-time="evening"] .building {
+    background: linear-gradient(to bottom, #4b3621, #2d1e10);
+    border-top: 1px solid rgba(253, 203, 110, 0.3);
+}
+
+body[data-time="evening"] .ground {
+    background: linear-gradient(to bottom, #2d1e10, #110a05);
+    border-top: 2px solid rgba(253, 203, 110, 0.4);
+}
+
+body[data-time="evening"] .window {
+    opacity: 0.5;
+    background-color: #ffeaa7;
+}
+
+body[data-time="evening"] .rain-drop {
+    background: linear-gradient(to bottom, transparent, rgba(255, 200, 100, 0.4));
+}
+
+body[data-time="evening"] .trash-node {
+    filter: brightness(0.5) grayscale(0.4) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+    opacity: 0.5;
+}
+
+body[data-time="evening"] .trash-node.in-light {
+    filter: brightness(0.9) grayscale(0.1) drop-shadow(0 0 5px rgba(255, 200, 100, 0.3));
+    opacity: 0.9;
+}
+
+/* Effects Layers */
+#flashlight-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+#fog-layer {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(to top, rgba(150, 160, 180, 0.4), transparent);
+    backdrop-filter: blur(3px);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 15;
+    transition: opacity 3s ease;
+}
+
+/* Modals & UI */
+.ui-layer {
+    z-index: 30;
+}
+
+.modal-enter {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-enter-active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
