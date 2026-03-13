@@ -20,6 +20,7 @@ const translations = {
         tag_casual: "カジュアル",
         tag_exploration: "探索",
         tag_favorites: "★ お気に入り",
+        tag_funny: "バカゲー",
         clear_cache_title: "キャッシュを削除して再読み込み"
     },
     en: {
@@ -43,12 +44,13 @@ const translations = {
         tag_casual: "Casual",
         tag_exploration: "Exploration",
         tag_favorites: "★ Favorites",
+        tag_funny: "Funny",
         clear_cache_title: "Clear Cache & Reload"
     }
 };
 
 let activeFilter = 'all';
-const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration'];
+const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration', 'funny'];
 let currentFeaturedGameId = null;
 
 function getFavorites() {
@@ -101,7 +103,7 @@ function renderFilters() {
     const dict = translations[lang] || translations['ja'];
     const filterBar = document.getElementById('filter-bar');
     if (!filterBar) return;
-    
+
     filterBar.innerHTML = AVAILABLE_TAGS.map(tag => {
         const label = dict['tag_' + tag] || tag;
         return `<button class="filter-btn ${activeFilter === tag ? 'active' : ''}" onclick="setFilter('${tag}')">${label}</button>`;
@@ -122,7 +124,7 @@ function renderGames() {
     if (!grid) return;
 
     const listGames = ALL_GAMES.filter(game => game[lang]);
-    
+
     let filteredGames = listGames;
     const favorites = getFavorites();
 
@@ -150,7 +152,7 @@ function renderGames() {
         const tagsHtml = game.tags ? game.tags.map(t => `<span class="game-tag">${dict['tag_' + t] || t}</span>`).join('') : '';
         const isFav = favorites.includes(game.id);
         const classes = `game-card ${isFeatured ? 'featured' : ''}`;
-        
+
         return `
             <div class="${classes}" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
                 <div class="card-img-container">
@@ -339,7 +341,7 @@ async function clearCacheAndReload() {
         // Clear all Service Worker caches
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
-        
+
         // Unregister service workers
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -347,7 +349,7 @@ async function clearCacheAndReload() {
                 await registration.unregister();
             }
         }
-        
+
         // Reload
         window.location.reload(true);
     } catch (err) {
@@ -384,8 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show PWA install instruction for iOS
         const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
         const msgSpan = installToast.querySelector('span');
-        msgSpan.innerHTML = lang === 'ja' 
-            ? "アプリとしてインストールするには、ブラウザの[共有]メニューから「ホーム画面に追加」を選択してください。" 
+        msgSpan.innerHTML = lang === 'ja'
+            ? "アプリとしてインストールするには、ブラウザの[共有]メニューから「ホーム画面に追加」を選択してください。"
             : "To install as an app, tap the Share menu and select 'Add to Home Screen'.";
         installBtn.style.display = 'none';
         installToast.classList.remove('hidden');

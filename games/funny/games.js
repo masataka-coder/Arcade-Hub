@@ -14,5 +14,21 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: null,
         link: "dogeza/index.html"
+    },
+    {
+        id: "sniper",
+        ja: {
+            title: "窓際サラリーマン：居眠りスナイパー",
+            description: "退屈な会議中、こっそり居眠り！迫りくる上司の視線をかわし、完璧なスヌーズをキメろ。集中力と眠気のギリギリの攻防が今、始まる。"
+        },
+        en: {
+            title: "Office Window Sleeper: Nap Sniper",
+            description: "Steal a nap during a boring meeting! Dodge your boss's gaze and achieve the perfect snooze. The ultimate battle between concentration and sleepiness begins now."
+        },
+        copyright: "&copy; 2026 Takahide Kohata",
+        image: null,
+        movie: null,
+        movie_cg: null,
+        link: "sniper/index.html"
     }
 ];

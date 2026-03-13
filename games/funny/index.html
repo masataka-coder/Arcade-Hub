@@ -4,17 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>バカゲーコレクション - Arcade Hub</title>
+    <title>Arcade Hub</title>
     <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤪</text></svg>">
-    <link rel="stylesheet" href="../../style.css">
-    <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#f8fafc">
+    <meta name="theme-color" content="#0f172a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Mochiy+Pop+One&display=swap"
+        rel="stylesheet">
+    <script>
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registered', reg))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+    </script>
 </head>
 
 <body>
@@ -24,16 +35,32 @@
     </div>
 
     <header>
-        <div class="lang-toggle">
-            <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
-            <button onclick="setLanguage('en')" id="lang-en">EN</button>
+        <div class="header-controls">
+            <button onclick="clearCacheAndReload()" id="btn-clear-cache" class="control-btn"
+                title="Clear Cache & Reload">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+            </button>
+            <div class="lang-toggle">
+                <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
+                <button onclick="setLanguage('en')" id="lang-en">EN</button>
+            </div>
         </div>
         <div class="header-content">
-            <h1 data-i18n="portal_title">バカゲーコレクション</h1>
+            <h1 data-i18n="portal_title">Arcade Hub</h1>
             <div class="title-underline"></div>
-            <p data-i18n="portal_desc">理不尽、シュール、意味不明。常識を破壊する究極のバカゲー・コレクション。</p>
+            <p data-i18n="portal_desc">Experience the next generation of premium arcade games. Strategy, Action, and
+                Management, all in one place.</p>
         </div>
     </header>
+
+    <div class="filter-container">
+        <div id="filter-bar" class="filter-bar">
+            <!-- Filter buttons will be injected here by script.js -->
+        </div>
+    </div>
 
     <main id="game-grid" class="game-grid">
         <!-- Games will be injected here by script.js -->
@@ -73,7 +100,7 @@
     <!-- PWA Install Toast -->
     <div id="install-toast" class="install-toast hidden">
         <div class="toast-content">
-            <span data-i18n="pwa_install_msg">バカゲーコレクション をアプリとして追加しますか？</span>
+            <span data-i18n="pwa_install_msg">Do you want to add Arcade Hub as an app?</span>
             <div class="toast-actions">
                 <button id="install-confirm-btn" class="install-btn" data-i18n="pwa_install_btn">Install</button>
                 <button id="install-close-btn" class="toast-close-btn">&times;</button>
@@ -83,8 +110,9 @@
 
     <footer>
         <div class="footer-content">
-            <div class="footer-logo"><a href="../../index.html" style="color: inherit; text-decoration: none;">Arcade Hub</a></div>
-            <p data-i18n="footer_copy">&copy; 2026 Masanobu Kohata, Takahide Kohata. Built for the future of web gaming.</p>
+            <div class="footer-logo">Arcade Hub</div>
+            <p data-ii18n="footer_copy">&copy; 2026 Masanobu Kohata, Takahide Kohata. Built for the future of web
+                gaming.</p>
         </div>
     </footer>
 

@@ -94,8 +94,8 @@
                 class="mb-6 text-gray-300 text-sm md:text-base bg-gray-800 p-4 rounded text-left border border-gray-700">
                 <span class="text-yellow-400 font-bold">【ルール】</span><br>
                 1. 飛んでくる怒号（ノーツ）に合わせて <kbd class="bg-gray-700 px-2 py-1 rounded">D F J K</kbd>（スマホはボタン）を叩き言い訳しろ！<br>
-                2. 怒りが頂点に達したら <kbd class="bg-gray-700 px-2 py-1 rounded">スペース</kbd> 長押しでパワーを限界まで溜めろ！<br>
-                3. キーを離して、渾身の土下座をぶちかませ！！！
+                2. 怒りが頂点に達したら <kbd class="bg-gray-700 px-2 py-1 rounded">スペース</kbd> 連打でパワーを限界まで溜めろ！<br>
+                3. 制限時間が来ると、渾身の土下座をぶちかます！！！
             </div>
 
             <h3 class="text-lg md:text-xl mb-3 text-yellow-200 font-bold">不祥事（難易度）を選択：</h3>
@@ -123,7 +123,7 @@
     <div id="mobile-climax-controls" class="ui-layer hidden" style="justify-content: flex-end; padding-bottom: 50px;">
         <div class="pointer-events-auto w-full px-8 max-w-md mx-auto">
             <button id="btn-space"
-                class="w-full py-6 bg-red-600 rounded-xl opacity-90 active:opacity-100 text-2xl font-black shadow-2xl animate-pulse text-white border-4 border-yellow-400">長押しでパワーを溜めろ！</button>
+                class="w-full py-6 bg-red-600 rounded-xl opacity-90 active:opacity-100 text-2xl font-black shadow-2xl animate-pulse text-white border-4 border-yellow-400">連打でパワーを溜めろ！</button>
         </div>
     </div>
 
@@ -415,31 +415,20 @@
             } else if (currentState === STATE.CLIMAX) {
                 climaxPhaseTime += dt;
 
-                // Auto increase anger slightly to build tension
-                anger = Math.min(300, anger + dt * 0.05);
-
-                if (keys.space) {
+                if (justPressed.space) {
                     isCharging = true;
-                    // チャージ速度をマイルドにし、最大1000でストップさせる
-                    chargePower += dt * 0.1 * (1 + chargePower * 0.002);
+                    // 連打でチャージ（1タップにつき+30）
+                    chargePower += 30;
                     if (chargePower > 1000) chargePower = 1000;
-                    shakeAmount = Math.min(20, chargePower * 0.02);
-                } else if (spaceJustReleased && isCharging) {
-                    // 一定以上溜まっていない場合（連打）はキャンセルしてやり直し
-                    if (chargePower > 50) {
-                        startDogezaAnimation();
-                    } else {
-                        isCharging = false;
-                        chargePower = 0;
-                    }
+                    shakeAmount = 10;
                 }
 
-                // 制限時間を過ぎたら強制発動
+                // 制限時間を過ぎたらアニメーション開始
                 if (climaxPhaseTime >= CLIMAX_MAX_TIME) {
                     startDogezaAnimation();
                 }
 
-                // 強制発動を削除し、プレイヤーが離すまでキープできるように変更（MAX時は画面が揺れるのみ）
+                // MAX時は画面が揺れる
                 if (chargePower >= 1000) {
                     shakeAmount = 25 + Math.random() * 10;
                 }
@@ -712,8 +701,8 @@
             ctx.fillStyle = '#ff3333';
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 6;
-            ctx.strokeText('限界突破！スペースキーを長押ししろ！', canvas.width / 2, 200);
-            ctx.fillText('限界突破！スペースキーを長押ししろ！', canvas.width / 2, 200);
+            ctx.strokeText('限界突破！スペースキーを連打しろ！', canvas.width / 2, 200);
+            ctx.fillText('限界突破！スペースキーを連打しろ！', canvas.width / 2, 200);
 
             // 残り時間の表示
             const timeLeft = Math.max(0, (CLIMAX_MAX_TIME - climaxPhaseTime) / 1000).toFixed(1);
@@ -864,11 +853,16 @@
 
             // Determine Forgiveness
             let isForgiven = false;
-            if (blownAway >= reporters.length * 0.8 && dogezaType >= 3) {
-                // Overwhelming force forces forgiveness (トルネードかメテオ)
+            if (anger >= 100) {
+                // 怒りが高すぎる場合は何をしても許されない
+                isForgiven = false;
+                status = "大炎上（火に油）";
+                resultMessage = `記者の怒りが${maxAnger}%と限界を突破している所に、時速${finalSpeedKm}kmの『${finalDogezaName}』を放ち記者${blownAway}人を吹き飛ばす暴挙に！\n全く反省していない態度に世間は激怒し、取り返しのつかない大炎上となった。`;
+            } else if (blownAway >= reporters.length * 0.8 && dogezaType >= 3) {
+                // Overwhelming force forces forgiveness (トルネードかメテオ) 但し怒りが100未満の場合
                 isForgiven = true;
                 status = "圧倒的武力により許された";
-                resultMessage = `記者の怒りは${maxAnger}%に達したが、時速${finalSpeedKm}kmの『${finalDogezaName}』が炸裂！\n${blownAway}人の記者を物理的に吹き飛ばし、会場を更地にしたことで強制的に会見は終了。世間はその勢いに圧され、なぜか許した。`;
+                resultMessage = `記者の怒りは${maxAnger}%であったが、時速${finalSpeedKm}kmの『${finalDogezaName}』が炸裂！\n${blownAway}人の記者を物理的に吹き飛ばし、会場を更地にしたことで強制的に会見は終了。世間はその勢いに圧され、なぜか許した。`;
             } else if (anger < 50 && dogezaType >= 2) {
                 // Properly appeased (怒り低めでスライディング以上)
                 isForgiven = true;
@@ -877,7 +871,7 @@
             } else {
                 // Failed
                 isForgiven = false;
-                status = "大炎上（燃料投下）";
+                status = "大炎上（傷害罪）";
                 resultMessage = `記者の怒りは${maxAnger}%に達した。\nさらに時速${finalSpeedKm}kmの『${finalDogezaName}』で記者${blownAway}人に重傷を負わせたため、傷害罪が追加され大炎上した。`;
             }
 

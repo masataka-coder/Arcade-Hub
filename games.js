@@ -156,5 +156,22 @@ const ALL_GAMES = [
         movie_cg: "assets/movies/sushi-cg.mp4",
         link: "games/sushi/index.html",
         tags: ["simulation", "casual"]
+    },
+    {
+        id: "funny",
+        ja: {
+            title: "バカゲーコレクション",
+            description: "笑って癒される、おもしろゲームの数々。"
+        },
+        en: {
+            title: "Funny Games",
+            description: "A collection of funny games that will make you laugh and relax."
+        },
+        copyright: "&copy; 2026 Takahide Kohata",
+        image: "assets/thumbnails/funny.png",
+        movie: null,
+        movie_cg: null,
+        link: "games/funny/index.html",
+        tags: ["funny", "casual"]
     }
 ];
