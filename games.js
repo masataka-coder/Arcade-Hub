@@ -163,15 +163,42 @@ const ALL_GAMES = [
             title: "バカゲーコレクション",
             description: "笑って癒される、おもしろゲームの数々。"
         },
-        en: {
-            title: "Funny Games",
-            description: "A collection of funny games that will make you laugh and relax."
-        },
         copyright: "&copy; 2026 Takahide Kohata",
         image: "assets/thumbnails/funny.png",
         movie: null,
         movie_cg: null,
         link: "games/funny/index.html",
         tags: ["funny", "casual"]
+    },
+    {
+        id: "zombi",
+        ja: {
+            title: "ZOMBI SWARM",
+            description: "ゾンビの群れを操作し、人類を滅ぼせ。"
+        },
+        en: {
+            title: "ZOMBI SWARM",
+            description: "Control the horde of zombies and destroy humanity."
+        },
+        copyright: "&copy; 2026 Takahide Kohata",
+        image: "assets/thumbnails/zombi.png",
+        movie: null,
+        movie_cg: null,
+        link: "games/zombi/index.html",
+        tags: ["action", "shooter"],
+        comingSoon: true
+    },
+    {
+        id: "quit",
+        ja: {
+            title: "このゲームを終わらせる",
+            description: "ゲームを終了したいですか？"
+        },
+        copyright: "&copy; 2026 Takahide Kohata",
+        image: "assets/thumbnails/quit.png",
+        movie: "assets/movies/quit.mp4",
+        movie_cg: null,
+        link: "games/quit/index.html",
+        tags: ["puzzle", "casual", "funny"]
     }
 ];

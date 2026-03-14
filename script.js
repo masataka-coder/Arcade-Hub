@@ -21,7 +21,8 @@ const translations = {
         tag_exploration: "探索",
         tag_favorites: "★ お気に入り",
         tag_funny: "バカゲー",
-        clear_cache_title: "キャッシュを削除して再読み込み"
+        clear_cache_title: "キャッシュを削除して再読み込み",
+        coming_soon: "近日登場"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -45,7 +46,8 @@ const translations = {
         tag_exploration: "Exploration",
         tag_favorites: "★ Favorites",
         tag_funny: "Funny",
-        clear_cache_title: "Clear Cache & Reload"
+        clear_cache_title: "Clear Cache & Reload",
+        coming_soon: "Coming Soon"
     }
 };
 
@@ -154,7 +156,7 @@ function renderGames() {
         const classes = `game-card ${isFeatured ? 'featured' : ''}`;
 
         return `
-            <div class="${classes}" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
+            <div class="${classes}" data-game="${game.id}" style="opacity:0; transform:translateY(30px); ${game.comingSoon ? 'cursor: not-allowed;' : ''}">
                 <div class="card-img-container">
                     <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${game.id}', event)" title="Toggle Favorite">
                         <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -172,7 +174,7 @@ function renderGames() {
                     ${game.copyright ? `<small style="color: #94a3b8; display: block; margin-top: 8px;">${game.copyright}</small>` : ''}
                 </div>
                 <div class="card-footer">
-                    <span class="play-badge">${dict.view_details}</span>
+                    ${game.comingSoon ? `<span class="play-badge" style="background-color: #475569; color: #94a3b8; cursor: not-allowed; box-shadow: none;">${dict.coming_soon}</span>` : `<span class="play-badge">${dict.view_details}</span>`}
                 </div>
             </div>
         `;
@@ -250,6 +252,8 @@ function renderGames() {
 
         card.addEventListener('click', () => {
             const gameId = card.getAttribute('data-game');
+            const gameData = ALL_GAMES.find(g => g.id === gameId);
+            if (gameData && gameData.comingSoon) return;
             openModal(gameId);
         });
     });

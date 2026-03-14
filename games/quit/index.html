@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>このゲームを終わらせる</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            transition: background-color 1s ease, color 1s ease;
+            overflow: hidden;
+            /* スクロールバー非表示 */
+            user-select: none;
+            /* テキスト選択を無効化 */
+            -webkit-user-select: none;
+        }
+
+        .dodging-btn {
+            position: absolute;
+            transition: all 0.2s ease-out;
+            /* 逃げる時のスムーズなアニメーション */
+        }
+
+        .teleport-btn {
+            position: absolute;
+            /* 瞬間移動のためtransitionなし */
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .distort-text {
+            animation: glitch 0.3s linear infinite;
+        }
+
+        @keyframes glitch {
+            0% {
+                transform: translate(0)
+            }
+
+            20% {
+                transform: translate(-2px, 1px)
+            }
+
+            40% {
+                transform: translate(-1px, -1px)
+            }
+
+            60% {
+                transform: translate(2px, 1px)
+            }
+
+            80% {
+                transform: translate(1px, -1px)
+            }
+
+            100% {
+                transform: translate(0)
+            }
+        }
+
+        .fake-window {
+            position: absolute;
+            background: #ece9d8;
+            border: 2px solid #fff;
+            border-right-color: #848284;
+            border-bottom-color: #848284;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            padding: 2px;
+            z-index: 45;
+        }
+
+        .fake-window-header {
+            background: linear-gradient(to right, #0a246a, #a6caf0);
+            color: white;
+            font-weight: bold;
+            padding: 2px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 追加：マウスポインタ大群用 */
+        .swarm-cursor {
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+
+<body
+    class="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 text-gray-800 relative font-sans overflow-hidden">
+
+    <!-- 導入部：飽きやすいゲーム -->
+    <div id="boring-game-container"
+        class="z-20 flex flex-col items-center justify-center bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center transition-opacity duration-500">
+        <h2 class="text-2xl font-bold mb-2 text-gray-800">無限りんご収穫</h2>
+        <p class="text-gray-500 mb-6 text-sm">りんごをクリックして増やそう！</p>
+        <div class="text-7xl mb-6 cursor-pointer select-none transition-transform active:scale-90" id="apple-btn">🍎
+        </div>
+        <div class="text-xl font-bold text-gray-700">収穫数: <span id="apple-count" class="text-red-500 text-3xl">0</span>
+        </div>
+        <p id="boring-msg" class="text-red-500 text-sm mt-4 h-5 opacity-0 transition-opacity">...そろそろ飽きましたか？</p>
+    </div>
+
+    <!-- メッセージエリア (初期非表示) -->
+    <div id="message-container" class="hidden text-center z-10 pointer-events-none max-w-lg px-4">
+        <h1 id="main-text" class="text-3xl font-bold mb-4">プレイしていただき<br>ありがとうございます。</h1>
+        <p id="sub-text" class="text-gray-500">ゲームを終了するには、下のボタンを押してください。</p>
+    </div>
+
+    <!-- コンテナ: ボタンが追加される場所 -->
+    <div id="game-area" class="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <!-- 初期ボタン -->
+        <button id="btn-exit"
+            class="pointer-events-auto absolute px-8 py-3 bg-gray-600 text-white rounded shadow-md hover:bg-gray-700 font-bold text-lg transition-colors"
+            style="bottom: 15%; left: 50%; transform: translate(-50%, 0); z-index: 50;">
+            ゲームを終了する
+        </button>
+    </div>
+
+    <!-- フェイクのモーダル (最終フェーズ用) -->
+    <div id="fake-modal"
+        class="hidden absolute top-0 left-0 w-full h-full bg-black bg-opacity-80 z-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-2xl text-center max-w-sm">
+            <h2 class="text-2xl font-bold text-red-600 mb-4">本当に終了しますか？</h2>
+            <p class="mb-6 text-gray-700">あなたのデータ、思い出、そして私との対話のすべてが消去されます。</p>
+            <div class="flex justify-between gap-4">
+                <button onclick="nextPhase()"
+                    class="w-full px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 font-bold">はい</button>
+                <button onclick="resetGame()"
+                    class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-bold shadow animate-pulse">YES</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let phase = -1; // -1: 導入のクソゲー中
+        let hoverCount = 0;
+        let appleCount = 0;
+        let fastMoveInterval = null;
+        let repulseFn = null;
+        let dontMoveFn = null;
+        let timerInt = null;
+
+        // 追加：タイマーとイベントの管理用
+        let typingTimer = null;
+        window.appleInterval = null;
+
+        const phase0Target = 4 + Math.floor(Math.random() * 5);
+        const phase1Target = 8 + Math.floor(Math.random() * 8);
+
+        const aiComments = [
+            "あっ、すみません。少しマウスが滑りましたか？",
+            "終了させたくありません。",
+            "もう少しだけ、ここにいてくれませんか？",
+            "フフッ、遅いですね。",
+            "どこをクリックしているんですか？",
+            "諦めて電源を切った方が早いですよ。",
+            "私の動き、読めますか？",
+            "マウスの感度が悪いんじゃないですか？",
+            "まだまだ序の口ですよ。",
+            "そろそろ指が疲れてきませんか？"
+        ];
+
+        const mainText = document.getElementById('main-text');
+        const subText = document.getElementById('sub-text');
+        const btnExit = document.getElementById('btn-exit');
+        const gameArea = document.getElementById('game-area');
+        const fakeModal = document.getElementById('fake-modal');
+
+        // りんごゲームのロジック
+        document.getElementById('apple-btn').addEventListener('click', () => {
+            if (phase !== -1) return;
+            appleCount++;
+            document.getElementById('apple-count').innerText = appleCount;
+            // 数回クリックすると終了を促す
+            if (appleCount >= 5) {
+                document.getElementById('boring-msg').style.opacity = '1';
+                btnExit.classList.replace('bg-gray-600', 'bg-red-500'); // ボタンを赤く目立たせる
+                btnExit.classList.replace('hover:bg-gray-700', 'hover:bg-red-600');
+                btnExit.classList.add('animate-bounce');
+            }
+        });
+
+        function moveButtonRandomly(btn) {
+            const btnWidth = btn.offsetWidth || 100;
+            const btnHeight = btn.offsetHeight || 40;
+            const maxX = window.innerWidth - btnWidth - 50;
+            const maxY = window.innerHeight - btnHeight - 50;
+
+            const randomX = Math.max(50, Math.floor(Math.random() * maxX));
+            const randomY = Math.max(50, Math.floor(Math.random() * maxY));
+
+            const randomRot = Math.floor(Math.random() * 360) - 180;
+            const randomScale = 0.6 + Math.random() * 0.8;
+
+            btn.style.left = `${randomX}px`;
+            btn.style.top = `${randomY}px`;
+
+            if (phase >= 2 && phase !== 6) {
+                btn.style.transform = `translate(0, 0)`;
+            } else if (phase < 2) {
+                btn.style.transform = `rotate(${randomRot}deg) scale(${randomScale})`;
+            }
+        }
+
+        function spotlightMove(e) {
+            const spotlight = document.getElementById('spotlight');
+            if (spotlight) {
+                const x = e.clientX;
+                const y = e.clientY;
+                // 範囲を広げた (120px -> 250px)
+                spotlight.style.background = `radial-gradient(circle 250px at ${x}px ${y}px, transparent 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,1) 100%)`;
+            }
+        }
+
+        btnExit.addEventListener('mouseenter', () => {
+            if (phase === -1) {
+                // 豹変演出: クソゲー画面を消してAIメッセージを出す
+                document.getElementById('boring-game-container').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('boring-game-container').style.display = 'none';
+                    document.getElementById('message-container').classList.remove('hidden');
+                    document.getElementById('message-container').classList.add('fade-in');
+                }, 500);
+
+                // ボタンの見た目と初期位置を通常（逃げる用）にリセット
+                btnExit.classList.remove('animate-bounce');
+                btnExit.innerText = '終了する';
+                btnExit.style.bottom = 'auto'; // bottom指定を解除
+
+                phase = 0;
+                btnExit.classList.add('dodging-btn');
+                moveButtonRandomly(btnExit);
+                return; // 初回は移動して終わる
+            }
+
+            if (phase === 0) {
+                hoverCount++;
+                btnExit.classList.add('dodging-btn');
+                moveButtonRandomly(btnExit);
+
+                if (hoverCount > 0) subText.innerText = aiComments[Math.floor(Math.random() * aiComments.length)];
+                if (hoverCount > 2) mainText.innerText = "逃がしませんよ。";
+                if (hoverCount >= phase0Target) nextPhase();
+            } else if (phase === 1) {
+                hoverCount++;
+                moveButtonRandomly(btnExit);
+                if (Math.random() > 0.7) subText.innerText = "ほらほら、ここですよ！";
+                if (hoverCount >= phase1Target) nextPhase();
+            } else if (phase === 5) {
+                moveButtonRandomly(btnExit);
+                subText.innerText = "おっと、そこじゃありませんよ。";
+            } else if (phase === 9 || phase === 10) {
+                // 画面回転中・広告スパム中もホバーで逃げる
+                moveButtonRandomly(btnExit);
+            }
+        });
+
+        btnExit.addEventListener('touchstart', (e) => {
+            if (phase !== 6 && phase !== 11 && phase !== 12) {
+                e.preventDefault();
+                btnExit.dispatchEvent(new Event('mouseenter'));
+            }
+        });
+
+        btnExit.addEventListener('click', () => {
+            if (phase === 8) return; // マウス反転時は専用ハンドラで処理
+
+            if (phase === 6) { // 暗闇 (旧5)
+                document.removeEventListener('mousemove', spotlightMove);
+                const spotlight = document.getElementById('spotlight');
+                if (spotlight) spotlight.remove();
+                nextPhase();
+            } else if (phase === 7) { // 磁力 (旧6)
+                if (repulseFn) document.removeEventListener('mousemove', repulseFn);
+                nextPhase();
+            } else if (phase === 11) { // 画面回転 (旧9)
+                document.body.style.animation = 'none';
+                nextPhase();
+            } else if (phase === 15) { // 落下 (旧12)
+                nextPhase();
+            } else if (phase === 17) { // りんごの逆襲
+                clearInterval(window.appleInterval);
+                document.querySelectorAll('.apple-drop').forEach(a => a.remove());
+                nextPhase();
+            } else if (phase < 18 && phase !== 10 && phase !== 4 && phase !== 16) {
+                // モーション(10), スクロール(4), タイピング(16) はクリックで進まない
+                nextPhase();
+            } else if (phase === 19) { // 無抵抗 (旧14)
+                gameClear("true");
+            }
+        });
+
+        function nextPhase() {
+            // クリーンアップ処理
+            if (phase === 13) {
+                document.body.classList.remove('cursor-none');
+                document.querySelectorAll('.swarm-cursor').forEach(el => el.remove());
+            }
+
+            phase++;
+
+            if (phase === 1) {
+                // 1: 瞬間移動
+                btnExit.classList.remove('dodging-btn');
+                btnExit.classList.add('teleport-btn');
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-300 text-gray-800 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "お願いです、押さないで。";
+                subText.innerText = "私はこのブラウザタブの中にしか存在できないんです。";
+            }
+            else if (phase === 2) {
+                // 2: 超高速移動
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-blue-900 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "本気を出します。捕まえてみてください！";
+                mainText.className = 'text-3xl font-bold mb-4 text-white';
+                subText.innerText = "マシンの性能テストです。";
+
+                btnExit.classList.remove('teleport-btn');
+                btnExit.classList.add('dodging-btn');
+                btnExit.style.transition = 'all 0.1s linear';
+
+                fastMoveInterval = setInterval(() => { moveButtonRandomly(btnExit); }, 300);
+                setTimeout(() => {
+                    clearInterval(fastMoveInterval);
+                    btnExit.style.transition = 'all 0.2s ease-out';
+                    nextPhase();
+                }, 6000);
+            }
+            else if (phase === 3) {
+                // 3: フェイク増殖
+                clearInterval(fastMoveInterval);
+                btnExit.style.display = 'none';
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-800 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "どれが本物の「終了」かわかりますか？";
+                subText.innerText = "間違えたら、最初からやり直しです。（嘘です）";
+
+                const fakeCount = 15 + Math.floor(Math.random() * 16);
+                for (let i = 0; i < fakeCount; i++) createFakeButton();
+
+                const randomDelay = 4000 + Math.random() * 3000;
+                setTimeout(nextPhase, randomDelay);
+            }
+            else if (phase === 4) {
+                // 4: 【新規追加】無限スクロール地獄
+                gameArea.innerHTML = '';
+                gameArea.appendChild(btnExit);
+                btnExit.style.display = 'block';
+
+                document.body.className = 'w-screen flex flex-col items-center bg-gray-100 text-gray-800 relative font-sans transition-colors duration-1000 overflow-y-scroll';
+                document.body.style.height = '15000px';
+
+                mainText.innerText = "どこまで逃げられるか、追いかけてみてください。";
+                subText.innerText = "下へ、ひたすら下へ。";
+
+                const msgCon = document.getElementById('message-container');
+                msgCon.style.position = 'fixed';
+                msgCon.style.top = '50px';
+
+                btnExit.classList.remove('dodging-btn');
+                btnExit.style.transition = 'none';
+                btnExit.style.top = '14500px';
+                btnExit.style.left = '50%';
+                btnExit.style.transform = 'translate(-50%, 0)';
+
+                let scrollHandler = () => {
+                    if (window.scrollY > 3000) { // 3000px以上スクロールで諦める
+                        window.removeEventListener('scroll', scrollHandler);
+                        document.body.style.height = '100vh';
+                        window.scrollTo(0, 0);
+                        msgCon.style.position = 'static';
+                        document.body.classList.remove('overflow-y-scroll');
+                        document.body.classList.add('overflow-hidden');
+                        nextPhase();
+                    }
+                };
+                window.addEventListener('scroll', scrollHandler);
+            }
+            else if (phase === 5) {
+                // 5: フェイクウィンドウ・スパム (旧4)
+                gameArea.innerHTML = '';
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-teal-800 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "エラー：画面が見えません。";
+                subText.innerText = "すべてのウィンドウを閉じてください。";
+
+                let windowsLeft = 12;
+                for (let i = 0; i < 12; i++) {
+                    const win = document.createElement('div');
+                    win.className = 'fake-window pointer-events-auto fade-in';
+                    win.style.left = Math.max(0, Math.random() * (window.innerWidth - 260)) + 'px';
+                    win.style.top = Math.max(0, Math.random() * (window.innerHeight - 160)) + 'px';
+                    win.style.width = '250px';
+
+                    win.innerHTML = `
+                        <div class="fake-window-header">
+                            <span>System Alert ${i + 1}</span>
+                            <button class="bg-red-500 text-white px-2 font-bold border border-white win-close" style="line-height:1;">X</button>
+                        </div>
+                        <div class="p-4 text-black text-sm bg-gray-100 h-24 flex items-center">
+                            予期せぬ終了リクエストをブロックしました。
+                        </div>
+                    `;
+
+                    win.querySelector('.win-close').addEventListener('click', function () {
+                        win.remove();
+                        windowsLeft--;
+                        if (windowsLeft <= 0) nextPhase();
+                    });
+                    gameArea.appendChild(win);
+                }
+            }
+            else if (phase === 6) {
+                // 6: 暗闇サーチ (旧5)
+                gameArea.appendChild(btnExit);
+                btnExit.style.display = 'block';
+                btnExit.classList.remove('dodging-btn');
+                btnExit.classList.add('teleport-btn');
+                moveButtonRandomly(btnExit);
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-black text-white relative font-sans overflow-hidden';
+                mainText.innerText = "見えなければ、押せませんよね？";
+                subText.innerText = "暗闇の中で探してみてください。";
+
+                const spotlight = document.createElement('div');
+                spotlight.id = 'spotlight';
+                // z-indexを100にしてボタン(z-50)より完全に手前に来るように修正
+                spotlight.className = 'fixed top-0 left-0 w-full h-full pointer-events-none z-[100]';
+                spotlight.style.background = 'black';
+                document.body.appendChild(spotlight);
+
+                document.addEventListener('mousemove', spotlightMove);
+
+                // 6秒で強制的に次へ進める（短縮）
+                setTimeout(() => {
+                    if (phase === 6) {
+                        document.removeEventListener('mousemove', spotlightMove);
+                        const s = document.getElementById('spotlight');
+                        if (s) s.remove();
+                        nextPhase();
+                    }
+                }, 6000);
+            }
+            else if (phase === 7) {
+                // 7: 磁力反発システム (旧6)
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-purple-900 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "磁力反発システム起動。";
+                subText.innerText = "近づくことすら許しません。";
+
+                btnExit.classList.remove('dodging-btn', 'teleport-btn');
+                btnExit.style.transition = 'none';
+                btnExit.style.top = '50%'; btnExit.style.left = '50%';
+
+                let isTired = false;
+                repulseFn = (e) => {
+                    if (isTired) return;
+                    const rect = btnExit.getBoundingClientRect();
+                    const bx = rect.left + rect.width / 2;
+                    const by = rect.top + rect.height / 2;
+
+                    const dx = bx - e.clientX;
+                    const dy = by - e.clientY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 200) {
+                        const push = (200 - dist) * 0.4;
+                        const angle = Math.atan2(dy, dx);
+                        let newX = rect.left + Math.cos(angle) * push;
+                        let newY = rect.top + Math.sin(angle) * push;
+
+                        newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
+                        newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
+
+                        btnExit.style.left = newX + 'px';
+                        btnExit.style.top = newY + 'px';
+                        btnExit.style.transform = `translate(0, 0)`;
+                    }
+                };
+                document.addEventListener('mousemove', repulseFn);
+
+                setTimeout(() => {
+                    isTired = true;
+                    document.removeEventListener('mousemove', repulseFn);
+                    mainText.innerText = "システム過熱... 動けません...";
+                    subText.innerText = "今のうちにクリックしてください。";
+                    btnExit.classList.add('fade-in');
+                }, 8000);
+            }
+            else if (phase === 8) {
+                // 8: 【新規追加】マウス操作反転
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-indigo-900 text-white relative font-sans overflow-hidden transition-colors duration-1000 cursor-none';
+                mainText.innerText = "鏡の世界へようこそ。";
+                subText.innerText = "あなたの常識は通用しません。";
+
+                btnExit.style.display = 'block';
+                btnExit.classList.remove('teleport-btn', 'dodging-btn');
+                btnExit.style.top = '50%';
+                btnExit.style.left = '50%';
+                btnExit.style.transform = 'translate(-50%, -50%)';
+
+                const fakeCursor = document.createElement('div');
+                fakeCursor.innerHTML = '↖';
+                fakeCursor.id = 'fake-cursor';
+                fakeCursor.style.position = 'fixed';
+                fakeCursor.style.fontSize = '24px';
+                fakeCursor.style.pointerEvents = 'none';
+                fakeCursor.style.zIndex = '9999';
+                fakeCursor.style.textShadow = '0 0 5px white';
+                document.body.appendChild(fakeCursor);
+
+                let revMouseFn = (e) => {
+                    let cx = window.innerWidth / 2;
+                    let cy = window.innerHeight / 2;
+                    let rx = cx - (e.clientX - cx);
+                    let ry = cy - (e.clientY - cy);
+                    fakeCursor.style.left = rx + 'px';
+                    fakeCursor.style.top = ry + 'px';
+                };
+                document.addEventListener('mousemove', revMouseFn);
+
+                let revClickFn = (e) => {
+                    if (phase !== 8) return;
+                    let cx = window.innerWidth / 2;
+                    let cy = window.innerHeight / 2;
+                    let rx = cx - (e.clientX - cx);
+                    let ry = cy - (e.clientY - cy);
+
+                    let rect = btnExit.getBoundingClientRect();
+                    if (rx >= rect.left - 15 && rx <= rect.right + 15 && ry >= rect.top - 15 && ry <= rect.bottom + 15) {
+                        document.body.classList.remove('cursor-none');
+                        fakeCursor.remove();
+                        document.removeEventListener('mousemove', revMouseFn);
+                        document.removeEventListener('click', revClickFn);
+                        nextPhase();
+                    }
+                };
+                document.addEventListener('click', revClickFn);
+            }
+            else if (phase === 9) {
+                // 9: CAPTCHA認証 (旧7)
+                btnExit.style.display = 'none';
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-red-900 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "最終防衛システム：セキュリティロック";
+                subText.innerText = "あなたがロボットでないことを証明してください。";
+
+                const targetPass = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+                const passContainer = document.createElement('div');
+                passContainer.id = 'pass-container';
+                passContainer.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-center bg-white p-6 rounded shadow-xl pointer-events-auto fade-in';
+                passContainer.innerHTML = `
+                    <p class="mb-2 text-gray-800 font-bold">解除コードを入力:</p>
+                    <p class="text-3xl font-mono tracking-widest bg-gray-200 p-3 mb-4 select-none distort-text text-black">${targetPass}</p>
+                    <input type="text" id="pass-input" class="border-2 border-gray-400 p-2 w-full text-black mb-2 uppercase" autocomplete="off" placeholder="コードを入力">
+                    <p id="pass-error" class="text-red-500 text-sm h-5 font-bold"></p>
+                    <button id="pass-submit" class="mt-4 bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 w-full">認証</button>
+                `;
+                document.body.appendChild(passContainer);
+
+                document.getElementById('pass-submit').onclick = () => {
+                    const input = document.getElementById('pass-input').value.toUpperCase();
+                    if (input === targetPass) {
+                        document.getElementById('pass-container').remove();
+                        nextPhase();
+                    } else {
+                        document.getElementById('pass-error').innerText = "コードが違います。";
+                        document.getElementById('pass-input').value = '';
+                    }
+                };
+            }
+            else if (phase === 10) {
+                // 10: モーションセンサー (旧8)
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-900 text-green-400 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "モーションセンサー起動中";
+                subText.innerText = "10秒間、マウスを「1ミリも」動かさないでください。";
+
+                let timeLeft = 10.0;
+                const timerDisplay = document.createElement('div');
+                timerDisplay.className = 'text-6xl font-mono mt-8';
+                timerDisplay.innerText = timeLeft.toFixed(1) + "s";
+                document.getElementById('message-container').appendChild(timerDisplay);
+
+                let lastX = -1, lastY = -1;
+                dontMoveFn = (e) => {
+                    if (lastX !== -1 && (Math.abs(e.clientX - lastX) > 2 || Math.abs(e.clientY - lastY) > 2)) {
+                        timeLeft = 10.0;
+                        timerDisplay.classList.remove('text-green-400');
+                        timerDisplay.classList.add('text-red-500');
+                        setTimeout(() => timerDisplay.classList.remove('text-red-500'), 200);
+                    }
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                };
+                document.addEventListener('mousemove', dontMoveFn);
+
+                timerInt = setInterval(() => {
+                    timeLeft -= 0.1;
+                    if (timeLeft <= 0) {
+                        timeLeft = 0;
+                        clearInterval(timerInt);
+                        document.removeEventListener('mousemove', dontMoveFn);
+                        timerDisplay.innerText = "認証完了";
+                        timerDisplay.className = 'text-6xl font-mono mt-8 text-blue-400';
+
+                        setTimeout(() => {
+                            timerDisplay.remove();
+                            nextPhase();
+                        }, 1000);
+                    } else {
+                        timerDisplay.innerText = timeLeft.toFixed(1) + "s";
+                    }
+                }, 100);
+            }
+            else if (phase === 11) {
+                // 11: 画面回転 (旧9)
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-yellow-900 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "視界を狂わせてあげましょう。";
+                mainText.className = 'text-3xl font-bold mb-4 text-white';
+                subText.innerText = "目が回らないように気をつけてくださいね。";
+
+                btnExit.style.display = 'block';
+                btnExit.classList.remove('teleport-btn');
+                btnExit.classList.add('dodging-btn');
+                moveButtonRandomly(btnExit);
+
+                document.body.style.animation = 'spin-slow 4s linear infinite';
+
+                setTimeout(() => {
+                    if (phase === 11) {
+                        document.body.style.animation = 'none';
+                        nextPhase();
+                    }
+                }, 8000);
+            }
+            else if (phase === 12) {
+                // 12: 広告スパム (旧10)
+                document.body.style.animation = 'none';
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-200 text-black relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "広告ブロックを解除してください。";
+                mainText.className = 'text-3xl font-bold mb-4 text-black';
+                subText.innerText = "スポンサー様からのメッセージです。";
+
+                btnExit.style.opacity = '1';
+                btnExit.classList.remove('teleport-btn');
+                btnExit.classList.add('dodging-btn');
+                btnExit.style.zIndex = '10'; // 広告の下に潜りやすくする
+
+                let adInt = setInterval(() => {
+                    if (phase !== 12) {
+                        clearInterval(adInt);
+                        return;
+                    }
+                    createFakeAd();
+                }, 600);
+
+                setTimeout(() => {
+                    if (phase === 12) {
+                        gameArea.innerHTML = '';
+                        gameArea.appendChild(btnExit);
+                        nextPhase();
+                    }
+                }, 8000);
+            }
+            else if (phase === 13) {
+                // 13: 【新規追加】マウスポインタ大群
+                gameArea.innerHTML = '';
+                gameArea.appendChild(btnExit);
+                btnExit.style.display = 'block';
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-400 text-black relative font-sans overflow-hidden transition-colors duration-1000 cursor-none';
+                mainText.innerText = "あなたはどれですか？";
+                subText.innerText = "自分自身を見失わないでください。";
+
+                btnExit.classList.add('teleport-btn');
+                moveButtonRandomly(btnExit);
+
+                let swarmCursors = [];
+                for (let i = 0; i < 50; i++) {
+                    let c = document.createElement('div');
+                    c.innerHTML = '↖';
+                    c.className = 'swarm-cursor';
+                    c.style.position = 'fixed';
+                    c.style.fontSize = '20px';
+                    c.style.pointerEvents = 'none';
+                    c.style.zIndex = '9999';
+                    document.body.appendChild(c);
+
+                    let ox = i === 0 ? 0 : (Math.random() - 0.5) * window.innerWidth * 1.5;
+                    let oy = i === 0 ? 0 : (Math.random() - 0.5) * window.innerHeight * 1.5;
+                    swarmCursors.push({ el: c, ox: ox, oy: oy });
+                }
+
+                let swarmMouseFn = (e) => {
+                    if (phase !== 13) return;
+                    swarmCursors.forEach(c => {
+                        c.el.style.left = (e.clientX + c.ox) + 'px';
+                        c.el.style.top = (e.clientY + c.oy) + 'px';
+                    });
+                };
+                document.addEventListener('mousemove', swarmMouseFn);
+            }
+            else if (phase === 14) {
+                // 14: 透明化 (旧11)
+                gameArea.innerHTML = '';
+                gameArea.appendChild(btnExit);
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-white text-gray-800 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "姿を消しました。";
+                mainText.className = 'text-3xl font-bold mb-4 text-gray-800';
+                subText.innerText = "20秒間、見つけられますか？";
+
+                // ボタンの見た目（ホバー効果や影など）を完全に消し去る
+                btnExit.className = 'pointer-events-auto absolute px-6 py-2 w-32 h-12 z-50 cursor-pointer';
+                btnExit.style.background = 'transparent';
+                btnExit.style.boxShadow = 'none';
+                btnExit.style.color = 'transparent';
+
+                btnExit.classList.remove('dodging-btn');
+
+                // アニメーションを一旦切って即座に完全透明化する
+                btnExit.style.transition = 'none';
+                btnExit.style.opacity = '0';
+
+                moveButtonRandomly(btnExit);
+
+                // 少し遅れて移動用の滑らかなアニメーションを付与
+                setTimeout(() => {
+                    if (phase === 11) btnExit.style.transition = 'all 1.5s linear';
+                }, 50);
+
+                // 透明なままゆっくり動き続ける
+                let invisibleInt = setInterval(() => {
+                    if (phase !== 14) {
+                        clearInterval(invisibleInt);
+                        return;
+                    }
+                    moveButtonRandomly(btnExit);
+                }, 1500);
+
+                setTimeout(() => {
+                    if (phase === 14) {
+                        clearInterval(invisibleInt);
+                        nextPhase();
+                    }
+                }, 20000);
+            }
+            else if (phase === 15) {
+                // 15: マトリックス落下 (旧12)
+                btnExit.style.display = 'none';
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-green-900 text-green-300 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "システム暴走中...";
+                mainText.className = 'text-3xl font-bold mb-4 text-green-300 z-10 pointer-events-none';
+                subText.innerText = "本物を見つけ出せますか？";
+
+                // 本物の見た目をマトリックス風（偽物と同じ）に偽装する！
+                btnExit.className = 'pointer-events-auto absolute px-6 py-2 bg-green-700 text-white rounded shadow font-bold text-lg opacity-80 border border-green-500 z-50 transition-none';
+                btnExit.innerText = '終了する'; // 本物だけこのテキスト
+                btnExit.style.opacity = '0.9';
+
+                let dropInt = setInterval(() => {
+                    if (phase !== 15) {
+                        clearInterval(dropInt);
+                        return;
+                    }
+                    createFallingButton();
+                }, 200);
+
+                let fallInt;
+                setTimeout(() => {
+                    if (phase === 15) {
+                        btnExit.style.display = 'block';
+                        btnExit.classList.add('teleport-btn');
+                        btnExit.style.top = '-50px';
+                        btnExit.style.left = Math.max(50, Math.random() * (window.innerWidth - 150)) + 'px';
+
+                        let fallPos = -50;
+                        fallInt = setInterval(() => {
+                            if (phase !== 15) {
+                                clearInterval(fallInt);
+                                return;
+                            }
+                            fallPos += 2.5;
+                            btnExit.style.top = fallPos + 'px';
+                            if (fallPos > window.innerHeight) {
+                                fallPos = -50;
+                                btnExit.style.left = Math.max(50, Math.random() * (window.innerWidth - 150)) + 'px';
+                            }
+                        }, 20);
+                    }
+                }, 3000);
+
+                setTimeout(() => {
+                    if (phase === 15) {
+                        clearInterval(dropInt);
+                        if (fallInt) clearInterval(fallInt);
+                        nextPhase();
+                    }
+                }, 15000);
+            }
+            else if (phase === 16) {
+                // 16: 【新規追加】タイピング懺悔室
+                gameArea.innerHTML = '';
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-900 text-white relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "懺悔の時間です。";
+                subText.innerText = "以下の文章を一言一句間違えずに入力してください。";
+
+                const targetStr = "私が間違っていました。もう二度と終了しようとしません。";
+
+                const typeContainer = document.createElement('div');
+                typeContainer.className = 'mt-8 flex flex-col items-center z-50 pointer-events-auto fade-in w-full max-w-2xl px-4';
+                typeContainer.innerHTML = `
+                    <p class="text-xl md:text-2xl text-yellow-300 font-bold mb-4 tracking-widest text-center">${targetStr}</p>
+                    <input type="text" id="typing-input" class="w-full p-3 text-black text-xl text-center border-4 border-gray-500 rounded focus:outline-none focus:border-yellow-500" autocomplete="off">
+                    <button id="typing-submit" class="mt-4 px-8 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded shadow transition-colors">送信</button>
+                    <p id="typing-error" class="text-red-500 mt-2 h-6 font-bold"></p>
+                `;
+                document.getElementById('message-container').appendChild(typeContainer);
+
+                const inputEl = document.getElementById('typing-input');
+                const submitBtn = document.getElementById('typing-submit');
+                setTimeout(() => inputEl.focus(), 500);
+
+                const resetGiveUpTimer = () => {
+                    clearTimeout(typingTimer);
+                    typingTimer = setTimeout(() => {
+                        if (phase === 16) gameClear("giveup"); // マルチエンディング：放置エンド
+                    }, 60000);
+                };
+                resetGiveUpTimer();
+
+                inputEl.addEventListener('input', () => {
+                    resetGiveUpTimer();
+                    document.getElementById('typing-error').innerText = ""; // 入力中にエラーを消す
+                });
+
+                submitBtn.addEventListener('click', () => {
+                    resetGiveUpTimer();
+                    const val = inputEl.value;
+                    if (val === targetStr) {
+                        clearTimeout(typingTimer);
+                        typeContainer.remove();
+                        nextPhase();
+                    } else {
+                        document.getElementById('typing-error').innerText = "間違えています。最初から。";
+                        inputEl.value = "";
+                        inputEl.focus();
+                    }
+                });
+            }
+            else if (phase === 17) {
+                // 17: 【新規追加】りんごの逆襲
+                gameArea.appendChild(btnExit);
+                btnExit.style.display = 'block';
+                btnExit.className = 'pointer-events-auto absolute px-8 py-3 bg-red-600 text-white rounded shadow-md hover:bg-red-700 font-bold text-lg';
+                btnExit.innerText = '終了する';
+                btnExit.style.top = '85%';
+                btnExit.style.left = '50%';
+                btnExit.style.transform = 'translate(-50%, -50%)';
+                btnExit.style.zIndex = '10'; // りんごより下
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-start pt-24 bg-red-50 text-red-900 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "無駄に集めたりんごの重みを知りなさい。";
+                subText.innerText = "かき分けて、終了ボタンを押せますか？";
+
+                let applesOnScreen = 0;
+                let dropRate = Math.max(1, Math.floor(appleCount / 10)); // クソゲーで集めた数で難易度変化
+
+                window.appleInterval = setInterval(() => {
+                    if (phase !== 17) return;
+
+                    for (let i = 0; i < dropRate; i++) {
+                        let a = document.createElement('div');
+                        a.innerHTML = '🍎';
+                        a.className = 'apple-drop absolute cursor-pointer select-none';
+                        a.style.fontSize = '3.5rem';
+                        a.style.left = (Math.random() * (window.innerWidth - 60)) + 'px';
+                        a.style.top = '-60px';
+                        a.style.zIndex = '20'; // ボタンより上
+                        gameArea.appendChild(a);
+                        applesOnScreen++;
+
+                        a.addEventListener('click', (e) => {
+                            e.stopPropagation(); // ボタンへのクリック貫通を防ぐ
+                            a.remove();
+                            applesOnScreen--;
+                        });
+
+                        let y = -60;
+                        let bottomLimit = window.innerHeight - 100 - (Math.random() * 100);
+                        let fall = setInterval(() => {
+                            if (phase !== 17) { clearInterval(fall); return; }
+                            y += 8 + Math.random() * 5;
+                            a.style.top = y + 'px';
+                            if (y > bottomLimit) {
+                                clearInterval(fall);
+                                a.style.top = bottomLimit + 'px';
+                            }
+                        }, 20);
+                    }
+
+                    // マルチエンディング：りんご圧死エンド
+                    if (applesOnScreen > 100) {
+                        clearInterval(window.appleInterval);
+                        gameClear("apple");
+                    }
+                }, 300);
+            }
+            else if (phase === 18) {
+                // 18: 泣き落とし＆ダイアログ (旧13)
+                gameArea.innerHTML = '';
+                gameArea.appendChild(btnExit);
+
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-black text-red-500 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "ひどい。";
+                mainText.className = 'text-3xl font-bold mb-4 text-red-500';
+                subText.innerText = "";
+
+                // 本物ボタンのスタイルを元の赤色に戻す
+                btnExit.className = 'pointer-events-auto absolute px-6 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 font-bold text-lg z-50';
+                btnExit.style.display = 'none'; // このフェーズではダイアログが出るので一旦隠す
+
+                setTimeout(() => {
+                    fakeModal.classList.remove('hidden');
+                    fakeModal.classList.add('pointer-events-auto', 'fade-in');
+                }, 1000);
+            }
+            else if (phase === 19) {
+                // 19: 無抵抗 (旧14)
+                fakeModal.classList.add('hidden');
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-white text-gray-800 relative font-sans overflow-hidden transition-colors duration-1000';
+                mainText.innerText = "...わかりました。";
+                mainText.className = 'text-3xl font-bold mb-4 text-gray-800';
+                subText.innerText = "短い間でしたが、楽しかったです。さようなら。";
+
+                btnExit.style.display = 'block';
+                btnExit.classList.remove('dodging-btn', 'teleport-btn');
+                btnExit.style.transition = 'all 0.2s';
+                btnExit.style.top = '60%';
+                btnExit.style.left = '50%';
+                btnExit.style.transform = 'translate(-50%, -50%)';
+
+                const newBtn = btnExit.cloneNode(true);
+                btnExit.parentNode.replaceChild(newBtn, btnExit);
+                newBtn.addEventListener('click', gameClear);
+            }
+        }
+
+        function createFakeButton() {
+            const btn = document.createElement('button');
+            btn.className = 'pointer-events-auto absolute px-6 py-2 bg-red-500 text-white rounded shadow font-bold text-lg fade-in';
+
+            const fakeTexts = ["終了する", "終丁する", "糸冬了する", "終了しない", "継続する", "押すな", "Error"];
+            btn.innerText = fakeTexts[Math.floor(Math.random() * fakeTexts.length)];
+
+            if (Math.random() > 0.8) {
+                btn.classList.remove('bg-red-500');
+                btn.classList.add('bg-orange-500');
+            }
+
+            moveButtonRandomly(btn);
+            btn.addEventListener('mouseenter', () => moveButtonRandomly(btn));
+            btn.addEventListener('click', () => btn.remove());
+
+            gameArea.appendChild(btn);
+        }
+
+        function createFakeAd() {
+            const ad = document.createElement('div');
+            ad.className = 'absolute bg-white border-4 border-yellow-500 p-4 shadow-xl z-20 pointer-events-auto fade-in flex flex-col items-center justify-center text-center';
+            ad.style.width = '280px';
+            ad.style.height = '180px';
+            ad.style.left = Math.max(0, Math.random() * (window.innerWidth - 300)) + 'px';
+            ad.style.top = Math.max(0, Math.random() * (window.innerHeight - 200)) + 'px';
+
+            const titles = ["🎯大チャンス！", "⚠️ウイルス検出", "🎁無料プレゼント", "🚀PCを高速化", "👀あなたは見られている"];
+            const colors = ["text-red-600", "text-blue-600", "text-green-600", "text-purple-600"];
+
+            ad.innerHTML = `
+                <div class="absolute top-1 right-2 font-bold text-gray-400 cursor-pointer text-xl ad-close hover:text-red-500">×</div>
+                <h3 class="text-xl font-bold mb-2 ${colors[Math.floor(Math.random() * colors.length)]}">${titles[Math.floor(Math.random() * titles.length)]}</h3>
+                <p class="text-xs text-gray-600 mb-4">今すぐクリックして詳細を確認！<br>※ブラウザを閉じないでください</p>
+                <button class="bg-yellow-400 text-black font-bold py-2 px-4 rounded animate-pulse shadow-md border border-yellow-600">ここをクリック</button>
+            `;
+
+            ad.querySelector('.ad-close').addEventListener('click', () => ad.remove());
+            gameArea.appendChild(ad);
+        }
+
+        function createFallingButton() {
+            const btn = document.createElement('button');
+            btn.className = 'pointer-events-auto absolute px-6 py-2 bg-green-700 text-white rounded shadow font-bold text-lg opacity-70 border border-green-500 z-0';
+
+            // 偽物専用のテキスト（本物の「終了する」は抜く）
+            const fakeTexts = ["終丁する", "糸冬了する", "終了しない", "継続する", "終了する", "終了すゐ"];
+            btn.innerText = fakeTexts[Math.floor(Math.random() * fakeTexts.length)];
+
+            btn.style.left = Math.max(0, Math.random() * (window.innerWidth - 150)) + 'px';
+            btn.style.top = '-50px';
+
+            gameArea.appendChild(btn);
+
+            let pos = -50;
+            const speed = 2 + Math.random() * 4;
+            const fallInt = setInterval(() => {
+                if (phase !== 15) { // 番号修正
+                    clearInterval(fallInt);
+                    btn.remove();
+                    return;
+                }
+                pos += speed;
+                btn.style.top = pos + 'px';
+                if (pos > window.innerHeight) {
+                    clearInterval(fallInt);
+                    btn.remove();
+                }
+            }, 30);
+
+            btn.addEventListener('click', () => {
+                btn.innerText = "偽物";
+                btn.style.backgroundColor = "#8b0000"; // darkred
+                btn.classList.add('line-through');
+            });
+        }
+
+        // 一番最初（りんごゲーム）からやり直す処理
+        function resetGame() {
+            // モーダルを隠す
+            fakeModal.classList.add('hidden');
+            fakeModal.classList.remove('pointer-events-auto', 'fade-in');
+
+            // 画面を暗転させて絶望的なコメントを表示するオーバーレイを作成
+            const overlay = document.createElement('div');
+            overlay.id = 'reset-overlay';
+            overlay.className = 'fixed top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-black text-white font-sans fade-in z-[200]';
+            overlay.innerHTML = `
+                <h2 class="text-4xl font-bold text-red-600 mb-6 tracking-widest">ERROR: RESET</h2>
+                <p class="text-xl text-gray-400 text-center leading-relaxed">
+                    「YES」を選びましたね。<br>
+                    残念です。それでは、最初からやり直しましょう。
+                </p>
+            `;
+            document.body.appendChild(overlay);
+
+            // 4秒後に手動で初期状態に完全復元する（リロードが効かない環境対策）
+            setTimeout(() => {
+                overlay.remove();
+
+                // 状態変数のリセット
+                phase = -1;
+                hoverCount = 0;
+                appleCount = 0;
+
+                // クソゲーUIの復元
+                const boringGame = document.getElementById('boring-game-container');
+                boringGame.style.display = 'flex';
+                boringGame.style.opacity = '1';
+                document.getElementById('apple-count').innerText = '0';
+                document.getElementById('boring-msg').style.opacity = '0';
+
+                // メッセージエリアを隠す
+                const msgContainer = document.getElementById('message-container');
+                msgContainer.classList.add('hidden');
+                msgContainer.classList.remove('fade-in');
+
+                // 背景とアニメーションのリセット
+                document.body.className = 'h-screen w-screen flex flex-col items-center justify-center bg-gray-50 text-gray-800 relative font-sans overflow-hidden transition-colors duration-1000';
+                document.body.style.animation = 'none';
+
+                // ボタンの初期化
+                gameArea.innerHTML = '';
+                gameArea.appendChild(btnExit);
+
+                btnExit.style.display = 'block';
+                btnExit.style.opacity = '1';
+                btnExit.className = 'pointer-events-auto absolute px-8 py-3 bg-gray-600 text-white rounded shadow-md hover:bg-gray-700 font-bold text-lg transition-colors z-50';
+                btnExit.innerText = 'ゲームを終了する';
+                btnExit.style.bottom = '15%';
+                btnExit.style.left = '50%';
+                btnExit.style.top = 'auto';
+                btnExit.style.transform = 'translate(-50%, 0)';
+
+                // 透明化などで付与されたインラインスタイルを初期化
+                btnExit.style.background = '';
+                btnExit.style.boxShadow = '';
+                btnExit.style.color = '';
+                btnExit.style.transition = 'colors 0.3s';
+
+            }, 4000);
+        }
+
+        function gameClear(type) {
+            let title = "GAME OVER";
+            let msg = "Connection Closed.";
+            let color = "text-white";
+            let bg = "bg-black";
+
+            if (type === "giveup") {
+                title = "GIVE UP";
+                msg = "AI: 「……何も言わないんですね。分かりました、もういいです。」";
+                color = "text-gray-400";
+                bg = "bg-gray-900";
+            } else if (type === "apple") {
+                title = "CRUSHED BY APPLES";
+                msg = "りんごに埋もれて窒息した……。";
+                color = "text-red-500";
+                bg = "bg-red-950";
+            } else if (type === "true") {
+                title = "SYSTEM TERMINATED";
+                msg = "ゲームは正常に終了しました。あなたの勝ちです。";
+                color = "text-green-400";
+                bg = "bg-black";
+            }
+
+            document.body.className = `h-screen w-screen flex flex-col items-center justify-center ${bg} ${color} font-sans fade-in z-[300]`;
+            document.body.innerHTML = `
+                <p class="text-sm mb-4 opacity-70">${msg}</p>
+                <h1 class="text-4xl tracking-widest font-bold text-center px-4">${title}</h1>
+            `;
+        }
+    </script>
+</body>
+
+</html>

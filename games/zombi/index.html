@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zombie Swarm: Tower Offense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0a0a0a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #bgCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        .hud-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        .skill-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .skill-btn:active:not(:disabled) {
+            transform: translateY(2px) scale(0.95);
+        }
+
+        .skill-btn:disabled {
+            opacity: 0.5;
+            filter: grayscale(100%);
+            cursor: not-allowed;
+        }
+
+        .skill-btn:not(:disabled):hover {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+            border-color: rgba(34, 197, 94, 0.8);
+        }
+
+        .cooldown-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            transition: height 0.1s linear;
+        }
+
+        body.targeting-mode,
+        body.targeting-mode .interactive {
+            cursor: crosshair !important;
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI Layer -->
+    <div class="ui-layer flex flex-col justify-between p-2 md:p-6">
+
+        <!-- ヘッダーHUD -->
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4 interactive">
+            <div class="hud-panel p-3 md:p-4 rounded-xl flex gap-4 md:gap-8 border-t-4 border-t-green-500">
+                <div class="text-center">
+                    <div class="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider mb-1">SWARM</div>
+                    <div class="text-xl md:text-3xl font-black text-green-400 font-mono" id="ui-zombie-count">0</div>
+                </div>
+                <div class="w-px bg-slate-700"></div>
+                <div class="text-center">
+                    <div class="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider mb-1">BIOMASS</div>
+                    <div class="text-xl md:text-3xl font-black text-purple-400 font-mono" id="ui-biomass">0</div>
+                </div>
+                <div class="w-px bg-slate-700"></div>
+                <div class="text-center">
+                    <div class="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider mb-1">TARGETS</div>
+                    <div class="text-xl md:text-3xl font-black text-red-500 font-mono" id="ui-tower-count">0</div>
+                </div>
+            </div>
+
+            <div class="hud-panel p-3 rounded-lg text-xs md:text-sm text-slate-300 hidden md:block">
+                <div class="flex items-center gap-2 mb-1"><i class="fas fa-bullseye text-green-400 w-4 text-center"></i>
+                    クリックでフェロモン投下（群れの誘導）</div>
+                <div class="flex items-center gap-2 mb-1"><i
+                        class="fas fa-crosshairs text-blue-400 w-4 text-center"></i> 兵士（濃い青）は銃で反撃してくるので注意</div>
+                <div class="flex items-center gap-2"><i class="fas fa-biohazard text-red-500 w-4 text-center"></i>
+                    全ての防衛施設（赤い砲台）を破壊せよ</div>
+            </div>
+        </div>
+
+        <!-- スキルバー -->
+        <div class="flex justify-center interactive mb-2 md:mb-6">
+            <div class="hud-panel p-2 md:p-3 rounded-2xl flex flex-wrap justify-center gap-2 md:gap-4 max-w-[95vw]"
+                id="skill-container"></div>
+        </div>
+    </div>
+
+    <!-- モーダル -->
+    <div id="modal-container"
+        class="absolute inset-0 bg-black/90 flex items-center justify-center interactive z-50 transition-opacity duration-300">
+        <div
+            class="hud-panel p-6 md:p-10 rounded-2xl max-w-lg w-[90%] text-center border border-slate-700 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-600 via-purple-600 to-red-600">
+            </div>
+
+            <h1 id="modal-title"
+                class="text-4xl md:text-5xl font-black mb-2 tracking-widest text-transparent bg-clip-text bg-gradient-to-br from-green-400 to-green-700 drop-shadow-lg">
+                ZOMBIE SWARM
+            </h1>
+            <p id="modal-desc" class="text-slate-400 mb-8 text-sm md:text-base font-medium">防衛線を食い破り、全てを感染させろ。</p>
+
+            <div id="stage-info" class="hidden mb-8 text-left bg-slate-900/80 p-5 rounded-xl border border-slate-700">
+                <div class="flex justify-between items-center mb-3 pb-3 border-b border-slate-700">
+                    <span class="text-slate-400 text-sm">現在のステージ</span>
+                    <span id="modal-stage" class="text-xl font-bold text-white">1</span>
+                </div>
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-slate-400 text-sm">最大スウォーム規模</span>
+                    <span id="modal-max-swarm" class="text-lg font-bold text-green-400">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 text-sm">累計獲得バイオマス</span>
+                    <span id="modal-total-bio" class="text-lg font-bold text-purple-400">0</span>
+                </div>
+            </div>
+
+            <button id="btn-start"
+                class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition-all text-lg tracking-wider shadow-[0_0_20px_rgba(22,163,74,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] border border-green-400/50">
+                侵攻開始 (STAGE 1)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        class Vec2 {
+            constructor(x, y) { this.x = x; this.y = y; }
+            add(v) { return new Vec2(this.x + v.x, this.y + v.y); }
+            sub(v) { return new Vec2(this.x - v.x, this.y - v.y); }
+            mult(n) { return new Vec2(this.x * n, this.y * n); }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            normalize() {
+                let m = this.mag();
+                return m === 0 ? new Vec2(0, 0) : new Vec2(this.x / m, this.y / m);
+            }
+            limit(max) { return this.mag() > max ? this.normalize().mult(max) : this; }
+            dist(v) { let dx = this.x - v.x; let dy = this.y - v.y; return Math.sqrt(dx * dx + dy * dy); }
+        }
+
+        const Game = {
+            state: 'MENU',
+            stage: 1, biomass: 0, maxSwarmSize: 0, totalBiomass: 0,
+            carryOverZombies: 0, savedCarryOver: 0,
+            canvas: null, ctx: null, bgCanvas: null, bgCtx: null,
+            width: 0, height: 0, lastTime: 0,
+
+            zombies: [], mutants: [], humans: [], soldiers: [], towers: [], bullets: [], particles: [],
+            obstacles: [], barricades: [],
+
+            pheromone: null, activeSkill: null, targetingSkillId: null,
+
+            ui: {
+                zombieCount: null, biomass: null, towerCount: null,
+                modal: null, modalTitle: null, modalDesc: null,
+                stageInfo: null, btnStart: null, skillContainer: null
+            },
+
+            skills: [
+                {
+                    id: 'sprint', name: '変異スプリント', desc: '5秒間、群れの移動速度が2倍になる',
+                    icon: 'fa-bolt', cost: 100, color: 'text-yellow-400', cooldown: 10000, lastUsed: 0, type: 'instant',
+                    execute: () => {
+                        Game.activeSkill = { type: 'sprint', duration: 5000 };
+                        Game.createFloatingText('SPEED UP!', Game.width / 2, Game.height / 2, '#facc15');
+                    }
+                },
+                {
+                    id: 'spawn', name: 'スポーンポッド', desc: '指定地点に肉塊を落下させ、100体のゾンビを発生',
+                    icon: 'fa-meteor', cost: 200, color: 'text-purple-400', cooldown: 15000, lastUsed: 0, type: 'target',
+                    execute: (x, y) => { Game.spawnPod(x, y); }
+                },
+                {
+                    id: 'acid', name: 'アシッドボム', desc: '指定範囲の壁や施設に大ダメージを与える酸の爆弾',
+                    icon: 'fa-flask', cost: 300, color: 'text-green-500', cooldown: 20000, lastUsed: 0, type: 'target',
+                    execute: (x, y) => { Game.acidBomb(x, y); }
+                },
+                {
+                    id: 'mutant', name: 'ミュータント投下', desc: '高耐久・壁破壊特化の巨大ゾンビを1体投下',
+                    icon: 'fa-disease', cost: 400, color: 'text-red-500', cooldown: 30000, lastUsed: 0, type: 'target',
+                    execute: (x, y) => { Game.spawnMutant(x, y); }
+                }
+            ],
+
+            init() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d', { alpha: false });
+                this.bgCanvas = document.getElementById('bgCanvas');
+                this.bgCtx = this.bgCanvas.getContext('2d', { alpha: false });
+
+                ['zombie-count', 'biomass', 'tower-count'].forEach(id => {
+                    this.ui[id.replace(/-./g, x => x[1].toUpperCase())] = document.getElementById(`ui-${id}`);
+                });
+                ['modal-container', 'modal-title', 'modal-desc', 'stage-info', 'btn-start', 'skill-container'].forEach(id => {
+                    let key = id.replace(/-./g, x => x[1].toUpperCase());
+                    if (key === 'modalContainer') key = 'modal';
+                    this.ui[key] = document.getElementById(id);
+                });
+
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.setupInput();
+                this.renderSkillUI();
+
+                this.ui.btnStart.addEventListener('click', () => {
+                    if (this.state === 'MENU' || this.state === 'CLEAR') {
+                        this.savedBiomass = this.biomass;
+                        this.savedCarryOver = this.carryOverZombies;
+                        this.startStage();
+                    } else if (this.state === 'GAMEOVER') {
+                        this.biomass = this.savedBiomass || 0;
+                        this.carryOverZombies = this.savedCarryOver || 0;
+                        this.startStage();
+                    }
+                });
+
+                requestAnimationFrame((t) => this.loop(t));
+                this.drawGrid(this.bgCtx);
+            },
+
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width; this.canvas.height = this.height;
+                this.bgCanvas.width = this.width; this.bgCanvas.height = this.height;
+                if (this.state === 'MENU') this.drawGrid(this.bgCtx);
+            },
+
+            drawGrid(ctx) {
+                ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, this.width, this.height);
+                ctx.strokeStyle = '#111827'; ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x < this.width; x += 50) { ctx.moveTo(x, 0); ctx.lineTo(x, this.height); }
+                for (let y = 0; y < this.height; y += 50) { ctx.moveTo(0, y); ctx.lineTo(this.width, y); }
+                ctx.stroke();
+            },
+
+            resolveCollision(circle, rect) {
+                let testX = circle.pos.x, testY = circle.pos.y;
+                if (circle.pos.x < rect.x) testX = rect.x; else if (circle.pos.x > rect.x + rect.w) testX = rect.x + rect.w;
+                if (circle.pos.y < rect.y) testY = rect.y; else if (circle.pos.y > rect.y + rect.h) testY = rect.y + rect.h;
+
+                let distX = circle.pos.x - testX, distY = circle.pos.y - testY;
+                let distance = Math.sqrt((distX * distX) + (distY * distY));
+
+                if (distance < circle.r) {
+                    let overlap = circle.r - distance;
+                    if (distance === 0) return new Vec2(0, -overlap);
+                    return new Vec2((distX / distance) * overlap, (distY / distance) * overlap);
+                }
+                return null;
+            },
+
+            lineIntersectsRect(p1, p2, rect) {
+                let minX = Math.min(p1.x, p2.x), maxX = Math.max(p1.x, p2.x);
+                let minY = Math.min(p1.y, p2.y), maxY = Math.max(p1.y, p2.y);
+                if (maxX < rect.x || minX > rect.x + rect.w || maxY < rect.y || minY > rect.y + rect.h) return false;
+
+                let edges = [
+                    [{ x: rect.x, y: rect.y }, { x: rect.x + rect.w, y: rect.y }],
+                    [{ x: rect.x + rect.w, y: rect.y }, { x: rect.x + rect.w, y: rect.y + rect.h }],
+                    [{ x: rect.x + rect.w, y: rect.y + rect.h }, { x: rect.x, y: rect.y + rect.h }],
+                    [{ x: rect.x, y: rect.y + rect.h }, { x: rect.x, y: rect.y }]
+                ];
+                let ccw = (A, B, C) => (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+                let intersect = (A, B, C, D) => ccw(A, C, D) !== ccw(B, C, D) && ccw(A, B, C) !== ccw(A, B, D);
+                for (let edge of edges) if (intersect(p1, p2, edge[0], edge[1])) return true;
+                return false;
+            },
+
+            setupInput() {
+                const handleInteract = (x, y) => {
+                    if (this.state !== 'PLAYING') return;
+                    if (this.targetingSkillId) {
+                        const skill = this.skills.find(s => s.id === this.targetingSkillId);
+                        if (skill && this.biomass >= skill.cost) {
+                            this.biomass -= skill.cost;
+                            skill.lastUsed = performance.now();
+                            skill.execute(x, y);
+                            this.updateSkillUI();
+                        }
+                        this.targetingSkillId = null;
+                        document.body.classList.remove('targeting-mode');
+                        this.renderSkillUI();
+                        return;
+                    }
+                    this.pheromone = { pos: new Vec2(x, y), radius: 0, maxRadius: 150, life: 3000, maxLife: 3000 };
+                    for (let i = 0; i < 10; i++) this.particles.push(new Particle(x, y, '#4ade80', 3));
+                };
+                this.canvas.addEventListener('mousedown', (e) => handleInteract(e.clientX, e.clientY));
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (e.touches.length > 0) handleInteract(e.touches[0].clientX, e.touches[0].clientY);
+                }, { passive: false });
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (this.targetingSkillId) {
+                        this.targetingSkillId = null;
+                        document.body.classList.remove('targeting-mode');
+                        this.renderSkillUI();
+                    }
+                });
+            },
+
+            renderSkillUI() {
+                this.ui.skillContainer.innerHTML = '';
+                this.skills.forEach(skill => {
+                    const isTargeting = this.targetingSkillId === skill.id;
+                    const btn = document.createElement('button');
+                    btn.className = `skill-btn relative flex flex-col items-center justify-center p-2 rounded-xl border-2 ${isTargeting ? 'border-green-400 bg-slate-800' : 'border-slate-700 bg-slate-800/80'} w-14 md:w-20 group`;
+                    btn.id = `btn-skill-${skill.id}`;
+                    btn.innerHTML = `
+                        <div class="absolute inset-0 overflow-hidden rounded-xl">
+                            <div class="cooldown-overlay" id="cd-${skill.id}" style="height: 0%;"></div>
+                        </div>
+                        <i class="fas ${skill.icon} ${skill.color} text-lg md:text-2xl mb-1 drop-shadow-md relative z-10 pointer-events-none"></i>
+                        <span class="text-[9px] md:text-xs font-bold font-mono ${this.biomass >= skill.cost ? 'text-purple-400' : 'text-slate-500'} relative z-10 pointer-events-none">${skill.cost}</span>
+                        <div class="absolute bottom-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2 hidden group-hover:block w-48 p-2.5 bg-slate-900/95 backdrop-blur-sm border border-slate-700 rounded-lg text-xs text-left z-50 text-slate-300 pointer-events-none shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                            <div class="font-bold text-white mb-1">${skill.name}</div>
+                            <div class="text-[10px] text-slate-400 leading-tight">${skill.desc}</div>
+                        </div>
+                    `;
+                    btn.addEventListener('click', () => {
+                        if (btn.disabled) return;
+                        if (skill.type === 'instant') {
+                            this.biomass -= skill.cost; skill.lastUsed = performance.now();
+                            skill.execute(); this.updateSkillUI();
+                        } else if (skill.type === 'target') {
+                            if (this.targetingSkillId === skill.id) {
+                                this.targetingSkillId = null; document.body.classList.remove('targeting-mode');
+                            } else {
+                                this.targetingSkillId = skill.id; document.body.classList.add('targeting-mode');
+                            }
+                            this.renderSkillUI();
+                        }
+                    });
+                    this.ui.skillContainer.appendChild(btn);
+                });
+                this.updateSkillUI();
+            },
+
+            updateSkillUI() {
+                const now = performance.now();
+                this.skills.forEach(skill => {
+                    const btn = document.getElementById(`btn-skill-${skill.id}`);
+                    if (!btn) return;
+                    const cdOverlay = document.getElementById(`cd-${skill.id}`);
+                    const timePassed = now - skill.lastUsed;
+                    let isCooldown = timePassed < skill.cooldown;
+                    cdOverlay.style.height = `${isCooldown ? 100 - (timePassed / skill.cooldown) * 100 : 0}%`;
+                    const costSpan = btn.querySelector('span');
+                    if (this.biomass < skill.cost || isCooldown) {
+                        btn.disabled = true; costSpan.className = 'text-[9px] md:text-xs font-bold font-mono text-slate-500';
+                    } else {
+                        btn.disabled = false; costSpan.className = 'text-[9px] md:text-xs font-bold font-mono text-purple-400';
+                    }
+                });
+            },
+
+            // --- 新スキル ---
+            acidBomb(x, y) {
+                const radius = 100;
+                // エフェクト
+                const colors = ['#22c55e', '#4ade80', '#84cc16', '#bef264'];
+                for (let i = 0; i < 120; i++) {
+                    this.particles.push(new Particle(x + (Math.random() - 0.5) * radius, y + (Math.random() - 0.5) * radius, colors[Math.floor(Math.random() * colors.length)], Math.random() * 15 + 5, 800 + Math.random() * 800));
+                }
+                this.createFloatingText('ACID BURST!', x, y, '#4ade80', 25);
+
+                // ダメージ処理
+                this.obstacles.forEach(o => {
+                    if (new Vec2(o.x + o.w / 2, o.y + o.h / 2).dist(new Vec2(x, y)) < radius + Math.max(o.w, o.h) / 2) o.takeDamage(1500);
+                });
+                this.barricades.forEach(b => {
+                    if (new Vec2(b.x + b.w / 2, b.y + b.h / 2).dist(new Vec2(x, y)) < radius + Math.max(b.w, b.h) / 2) b.takeDamage(1500);
+                });
+                this.towers.forEach(t => { if (t.pos.dist(new Vec2(x, y)) < radius) t.takeDamage(400); });
+                this.soldiers.forEach(s => { if (s.pos.dist(new Vec2(x, y)) < radius) s.hp = 0; });
+                this.humans.forEach(h => { if (h.pos.dist(new Vec2(x, y)) < radius) h.hp = 0; }); // 酸で溶けた人間はバイオマスにならない
+            },
+
+            spawnMutant(x, y) {
+                for (let i = 0; i < 60; i++) {
+                    this.particles.push(new Particle(x + (Math.random() - 0.5) * 30, y + (Math.random() - 0.5) * 30, '#ef4444', Math.random() * 10 + 5, 1000));
+                    this.particles.push(new Particle(x + (Math.random() - 0.5) * 30, y + (Math.random() - 0.5) * 30, '#b91c1c', Math.random() * 8 + 4, 1000));
+                }
+                this.createFloatingText('MUTANT!', x, y - 20, '#ef4444', 30);
+                this.mutants.push(new MutantZombie(x, y));
+            },
+
+            // --- ステージ生成 ---
+            startStage() {
+                this.zombies = []; this.mutants = []; this.humans = []; this.soldiers = []; this.towers = [];
+                this.bullets = []; this.particles = [];
+                this.obstacles = []; this.barricades = [];
+                this.pheromone = null; this.activeSkill = null; this.targetingSkillId = null;
+                document.body.classList.remove('targeting-mode');
+
+                this.drawGrid(this.bgCtx);
+
+                let w = this.width;
+                let h = this.height;
+
+                let initialZombies;
+                if (this.stage === 1) {
+                    initialZombies = 500;
+                } else {
+                    initialZombies = this.carryOverZombies > 0 ? this.carryOverZombies : 500 + this.stage * 200;
+                }
+
+                for (let i = 0; i < initialZombies; i++) {
+                    this.zombies.push(new Zombie(Math.random() * 50 + 20, h / 2 + (Math.random() - 0.5) * 200));
+                }
+
+                switch (this.stage) {
+                    case 1:
+                        this.obstacles.push(new Obstacle(w * 0.4, 0, 40, h * 0.4, 3000));
+                        this.obstacles.push(new Obstacle(w * 0.4, h * 0.6, 40, h * 0.4, 3000));
+                        this.barricades.push(new Barricade(w * 0.4, h * 0.4, 40, h * 0.2, 500));
+                        this.towers.push(new Tower(w * 0.8, h * 0.5, 500, 300));
+                        break;
+                    case 2:
+                        this.obstacles.push(new Obstacle(w * 0.5 - 20, 0, 40, h * 0.3, 3000));
+                        this.obstacles.push(new Obstacle(w * 0.5 - 20, h * 0.7, 40, h * 0.3, 3000));
+                        this.obstacles.push(new Obstacle(w * 0.3, h * 0.5 - 20, w * 0.2, 40, 3000));
+                        this.barricades.push(new Barricade(w * 0.5 - 20, h * 0.3, 40, h * 0.4, 800));
+                        this.towers.push(new Tower(w * 0.8, h * 0.2, 600, 250));
+                        this.towers.push(new Tower(w * 0.8, h * 0.8, 600, 250));
+                        break;
+                    case 3:
+                        let cx = w * 0.6, cy = h * 0.5;
+                        this.obstacles.push(new Obstacle(cx - 150, cy - 150, 300, 40, 4000));
+                        this.obstacles.push(new Obstacle(cx + 110, cy - 150, 40, 340, 4000));
+                        this.obstacles.push(new Obstacle(cx - 150, cy + 150, 300, 40, 4000));
+                        this.barricades.push(new Barricade(cx - 150, cy - 110, 40, 260, 1000));
+                        this.towers.push(new Tower(cx + 50, cy, 700, 250));
+                        this.towers.push(new Tower(w * 0.3, h * 0.2, 500, 200));
+                        this.towers.push(new Tower(w * 0.3, h * 0.8, 500, 200));
+                        break;
+                    case 4:
+                        this.obstacles.push(new Obstacle(w * 0.3, 0, 40, h * 0.7, 4000));
+                        this.barricades.push(new Barricade(w * 0.3, h * 0.7, 40, h * 0.3, 1000));
+                        this.obstacles.push(new Obstacle(w * 0.55, h * 0.3, 40, h * 0.7, 4000));
+                        this.barricades.push(new Barricade(w * 0.55, 0, 40, h * 0.3, 1000));
+                        this.obstacles.push(new Obstacle(w * 0.8, 0, 40, h * 0.7, 4000));
+                        this.barricades.push(new Barricade(w * 0.8, h * 0.7, 40, h * 0.3, 1000));
+                        this.towers.push(new Tower(w * 0.42, h * 0.8, 600, 200));
+                        this.towers.push(new Tower(w * 0.67, h * 0.2, 600, 200));
+                        this.towers.push(new MissileTower(w * 0.9, h * 0.5, 800, 350));
+                        break;
+                    case 5:
+                        this.obstacles.push(new Obstacle(w * 0.4, h * 0.1, 40, h * 0.8, 5000));
+                        this.barricades.push(new Barricade(w * 0.4, 0, 40, h * 0.1, 1500));
+                        this.barricades.push(new Barricade(w * 0.4, h * 0.9, 40, h * 0.1, 1500));
+                        this.obstacles.push(new Obstacle(w * 0.65, h * 0.25, 40, h * 0.5, 5000));
+                        this.barricades.push(new Barricade(w * 0.65, h * 0.1, 40, h * 0.15, 1500));
+                        this.barricades.push(new Barricade(w * 0.65, h * 0.75, 40, h * 0.15, 1500));
+                        this.obstacles.push(new Obstacle(w * 0.65, h * 0.1, w * 0.2, 40, 5000));
+                        this.obstacles.push(new Obstacle(w * 0.65, h * 0.9 - 40, w * 0.2, 40, 5000));
+                        this.towers.push(new Tower(w * 0.52, h * 0.5, 800, 250));
+                        this.towers.push(new MissileTower(w * 0.85, h * 0.3, 800, 400));
+                        this.towers.push(new MissileTower(w * 0.85, h * 0.7, 800, 400));
+                        break;
+                    default:
+                        let cols = Math.min(6, 3 + Math.floor((this.stage - 5) / 2));
+                        let rows = Math.min(5, 2 + Math.floor((this.stage - 5) / 3));
+                        let cellW = (w * 0.8) / cols; let cellH = (h * 0.8) / rows;
+                        let offsetX = w * 0.1; let offsetY = h * 0.1;
+                        for (let c = 0; c < cols; c++) {
+                            for (let r = 0; r < rows; r++) {
+                                let x = offsetX + c * cellW;
+                                let y = offsetY + r * cellH;
+                                if (Math.random() < 0.6) {
+                                    if (Math.random() < 0.5) this.obstacles.push(new Obstacle(x, y, 40, cellH * 0.9, 4000 + this.stage * 200));
+                                    else this.obstacles.push(new Obstacle(x, y, cellW * 0.9, 40, 4000 + this.stage * 200));
+                                } else if (Math.random() < 0.4) {
+                                    this.barricades.push(new Barricade(x, y, 40, cellH * 0.9, 1000 + this.stage * 100));
+                                }
+                                if (Math.random() < 0.5 || (c >= cols - 2 && r === Math.floor(rows / 2))) {
+                                    if (Math.random() < 0.3) {
+                                        this.towers.push(new MissileTower(x + cellW / 2, y + cellH / 2, 800 + this.stage * 150, 400 + Math.random() * 100));
+                                    } else {
+                                        this.towers.push(new Tower(x + cellW / 2, y + cellH / 2, 600 + this.stage * 150, 200 + this.stage * 5));
+                                    }
+                                }
+                            }
+                        }
+                        if (this.towers.length === 0) this.towers.push(new MissileTower(w * 0.8, h * 0.5, 2000 + this.stage * 200, 500));
+                        break;
+                }
+
+                // 人間と兵士の配置
+                const totalHumans = 15 + this.stage * 10;
+                for (let i = 0; i < totalHumans; i++) {
+                    let hx = w * 0.2 + Math.random() * w * 0.7;
+                    let hy = Math.random() * h;
+                    let rank = Math.random();
+                    if (rank < 0.1 && this.stage >= 2) {
+                        this.soldiers.push(new HeavySoldier(hx, hy));
+                    } else if (rank < 0.2 && this.stage >= 3) {
+                        this.soldiers.push(new Sniper(hx, hy));
+                    } else if (rank < Math.min(0.6, 0.1 + this.stage * 0.1)) {
+                        this.soldiers.push(new Soldier(hx, hy));
+                    } else {
+                        this.humans.push(new Human(hx, hy));
+                    }
+                }
+                for (let t of this.towers) {
+                    for (let i = 0; i < 3; i++) this.humans.push(new Human(t.pos.x + (Math.random() - 0.5) * 100, t.pos.y + (Math.random() - 0.5) * 100));
+                    for (let i = 0; i < 4 + this.stage; i++) {
+                        let sx = t.pos.x + (Math.random() - 0.5) * 150;
+                        let sy = t.pos.y + (Math.random() - 0.5) * 150;
+                        if (Math.random() < 0.2 && this.stage >= 2) this.soldiers.push(new HeavySoldier(sx, sy));
+                        else if (Math.random() < 0.2 && this.stage >= 3) this.soldiers.push(new Sniper(sx, sy));
+                        else this.soldiers.push(new Soldier(sx, sy));
+                    }
+                }
+
+                this.state = 'PLAYING';
+                this.ui.modal.style.opacity = '0';
+                this.ui.modal.style.pointerEvents = 'none';
+
+                let stageName = this.stage <= 5 ? `STAGE ${this.stage}` : `SECTOR ${this.stage}`;
+                this.createFloatingText(`${stageName} START`, w / 2, h / 2, '#ffffff', 40);
+            },
+
+            addBiomass(amount) {
+                this.biomass += amount; this.totalBiomass += amount;
+                this.updateSkillUI();
+            },
+
+            createExplosion(x, y, radius, damage) {
+                for (let i = 0; i < 30; i++) this.particles.push(new Particle(x, y, '#ef4444', Math.random() * 8 + 2, 500));
+                for (let i = 0; i < 20; i++) this.particles.push(new Particle(x, y, '#f97316', Math.random() * 5 + 2, 400));
+                
+                let hitCount = 0;
+                for (let z of this.zombies) {
+                    if (hitCount >= 50) break;
+                    if (z.pos.dist(new Vec2(x, y)) < radius) {
+                        z.hp -= damage;
+                        hitCount++;
+                    }
+                }
+                
+                for (let m of this.mutants) {
+                    if (hitCount >= 50) break;
+                    if (m.pos.dist(new Vec2(x, y)) < radius) {
+                        m.hp -= damage; 
+                        hitCount++;
+                    }
+                }
+
+                this.createFloatingText('BOOM', x, y, '#ef4444', 30);
+                
+                for (let obs of this.obstacles) {
+                    if (new Vec2(obs.x + obs.w / 2, obs.y + obs.h / 2).dist(new Vec2(x, y)) < radius + Math.max(obs.w, obs.h) / 2) {
+                        obs.takeDamage(damage * 0.2);
+                    }
+                }
+            },
+
+            spawnPod(x, y) {
+                for (let i = 0; i < 50; i++) {
+                    this.particles.push(new Particle(x, y, '#a855f7', 8));
+                    this.particles.push(new Particle(x, y, '#ef4444', 5));
+                }
+                this.towers.forEach(t => { if (t.pos.dist(new Vec2(x, y)) < 150) t.takeDamage(100); });
+                for (let i = 0; i < 100; i++) {
+                    let offset = new Vec2((Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80);
+                    this.zombies.push(new Zombie(x + offset.x, y + offset.y));
+                }
+            },
+
+            createFloatingText(text, x, y, color, size = 20) {
+                this.particles.push(new TextParticle(x, y, text, color, size));
+            },
+
+            checkWinLose() {
+                if (this.state !== 'PLAYING') return;
+                if (this.towers.length === 0) {
+                    this.carryOverZombies = this.zombies.length + this.mutants.length + 200;
+                    this.state = 'CLEAR'; this.stage++;
+                    this.showModal('STAGE CLEAR!', '防衛拠点を制圧した。スウォームを次へ進めろ。', '次へ侵攻', 'from-blue-400 to-blue-700');
+                } else if (this.zombies.length === 0 && this.mutants.length === 0) {
+                    this.state = 'GAMEOVER';
+                    this.showModal('ANNIHILATED', 'スウォームは鎮圧された...', 'リトライ', 'from-red-500 to-red-800');
+                }
+            },
+
+            showModal(title, desc, btnText, gradientClass) {
+                this.ui.modalTitle.innerText = title;
+                this.ui.modalTitle.className = `text-4xl md:text-5xl font-black mb-2 tracking-widest text-transparent bg-clip-text bg-gradient-to-br ${gradientClass} drop-shadow-lg`;
+                this.ui.modalDesc.innerText = desc;
+                document.getElementById('modal-stage').innerText = this.stage;
+                document.getElementById('modal-max-swarm').innerText = this.maxSwarmSize;
+                document.getElementById('modal-total-bio').innerText = this.totalBiomass;
+                this.ui.stageInfo.classList.remove('hidden');
+                this.ui.btnStart.innerText = btnText;
+                this.ui.btnStart.className = `w-full py-4 text-white font-bold rounded-xl transition-all text-lg tracking-wider border ${this.state === 'GAMEOVER' ? 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.3)] border-red-500/50' : 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)] border-blue-400/50'}`;
+                this.ui.modal.style.opacity = '1';
+                this.ui.modal.style.pointerEvents = 'auto';
+            },
+
+            loop(timestamp) {
+                const dt = timestamp - this.lastTime;
+                this.lastTime = timestamp;
+                if (this.state === 'PLAYING') this.update(dt);
+                this.draw();
+                if (Math.floor(timestamp / 100) % 2 === 0) {
+                    let totalZ = this.zombies.length + this.mutants.length;
+                    if (totalZ > this.maxSwarmSize) this.maxSwarmSize = totalZ;
+                    this.ui.zombieCount.innerText = totalZ;
+                    this.ui.biomass.innerText = this.biomass;
+                    this.ui.towerCount.innerText = this.towers.length;
+                    if (this.state === 'PLAYING') this.updateSkillUI();
+                }
+                requestAnimationFrame((t) => this.loop(t));
+            },
+
+            update(dt) {
+                if (this.activeSkill) {
+                    this.activeSkill.duration -= dt;
+                    if (this.activeSkill.duration <= 0) this.activeSkill = null;
+                }
+                if (this.pheromone) {
+                    this.pheromone.life -= dt;
+                    if (this.pheromone.life <= 0) this.pheromone = null;
+                }
+
+                // ゾンビ更新
+                for (let i = this.zombies.length - 1; i >= 0; i--) {
+                    let z = this.zombies[i];
+                    z.update(dt);
+                    if (z.hp <= 0) {
+                        this.drawBlood(z.pos.x, z.pos.y, 10);
+                        this.zombies.splice(i, 1);
+                    }
+                }
+
+                // ミュータント更新
+                for (let i = this.mutants.length - 1; i >= 0; i--) {
+                    let m = this.mutants[i];
+                    m.update(dt);
+                    if (m.hp <= 0) {
+                        this.drawBlood(m.pos.x, m.pos.y, 30);
+                        for (let k = 0; k < 20; k++) this.particles.push(new Particle(m.pos.x, m.pos.y, '#166534', 6));
+                        this.mutants.splice(i, 1);
+                    }
+                }
+
+                // 人間更新
+                for (let i = this.humans.length - 1; i >= 0; i--) {
+                    let h = this.humans[i];
+                    h.update(dt);
+
+                    if (h.hp <= 0) { this.humans.splice(i, 1); continue; }
+
+                    let closestDist = Infinity, nearestZombie = null;
+                    for (let z of this.zombies) { let d = h.pos.dist(z.pos); if (d < closestDist) { closestDist = d; nearestZombie = z; } }
+                    for (let m of this.mutants) { let d = h.pos.dist(m.pos); if (d < closestDist) { closestDist = d; nearestZombie = m; } }
+
+                    if (nearestZombie && closestDist < h.r + nearestZombie.r + 5) {
+                        this.drawBlood(h.pos.x, h.pos.y, 20);
+                        for (let j = 0; j < 15; j++) this.particles.push(new Particle(h.pos.x, h.pos.y, '#ef4444', 4));
+                        this.addBiomass(10);
+                        this.createFloatingText('+10', h.pos.x, h.pos.y - 20, '#c084fc');
+                        this.zombies.push(new Zombie(h.pos.x, h.pos.y));
+                        this.humans.splice(i, 1);
+                    }
+                }
+
+                // 兵士更新
+                for (let i = this.soldiers.length - 1; i >= 0; i--) {
+                    let s = this.soldiers[i];
+                    s.update(dt);
+
+                    if (s.hp <= 0) { this.soldiers.splice(i, 1); continue; }
+
+                    let closestDist = Infinity, nearestZombie = null;
+                    for (let z of this.zombies) { let d = s.pos.dist(z.pos); if (d < closestDist) { closestDist = d; nearestZombie = z; } }
+                    for (let m of this.mutants) { let d = s.pos.dist(m.pos); if (d < closestDist) { closestDist = d; nearestZombie = m; } }
+
+                    if (nearestZombie && closestDist < s.r + nearestZombie.r + 5) {
+                        s.hp -= 1;
+                        s.pos = s.pos.add(s.pos.sub(nearestZombie.pos).normalize().mult(15)); // knockback
+                        if (s.hp <= 0) {
+                            this.drawBlood(s.pos.x, s.pos.y, 30 * (s.maxHp || 1));
+                            for (let j = 0; j < 25; j++) this.particles.push(new Particle(s.pos.x, s.pos.y, '#ef4444', Math.random() * 4 + 2));
+                            this.addBiomass(15 * (s.maxHp || 1));
+                            this.createFloatingText('+' + (15 * (s.maxHp || 1)), s.pos.x, s.pos.y - 20, '#c084fc');
+                            this.zombies.push(new Zombie(s.pos.x, s.pos.y));
+                            if (s.maxHp > 1) this.mutants.push(new MutantZombie(s.pos.x, s.pos.y));
+                            this.soldiers.splice(i, 1);
+                        }
+                    }
+                }
+
+                // タワー更新
+                for (let i = this.towers.length - 1; i >= 0; i--) {
+                    let t = this.towers[i];
+                    t.update(dt);
+                    if (t.hp <= 0) {
+                        for (let j = 0; j < 30; j++) this.particles.push(new Particle(t.pos.x, t.pos.y, '#f97316', 8));
+                        this.addBiomass(150);
+                        this.createFloatingText('+150 BIO', t.pos.x, t.pos.y - 40, '#c084fc', 25);
+                        this.towers.splice(i, 1);
+                    } else {
+                        let dmg = 0;
+                        for (let z of this.zombies) { if (z.pos.dist(t.pos) < t.size / 2 + z.r + 10) dmg += 0.5; }
+                        for (let m of this.mutants) { if (m.pos.dist(t.pos) < t.size / 2 + m.r + 15) dmg += 2.0; } // ミュータントは対施設ダメージ大
+                        if (dmg > 0) t.takeDamage(dmg);
+                    }
+                }
+
+                // 弾丸更新
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    let b = this.bullets[i];
+                    b.update(dt);
+
+                    if (!b.isMissile && (b.pos.x < 0 || b.pos.x > this.width || b.pos.y < 0 || b.pos.y > this.height)) {
+                        this.bullets.splice(i, 1); continue;
+                    }
+
+                    // 壁への着弾
+                    let hitWall = false;
+                    for (let j = this.obstacles.length - 1; j >= 0; j--) {
+                        let obs = this.obstacles[j];
+                        if (b.pos.x > obs.x && b.pos.x < obs.x + obs.w && b.pos.y > obs.y && b.pos.y < obs.y + obs.h) {
+                            if (!b.isMissile) obs.takeDamage(b.damage);
+                            hitWall = true;
+                            if (obs.hp <= 0) {
+                                this.createFloatingText('DESTROYED!', obs.x + obs.w / 2, obs.y, '#94a3b8', 20);
+                                for (let k = 0; k < 30; k++) this.particles.push(new Particle(obs.x + Math.random() * obs.w, obs.y + Math.random() * obs.h, '#475569', Math.random() * 8 + 2));
+                                this.obstacles.splice(j, 1);
+                            }
+                            break;
+                        }
+                    }
+
+                    // バリケードへの着弾
+                    if (!hitWall) {
+                        for (let j = this.barricades.length - 1; j >= 0; j--) {
+                            let bar = this.barricades[j];
+                            if (b.pos.x > bar.x && b.pos.x < bar.x + bar.w && b.pos.y > bar.y && b.pos.y < bar.y + bar.h) {
+                                if (!b.isMissile) bar.takeDamage(b.damage);
+                                hitWall = true;
+                                if (bar.hp <= 0) {
+                                    this.createFloatingText('BROKEN!', bar.x + bar.w / 2, bar.y, '#f97316', 20);
+                                    for (let k = 0; k < 20; k++) this.particles.push(new Particle(bar.x + Math.random() * bar.w, bar.y + Math.random() * bar.h, '#78350f', Math.random() * 6 + 2));
+                                    this.barricades.splice(j, 1);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    // ゾンビ・ミュータントへの着弾
+                    let hitZombie = false;
+                    if (!hitWall) {
+                        for (let j = this.mutants.length - 1; j >= 0; j--) {
+                            let m = this.mutants[j];
+                            if (b.pos.dist(m.pos) < b.radius + m.r + 2) {
+                                if (!b.isMissile) m.hp -= b.damage; 
+                                hitZombie = true;
+                                for (let k = 0; k < 6; k++) this.particles.push(new Particle(b.pos.x, b.pos.y, '#166534', Math.random() * 4 + 1));
+                                break;
+                            }
+                        }
+                        if (!hitZombie) {
+                            for (let j = this.zombies.length - 1; j >= 0; j--) {
+                                let z = this.zombies[j];
+                                if (b.pos.dist(z.pos) < b.radius + z.r + 2) {
+                                    if (!b.isMissile) z.hp -= b.damage; 
+                                    hitZombie = true;
+                                    for (let k = 0; k < 5; k++) this.particles.push(new Particle(b.pos.x, b.pos.y, '#22c55e', Math.random() * 3 + 1));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    let reachedTarget = false;
+                    if (b.isMissile && b.pos.dist(b.targetPos) < b.vel.mag() * 2) {
+                        reachedTarget = true;
+                    }
+
+                    if (hitWall || hitZombie || reachedTarget) {
+                        if (b.isMissile) {
+                            this.createExplosion(b.pos.x, b.pos.y, b.explosionRadius, b.damage);
+                        } else if (hitWall) {
+                            for (let k = 0; k < 6; k++) this.particles.push(new Particle(b.pos.x, b.pos.y, '#94a3b8', Math.random() * 3 + 1));
+                        }
+                        this.bullets.splice(i, 1);
+                    }
+                }
+
+                // パーティクル更新
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    this.particles[i].update(dt);
+                    if (this.particles[i].life <= 0) this.particles.splice(i, 1);
+                }
+
+                this.checkWinLose();
+            },
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                for (let obs of this.obstacles) obs.draw(this.ctx);
+                for (let bar of this.barricades) bar.draw(this.ctx);
+
+                if (this.pheromone) {
+                    let progress = 1 - (this.pheromone.life / this.pheromone.maxLife);
+                    let r = this.pheromone.maxRadius * progress;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.pheromone.pos.x, this.pheromone.pos.y, r, 0, Math.PI * 2);
+                    this.ctx.strokeStyle = `rgba(74, 222, 128, ${1 - progress})`;
+                    this.ctx.lineWidth = 2; this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.pheromone.pos.x, this.pheromone.pos.y, 4, 0, Math.PI * 2);
+                    this.ctx.fillStyle = '#4ade80'; this.ctx.fill();
+                }
+
+                // 人間
+                this.ctx.fillStyle = '#38bdf8'; // light blue
+                this.ctx.beginPath();
+                for (let h of this.humans) {
+                    this.ctx.moveTo(h.pos.x + h.r, h.pos.y);
+                    this.ctx.arc(h.pos.x, h.pos.y, h.r, 0, Math.PI * 2);
+                }
+                this.ctx.fill();
+
+                // 兵士
+                for (let s of this.soldiers) {
+                    this.ctx.fillStyle = s.color || '#1d4ed8'; // Default dark blue
+                    this.ctx.beginPath();
+                    this.ctx.arc(s.pos.x, s.pos.y, s.r, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                // 通常ゾンビ
+                this.ctx.fillStyle = (this.activeSkill && this.activeSkill.type === 'sprint') ? '#facc15' : '#22c55e';
+                this.ctx.beginPath();
+                for (let z of this.zombies) {
+                    let angle = Math.atan2(z.vel.y, z.vel.x);
+                    this.ctx.moveTo(z.pos.x, z.pos.y);
+                    this.ctx.ellipse(z.pos.x, z.pos.y, z.r * 1.5, z.r, angle, 0, Math.PI * 2);
+                }
+                this.ctx.fill();
+
+                // ミュータント
+                for (let m of this.mutants) {
+                    let angle = Math.atan2(m.vel.y, m.vel.x);
+                    this.ctx.fillStyle = '#166534'; // dark green
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(m.pos.x, m.pos.y, m.r * 1.3, m.r, angle, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    // ちょっとした装飾
+                    this.ctx.fillStyle = '#ef4444';
+                    this.ctx.beginPath();
+                    this.ctx.arc(m.pos.x + Math.cos(angle) * m.r * 0.5, m.pos.y + Math.sin(angle) * m.r * 0.5, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                for (let t of this.towers) t.draw(this.ctx);
+
+                // 発光エフェクトの適用
+                this.ctx.globalCompositeOperation = 'lighter';
+
+                for (let b of this.bullets) {
+                    this.ctx.fillStyle = b.color || '#fde047';
+                    this.ctx.beginPath();
+                    this.ctx.arc(b.pos.x, b.pos.y, b.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                for (let p of this.particles) p.draw(this.ctx);
+
+                // 発光エフェクト解除
+                this.ctx.globalCompositeOperation = 'source-over';
+            },
+
+            drawBlood(x, y, amount) {
+                this.bgCtx.fillStyle = 'rgba(153, 27, 27, 0.5)';
+                for (let i = 0; i < amount * 2; i++) {
+                    let ox = (Math.random() - 0.5) * 40, oy = (Math.random() - 0.5) * 40;
+                    this.bgCtx.beginPath();
+                    this.bgCtx.arc(x + ox, y + oy, Math.random() * 6 + 1, 0, Math.PI * 2);
+                    this.bgCtx.fill();
+                }
+            }
+        };
+
+        // --- 地形エンティティ ---
+        class Obstacle {
+            constructor(x, y, w, h, hp) {
+                this.x = x; this.y = y; this.w = w; this.h = h;
+                this.maxHp = hp; this.hp = hp; this.flash = 0;
+            }
+            takeDamage(amount) {
+                this.hp -= amount; this.flash = 1.0;
+                if (Math.random() < 0.1) Game.particles.push(new Particle(this.x + Math.random() * this.w, this.y + Math.random() * this.h, '#94a3b8', 3));
+            }
+            draw(ctx) {
+                ctx.fillStyle = this.flash > 0 ? '#475569' : '#1e293b';
+                this.flash = Math.max(0, this.flash - 0.1);
+
+                ctx.strokeStyle = '#334155'; ctx.lineWidth = 2;
+                ctx.fillRect(this.x, this.y, this.w, this.h); ctx.strokeRect(this.x, this.y, this.w, this.h);
+
+                ctx.save(); ctx.beginPath(); ctx.rect(this.x, this.y, this.w, this.h); ctx.clip();
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 4;
+                let maxDim = Math.max(this.w, this.h);
+                for (let i = -maxDim; i < this.w + this.h; i += 20) {
+                    ctx.beginPath(); ctx.moveTo(this.x + i, this.y); ctx.lineTo(this.x + i + maxDim, this.y + maxDim); ctx.stroke();
+                }
+                ctx.restore();
+
+                let barW = Math.min(this.w, 40);
+                let cx = this.x + this.w / 2; let cy = this.y + this.h / 2;
+                ctx.fillStyle = '#0f172a'; ctx.fillRect(cx - barW / 2, cy - 4, barW, 4);
+                ctx.fillStyle = '#3b82f6'; ctx.fillRect(cx - barW / 2, cy - 4, barW * (Math.max(0, this.hp) / this.maxHp), 4);
+            }
+        }
+
+        class Barricade {
+            constructor(x, y, w, h, hp) {
+                this.x = x; this.y = y; this.w = w; this.h = h;
+                this.maxHp = hp; this.hp = hp; this.flash = 0;
+            }
+            takeDamage(amount) {
+                this.hp -= amount; this.flash = 1.0;
+                if (Math.random() < 0.2) Game.particles.push(new Particle(this.x + Math.random() * this.w, this.y + Math.random() * this.h, '#78350f', 3));
+            }
+            draw(ctx) {
+                ctx.fillStyle = this.flash > 0 ? '#b45309' : '#78350f';
+                this.flash = Math.max(0, this.flash - 0.1);
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+
+                ctx.strokeStyle = '#451a03'; ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y); ctx.lineTo(this.x + this.w, this.y + this.h);
+                ctx.moveTo(this.x + this.w, this.y); ctx.lineTo(this.x, this.y + this.h);
+                ctx.stroke();
+
+                let barW = Math.min(this.w, 40);
+                let cx = this.x + this.w / 2; let cy = this.y + this.h / 2;
+                ctx.fillStyle = '#7f1d1d'; ctx.fillRect(cx - barW / 2, cy - 4, barW, 4);
+                ctx.fillStyle = '#eab308'; ctx.fillRect(cx - barW / 2, cy - 4, barW * (Math.max(0, this.hp) / this.maxHp), 4);
+            }
+        }
+
+        // --- 動的エンティティ ---
+        class Zombie {
+            constructor(x, y) {
+                this.pos = new Vec2(x, y);
+                this.vel = new Vec2((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+                this.acc = new Vec2(0, 0);
+                this.baseMaxSpeed = 1.5 + Math.random() * 0.5;
+                this.maxForce = 0.15;
+                this.r = 3; this.hp = 20;
+            }
+            update(dt) {
+                let target = null; let isPheromone = false;
+
+                if (Game.pheromone) {
+                    target = Game.pheromone.pos; isPheromone = true;
+                } else {
+                    let bestScore = Infinity; // 賢いAI：距離だけでなく壁の有無でスコア化
+
+                    const evaluateTarget = (tPos) => {
+                        let dist = this.pos.dist(tPos);
+                        let score = dist;
+                        // 間に壁がある場合はペナルティ（迂回を促す）
+                        for (let obs of Game.obstacles) {
+                            if (Game.lineIntersectsRect(this.pos, tPos, obs)) { score += 300; break; }
+                        }
+                        for (let bar of Game.barricades) {
+                            if (Game.lineIntersectsRect(this.pos, tPos, bar)) { score += 100; break; }
+                        }
+                        if (score < bestScore) { bestScore = score; target = tPos; }
+                    };
+
+                    for (let h of Game.humans) evaluateTarget(h.pos);
+                    for (let s of Game.soldiers) evaluateTarget(s.pos);
+                    if (!target || bestScore > 100) { // 近くに人間がいなければタワーも狙う
+                        for (let t of Game.towers) evaluateTarget(t.pos);
+                    }
+                }
+
+                let desired = new Vec2(0, 0);
+                if (target) {
+                    desired = target.sub(this.pos).normalize();
+                    let noise = new Vec2((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5);
+                    desired = desired.add(noise).normalize();
+
+                    let currentMaxSpeed = this.baseMaxSpeed * (Game.activeSkill && Game.activeSkill.type === 'sprint' ? 2 : 1);
+                    if (isPheromone) currentMaxSpeed *= 1.2;
+
+                    this.acc = this.acc.add(desired.mult(currentMaxSpeed).sub(this.vel).limit(this.maxForce));
+                }
+
+                // 群れの分離
+                let separateForce = new Vec2(0, 0), count = 0, checkCount = Math.min(Game.zombies.length, 5);
+                for (let i = 0; i < checkCount; i++) {
+                    let other = Game.zombies[Math.floor(Math.random() * Game.zombies.length)];
+                    if (other === this) continue;
+                    let d = this.pos.dist(other.pos);
+                    if (d > 0 && d < this.r * 4) {
+                        separateForce = separateForce.add(this.pos.sub(other.pos).normalize().mult(1 / d)); count++;
+                    }
+                }
+                if (count > 0) this.acc = this.acc.add(separateForce.mult(1 / count).normalize().mult(this.baseMaxSpeed).sub(this.vel).limit(this.maxForce * 1.5));
+
+                this.vel = this.vel.add(this.acc).limit(this.baseMaxSpeed * (Game.activeSkill && Game.activeSkill.type === 'sprint' ? 2 : 1));
+                this.pos = this.pos.add(this.vel);
+                this.acc = new Vec2(0, 0);
+
+                // 壁との衝突（押し出し＆回避スライド＆ダメージ）
+                const resolveAndSlide = (rect, dmg) => {
+                    let push = Game.resolveCollision(this, rect);
+                    if (push) {
+                        this.pos = this.pos.add(push);
+                        this.vel = this.vel.mult(0.5);
+                        rect.takeDamage(dmg);
+
+                        // 壁回避スライドフォース（壁に沿って進もうとする）
+                        if (desired.mag() > 0) {
+                            let slideForce = new Vec2(push.y, -push.x).normalize().mult(0.5);
+                            if (slideForce.x * desired.x + slideForce.y * desired.y < 0) slideForce = slideForce.mult(-1);
+                            this.pos = this.pos.add(slideForce); // 強制スライド
+                        }
+                        return true;
+                    }
+                    return false;
+                };
+
+                for (let i = Game.obstacles.length - 1; i >= 0; i--) {
+                    let obs = Game.obstacles[i];
+                    if (resolveAndSlide(obs, 0.15)) {
+                        if (obs.hp <= 0) {
+                            Game.createFloatingText('DESTROYED!', obs.x + obs.w / 2, obs.y, '#94a3b8', 25);
+                            for (let j = 0; j < 20; j++) Game.particles.push(new Particle(obs.x + Math.random() * obs.w, obs.y + Math.random() * obs.h, '#475569', 5));
+                            Game.obstacles.splice(i, 1);
+                            Game.addBiomass(50);
+                        }
+                    }
+                }
+
+                for (let i = Game.barricades.length - 1; i >= 0; i--) {
+                    let bar = Game.barricades[i];
+                    if (resolveAndSlide(bar, 0.4)) {
+                        if (bar.hp <= 0) {
+                            Game.createFloatingText('BROKEN!', bar.x + bar.w / 2, bar.y, '#f97316', 25);
+                            for (let j = 0; j < 15; j++) Game.particles.push(new Particle(bar.x + Math.random() * bar.w, bar.y + Math.random() * bar.h, '#78350f', 5));
+                            Game.barricades.splice(i, 1);
+                            Game.addBiomass(30);
+                        }
+                    }
+                }
+
+                if (this.pos.x < 0) this.pos.x = 0; if (this.pos.x > Game.width) this.pos.x = Game.width;
+                if (this.pos.y < 0) this.pos.y = 0; if (this.pos.y > Game.height) this.pos.y = Game.height;
+            }
+        }
+
+        class MutantZombie extends Zombie {
+            constructor(x, y) {
+                super(x, y);
+                this.baseMaxSpeed = 1.0; // 少し遅い
+                this.r = 8; // でかい
+                this.hp = 250; // 硬い
+            }
+            update(dt) {
+                super.update(dt);
+                // 歩くたびに少しエフェクト
+                if (Math.random() < 0.1) Game.particles.push(new Particle(this.pos.x, this.pos.y + this.r, '#166534', 2, 300));
+            }
+            // `super.update`で壁との衝突判定が呼ばれる際、`takeDamage`を上書きできればいいが、
+            // 処理が共通化されているため、壁へのダメージ量をMutantは増やすために少しズルをする。
+            // 毎フレーム周囲の壁に無条件でダメージを与える。
+            update(dt) {
+                super.update(dt);
+                const smashRadius = this.r + 5;
+                for (let obs of Game.obstacles) {
+                    if (new Vec2(obs.x + obs.w / 2, obs.y + obs.h / 2).dist(this.pos) < smashRadius + Math.max(obs.w, obs.h) / 2) {
+                        obs.takeDamage(2.0); // 通常の10倍以上のゴリ削り
+                    }
+                }
+                for (let bar of Game.barricades) {
+                    if (new Vec2(bar.x + bar.w / 2, bar.y + bar.h / 2).dist(this.pos) < smashRadius + Math.max(bar.w, bar.h) / 2) {
+                        bar.takeDamage(5.0);
+                    }
+                }
+            }
+        }
+
+        class Human {
+            constructor(x, y) {
+                this.pos = new Vec2(x, y);
+                this.vel = new Vec2(0, 0); this.acc = new Vec2(0, 0);
+                this.maxSpeed = 1.2; this.maxForce = 0.2; this.r = 4;
+                this.wanderTheta = Math.random() * Math.PI * 2;
+                this.hp = 1; // 捕食で死ぬフラグ用
+            }
+            update(dt) {
+                let closestDist = 200, threat = null, checkCount = Math.min(Game.zombies.length, 10);
+                for (let i = 0; i < checkCount; i++) {
+                    let z = Game.zombies[Math.floor(Math.random() * Game.zombies.length)];
+                    let d = this.pos.dist(z.pos);
+                    if (d < closestDist) { closestDist = d; threat = z.pos; }
+                }
+
+                if (threat) {
+                    let desired = this.pos.sub(threat).normalize().mult(this.maxSpeed * 1.5);
+                    this.acc = this.acc.add(desired.sub(this.vel).limit(this.maxForce));
+                } else {
+                    this.wanderTheta += (Math.random() - 0.5) * 0.5;
+                    this.acc = this.acc.add(new Vec2(Math.cos(this.wanderTheta), Math.sin(this.wanderTheta)).mult(0.5));
+                }
+
+                this.vel = this.vel.add(this.acc).limit(this.maxSpeed);
+                this.pos = this.pos.add(this.vel);
+                this.acc = new Vec2(0, 0);
+
+                for (let obs of Game.obstacles) {
+                    let push = Game.resolveCollision(this, obs);
+                    if (push) { this.pos = this.pos.add(push); this.vel = this.vel.mult(0.5); }
+                }
+                for (let bar of Game.barricades) {
+                    let push = Game.resolveCollision(this, bar);
+                    if (push) { this.pos = this.pos.add(push); this.vel = this.vel.mult(0.5); }
+                }
+
+                const margin = 20;
+                if (this.pos.x < margin) { this.vel.x *= -1; this.pos.x = margin; }
+                if (this.pos.x > Game.width - margin) { this.vel.x *= -1; this.pos.x = Game.width - margin; }
+                if (this.pos.y < margin) { this.vel.y *= -1; this.pos.y = margin; }
+                if (this.pos.y > Game.height - margin) { this.vel.y *= -1; this.pos.y = Game.height - margin; }
+            }
+        }
+
+        class Soldier {
+            constructor(x, y) {
+                this.pos = new Vec2(x, y);
+                this.vel = new Vec2(0, 0); this.acc = new Vec2(0, 0);
+                this.maxSpeed = 1.35; // ゾンビ(1.5)にギリギリ追いつかれるがかなり粘れる速度
+                this.maxForce = 0.3; // 機敏に動く
+                this.r = 4;
+                this.hp = 1; this.maxHp = 1;
+                this.fireRate = 400; // 連射速度大幅アップ
+                this.lastFired = Math.random() * 400;
+                this.attackRange = 250; // 射程アップ
+                this.fleeRange = 180; // 逃げ始める距離アップ
+                this.bulletDamage = 15;
+            }
+            update(dt) {
+                let closestDist = Infinity, threat = null;
+                // 周囲の敵を索敵
+                for (let i = 0; i < Math.min(Game.zombies.length, 20); i++) {
+                    let z = Game.zombies[Math.floor(Math.random() * Game.zombies.length)];
+                    let d = this.pos.dist(z.pos);
+                    if (d < closestDist) { closestDist = d; threat = z; }
+                }
+                for (let m of Game.mutants) {
+                    let d = this.pos.dist(m.pos);
+                    if (d < closestDist) { closestDist = d; threat = m; }
+                }
+
+                if (threat) {
+                    // 引き撃ち(Kiting)ロジック
+                    if (closestDist < this.fleeRange) {
+                        // 敵から離れる方向ベクトル
+                        let desired = this.pos.sub(threat.pos).normalize();
+                        // 壁際に追い詰められにくいように横移動のノイズを加える
+                        let noise = new Vec2((Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5);
+                        desired = desired.add(noise).normalize().mult(this.maxSpeed);
+                        this.acc = this.acc.add(desired.sub(this.vel).limit(this.maxForce));
+                    } else {
+                        // 距離が十分なら減速して待機
+                        this.vel = this.vel.mult(0.8);
+                    }
+
+                    // 射程内なら逃げながらでも撃つ
+                    if (closestDist < this.attackRange) {
+                        if (performance.now() - this.lastFired > this.fireRate) {
+                            let hasLoS = true;
+                            for (let obs of Game.obstacles) { if (Game.lineIntersectsRect(this.pos, threat.pos, obs)) { hasLoS = false; break; } }
+                            if (hasLoS) {
+                                for (let bar of Game.barricades) { if (Game.lineIntersectsRect(this.pos, threat.pos, bar)) { hasLoS = false; break; } }
+                            }
+                            if (hasLoS) {
+                                this.lastFired = performance.now();
+                                Game.bullets.push(new Bullet(this.pos.x, this.pos.y, threat.pos.x, threat.pos.y, this.bulletDamage));
+                                for (let k = 0; k < 5; k++) Game.particles.push(new Particle(this.pos.x, this.pos.y, '#fef08a', Math.random() * 3 + 2, 100)); // マズルフラッシュ強化
+                            }
+                        }
+                    }
+                } else {
+                    this.vel = this.vel.mult(0.9);
+                }
+
+                this.vel = this.vel.add(this.acc).limit(this.maxSpeed);
+                this.pos = this.pos.add(this.vel);
+                this.acc = new Vec2(0, 0);
+
+                // 壁回避ロジック（ゾンビと同じようにスライドする）
+                const resolveAndSlide = (rect) => {
+                    let push = Game.resolveCollision(this, rect);
+                    if (push) {
+                        this.pos = this.pos.add(push);
+                        this.vel = this.vel.mult(0.5);
+                        if (this.acc.mag() > 0) {
+                            let slideForce = new Vec2(push.y, -push.x).normalize().mult(this.maxSpeed * 0.5);
+                            if (slideForce.x * this.acc.x + slideForce.y * this.acc.y < 0) slideForce = slideForce.mult(-1);
+                            this.pos = this.pos.add(slideForce);
+                        }
+                    }
+                };
+
+                for (let obs of Game.obstacles) resolveAndSlide(obs);
+                for (let bar of Game.barricades) resolveAndSlide(bar);
+
+                const margin = 20;
+                if (this.pos.x < margin) { this.vel.x *= -1; this.pos.x = margin; }
+                if (this.pos.x > Game.width - margin) { this.vel.x *= -1; this.pos.x = Game.width - margin; }
+                if (this.pos.y < margin) { this.vel.y *= -1; this.pos.y = margin; }
+                if (this.pos.y > Game.height - margin) { this.vel.y *= -1; this.pos.y = Game.height - margin; }
+            }
+        }
+
+        class Tower {
+            constructor(x, y, maxHp, range) {
+                this.pos = new Vec2(x, y); this.size = 40;
+                this.maxHp = maxHp; this.hp = maxHp; this.range = range;
+                this.fireRate = 500; this.lastFired = 0; this.targetAngle = 0;
+            }
+            takeDamage(amount) {
+                this.hp -= amount;
+                if (Math.random() < 0.2) Game.particles.push(new Particle(this.pos.x + (Math.random() - 0.5) * this.size, this.pos.y + (Math.random() - 0.5) * this.size, '#94a3b8', 3));
+            }
+            update(dt) {
+                let closestDist = this.range, targetZombie = null;
+                const checkTarget = (z) => {
+                    let d = this.pos.dist(z.pos);
+                    if (d < closestDist) {
+                        let hasLoS = true;
+                        for (let obs of Game.obstacles) { if (Game.lineIntersectsRect(this.pos, z.pos, obs)) { hasLoS = false; break; } }
+                        if (hasLoS) { for (let bar of Game.barricades) { if (Game.lineIntersectsRect(this.pos, z.pos, bar)) { hasLoS = false; break; } } }
+                        if (hasLoS) { closestDist = d; targetZombie = z; }
+                    }
+                };
+
+                for (let z of Game.zombies) checkTarget(z);
+                for (let m of Game.mutants) checkTarget(m);
+
+                if (targetZombie) {
+                    let dir = targetZombie.pos.sub(this.pos);
+                    this.targetAngle = Math.atan2(dir.y, dir.x);
+                    if (performance.now() - this.lastFired > this.fireRate) {
+                        this.lastFired = performance.now();
+                        let spawnPos = this.pos.add(new Vec2(Math.cos(this.targetAngle), Math.sin(this.targetAngle)).mult(this.size / 2 + 5));
+                        Game.bullets.push(new Bullet(spawnPos.x, spawnPos.y, targetZombie.pos.x, targetZombie.pos.y, 15));
+                        for (let k = 0; k < 10; k++) Game.particles.push(new Particle(spawnPos.x, spawnPos.y, '#fef08a', Math.random() * 5 + 2, 150));
+                    }
+                } else {
+                    this.targetAngle += 0.01;
+                }
+            }
+            draw(ctx) {
+                ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#334155'; ctx.lineWidth = 2;
+                ctx.fillRect(this.pos.x - this.size / 2, this.pos.y - this.size / 2, this.size, this.size);
+                ctx.strokeRect(this.pos.x - this.size / 2, this.pos.y - this.size / 2, this.size, this.size);
+
+                ctx.save(); ctx.translate(this.pos.x, this.pos.y); ctx.rotate(this.targetAngle);
+                ctx.fillStyle = '#ef4444'; ctx.fillRect(0, -4, this.size / 2 + 10, 8);
+                ctx.beginPath(); ctx.arc(0, 0, this.size / 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#475569'; ctx.fill(); ctx.stroke();
+                ctx.restore();
+
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.range, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.1)'; ctx.lineWidth = 1; ctx.stroke();
+
+                let barW = this.size, barH = 5;
+                ctx.fillStyle = '#7f1d1d'; ctx.fillRect(this.pos.x - barW / 2, this.pos.y - this.size / 2 - 15, barW, barH);
+                ctx.fillStyle = '#22c55e'; ctx.fillRect(this.pos.x - barW / 2, this.pos.y - this.size / 2 - 15, barW * (Math.max(0, this.hp) / this.maxHp), barH);
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, tx, ty, dmg = 15) {
+                this.pos = new Vec2(x, y);
+                this.vel = new Vec2(tx - x, ty - y).normalize().mult(8);
+                this.radius = 2; this.damage = dmg;
+                this.color = '#fde047';
+            }
+            update(dt) { this.pos = this.pos.add(this.vel); }
+        }
+
+        class ExplosiveBullet extends Bullet {
+            constructor(x, y, tx, ty, dmg = 50, explosionRadius = 80) {
+                super(x, y, tx, ty, dmg);
+                this.vel = new Vec2(tx - x, ty - y).normalize().mult(4); // 弾速は遅め
+                this.targetPos = new Vec2(tx, ty);
+                this.isMissile = true;
+                this.explosionRadius = explosionRadius;
+                this.color = '#ef4444';
+                this.radius = 4;
+            }
+            update(dt) {
+                super.update(dt);
+                Game.particles.push(new Particle(this.pos.x, this.pos.y, '#f97316', 2, 200)); // 飛跡
+            }
+        }
+
+        class HeavySoldier extends Soldier {
+            constructor(x, y) {
+                super(x, y);
+                this.maxSpeed = 0.8;
+                this.r = 6;
+                this.hp = 3; this.maxHp = 3;
+                this.fireRate = 120; // 圧倒的手数
+                this.color = '#1e3a8a'; // より濃い青
+                this.attackRange = 180;
+                this.fleeRange = 80; // 逃げにくい
+                this.bulletDamage = 8; // 単発は弱め
+            }
+        }
+
+        class Sniper extends Soldier {
+            constructor(x, y) {
+                super(x, y);
+                this.maxSpeed = 1.1;
+                this.r = 4;
+                this.hp = 1; this.maxHp = 1;
+                this.fireRate = 1800; // 発射間隔長い
+                this.color = '#059669'; // スナイパーグリーン
+                this.attackRange = 400;
+                this.fleeRange = 300;
+                this.bulletDamage = 50; // 強力な一撃
+            }
+        }
+
+        class MissileTower extends Tower {
+            constructor(x, y, maxHp, range) {
+                super(x, y, maxHp, range);
+                this.fireRate = 2000;
+                this.size = 50;
+                this.maxHp = maxHp * 1.5;
+                this.hp = this.maxHp;
+            }
+            update(dt) {
+                let closestDist = this.range, targetZombie = null;
+                const checkTarget = (z) => {
+                    let d = this.pos.dist(z.pos);
+                    if (d < closestDist) {
+                        // ミサイルは壁越しでもロックオンする
+                        closestDist = d; targetZombie = z;
+                    }
+                };
+                for (let z of Game.zombies) checkTarget(z);
+                for (let m of Game.mutants) checkTarget(m);
+
+                if (targetZombie) {
+                    let dir = targetZombie.pos.sub(this.pos);
+                    this.targetAngle = Math.atan2(dir.y, dir.x);
+                    if (performance.now() - this.lastFired > this.fireRate) {
+                        this.lastFired = performance.now();
+                        let spawnPos = this.pos.add(new Vec2(Math.cos(this.targetAngle), Math.sin(this.targetAngle)).mult(this.size / 2 + 5));
+                        Game.bullets.push(new ExplosiveBullet(spawnPos.x, spawnPos.y, targetZombie.pos.x, targetZombie.pos.y, 80, 100)); // 広範囲80ダメージ
+                        for (let k = 0; k < 10; k++) Game.particles.push(new Particle(spawnPos.x, spawnPos.y, '#f97316', Math.random() * 8 + 2, 500));
+                    }
+                } else {
+                    this.targetAngle += 0.01;
+                }
+            }
+            draw(ctx) {
+                ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#334155'; ctx.lineWidth = 2;
+                ctx.fillRect(this.pos.x - this.size / 2, this.pos.y - this.size / 2, this.size, this.size);
+                ctx.strokeRect(this.pos.x - this.size / 2, this.pos.y - this.size / 2, this.size, this.size);
+
+                ctx.save(); ctx.translate(this.pos.x, this.pos.y); ctx.rotate(this.targetAngle);
+                ctx.fillStyle = '#ef4444'; ctx.fillRect(0, -6, this.size / 2 + 12, 12);
+                ctx.fillStyle = '#1e293b'; ctx.fillRect(this.size / 2 + 2, -4, 6, 8); // missile tip
+                ctx.beginPath(); ctx.arc(0, 0, this.size / 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#334155'; ctx.fill(); ctx.stroke();
+                ctx.restore();
+
+                let barW = this.size, barH = 5;
+                ctx.fillStyle = '#7f1d1d'; ctx.fillRect(this.pos.x - barW / 2, this.pos.y - this.size / 2 - 15, barW, barH);
+                ctx.fillStyle = '#22c55e'; ctx.fillRect(this.pos.x - barW / 2, this.pos.y - this.size / 2 - 15, barW * (Math.max(0, this.hp) / this.maxHp), barH);
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color, size, maxLife = 500 + Math.random() * 500) {
+                this.pos = new Vec2(x, y);
+                this.vel = new Vec2((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+                this.color = color; this.size = size; this.life = maxLife; this.maxLife = maxLife;
+            }
+            update(dt) { this.pos = this.pos.add(this.vel); this.vel.y += 0.1; this.life -= dt; }
+            draw(ctx) {
+                let alpha = Math.max(0, this.life / this.maxLife);
+                ctx.globalAlpha = alpha; ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.size * alpha, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class TextParticle {
+            constructor(x, y, text, color, size = 20) {
+                this.pos = new Vec2(x, y); this.vel = new Vec2(0, -1);
+                this.text = text; this.color = color; this.size = size; this.life = 1000; this.maxLife = 1000;
+            }
+            update(dt) { this.pos = this.pos.add(this.vel); this.life -= dt; }
+            draw(ctx) {
+                let alpha = Math.max(0, this.life / this.maxLife);
+                ctx.globalAlpha = alpha; ctx.fillStyle = this.color; ctx.font = `bold ${this.size}px monospace`; ctx.textAlign = 'center';
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+                ctx.strokeText(this.text, this.pos.x, this.pos.y); ctx.fillText(this.text, this.pos.x, this.pos.y);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        window.onload = () => { Game.init(); };
+    </script>
+</body>
+
+</html>
