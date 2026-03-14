@@ -663,7 +663,7 @@
             constructor() {
                 super(0, 150, 20);
                 this.color = '#3b82f6'; this.style = 'murmillo';
-                this.atk = 15; this.def = 5; this.parryWindow = 0.3;
+                this.atk = 15; this.def = 5; this.parryWindow = 0.15;
                 this.stamina = 100; this.maxStamina = 100;
                 this.attackStep = 0;
             }
@@ -676,7 +676,11 @@
 
                 if (this.state === 'idle' || this.state === 'move') {
                     if (input.attack) {
-                        if (this.stamina >= 25) {
+                        if (this.weapons === 0) {
+                            game.addText("NO WEAPON!", this.x, this.y - 30, '#ef4444');
+                            playSound('swish');
+                            input.attack = false;
+                        } else if (this.stamina >= 25) {
                             this.stamina -= 25;
                             this.state = 'attack'; this.stateTime = 0; input.attack = false;
                             this.attackStep = 0;
@@ -754,13 +758,16 @@
                         if (this.stateTime < 0.2) {
                             if (this.attackStep === 0) {
                                 this.attackStep = 1; playSound('swing');
-                                game.attacks.push(new AttackDef(this, this.atk * game.getPassionMultiplier() * 0.5, 0.1, 40, Math.PI / 2, false));
+                                game.attacks.push(new AttackDef(this, this.atk * game.getPassionMultiplier() * 0.5, 0.1, 30, Math.PI / 2, false));
                             }
                             this.x += Math.cos(this.angle) * 150 * this.speedMult * dt; this.y += Math.sin(this.angle) * 150 * this.speedMult * dt;
                         } else if (this.stateTime < 0.4) {
                             if (this.attackStep === 1) {
-                                this.attackStep = 2; playSound('swing');
-                                game.attacks.push(new AttackDef(this, this.atk * game.getPassionMultiplier() * 0.5, 0.1, 40, Math.PI / 2, false));
+                                this.attackStep = 2; 
+                                if (this.weapons > 1) {
+                                    playSound('swing');
+                                    game.attacks.push(new AttackDef(this, this.atk * game.getPassionMultiplier() * 0.5, 0.1, 30, Math.PI / 2, false));
+                                }
                             }
                             this.x += Math.cos(this.angle) * 150 * this.speedMult * dt; this.y += Math.sin(this.angle) * 150 * this.speedMult * dt;
                         } else {
@@ -817,8 +824,8 @@
                 // 本体・影
                 ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.arc(0, 5, this.radius, 0, Math.PI * 2); ctx.fill();
 
-                // 盾（ディマカエルス以外）
-                if (this.style !== 'dimachaerus') {
+                // 盾（ディマカエルス以外で、武器を持っている場合のみ）
+                if (this.style !== 'dimachaerus' && (this.weapons > 0 || this.isShip)) {
                     if (this.style === 'murmillo' || this.state === 'defend') {
                         ctx.fillStyle = (this.state === 'defend' && this.stateTime < this.parryWindow) ? '#facc15' : '#9ca3af';
                         ctx.beginPath(); ctx.arc(10, 0, this.radius + 5, -Math.PI / 3, Math.PI / 3); ctx.lineWidth = 4; ctx.strokeStyle = '#4b5563'; ctx.stroke(); ctx.fill();
@@ -828,10 +835,10 @@
                 ctx.fillStyle = (this.state === 'hit') ? '#ef4444' : this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(this.radius / 2, 0, this.radius / 2.5, 0, Math.PI * 2); ctx.fill();
 
-                let weaponReach = 35;
+                let weaponReach = this.style === 'dimachaerus' ? 26 : 35;
 
                 // 左手の剣 (ディマカエルスのみ)
-                if (this.style === 'dimachaerus') {
+                if (this.style === 'dimachaerus' && this.weapons > 1) {
                     ctx.save();
                     let swingL = -Math.PI / 6;
                     if (this.state === 'attack') {
@@ -848,6 +855,7 @@
                 }
 
                 // 右手の剣
+                if (this.weapons > 0 || this.isShip) {
                 ctx.save(); let swing = -Math.PI / 6;
                 if (this.state === 'attack') {
                     if (this.style === 'dimachaerus') {
@@ -869,9 +877,10 @@
                 ctx.fillStyle = '#e5e7eb'; ctx.beginPath(); ctx.moveTo(this.radius, -3); ctx.lineTo(this.radius + weaponReach - 5, -2); ctx.lineTo(this.radius + weaponReach, 0); ctx.lineTo(this.radius + weaponReach - 5, 2); ctx.lineTo(this.radius, 3); ctx.fill();
                 ctx.fillStyle = '#b45309'; ctx.fillRect(this.radius - 2, -6, 4, 12); ctx.fillRect(this.radius - 8, -2, 6, 4);
                 ctx.restore();
+                }
 
                 ctx.rotate(-this.angle);
-                if (this.state === 'defend') { ctx.fillStyle = 'rgba(59, 130, 246, 0.5)'; ctx.beginPath(); ctx.arc(0, 0, this.radius + 15, 0, Math.PI * 2); ctx.fill(); }
+                if (this.state === 'defend' && (this.weapons > 0 || this.isShip)) { ctx.fillStyle = 'rgba(59, 130, 246, 0.5)'; ctx.beginPath(); ctx.arc(0, 0, this.radius + 15, 0, Math.PI * 2); ctx.fill(); }
                 else if (this.state === 'taunt') { ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🗯️', 15, -20); }
                 ctx.restore();
             }
@@ -885,6 +894,7 @@
                 this.color = data.color || '#b91c1c'; this.attackInterval = data.interval || 2.0;
                 this.evadeRate = data.evade || 0; this.guardRate = data.guard || 0; this.feintRate = data.feintRate || 0;
                 this.timer = 0; this.behaviorTimer = 0; this.strafeDir = Math.random() < 0.5 ? 1 : -1; this.isFeint = false;
+                this.weapons = 1; // Default, overriden in startBattle
             }
             update(dt) {
                 super.update(dt);
@@ -919,7 +929,23 @@
                     this.behaviorTimer -= dt;
                     if (this.behaviorTimer <= 0) { this.strafeDir = Math.random() < 0.5 ? 1 : -1; this.behaviorTimer = 0.5 + Math.random(); }
 
-                    if (this.isShip) {
+                    if (this.weapons === 0) {
+                        let closestWep = null; let minDist = Infinity;
+                        game.droppedWeapons.forEach(dw => {
+                            if (!dw.active) return;
+                            let wDist = Math.hypot(this.x - dw.x, this.y - dw.y);
+                            if (wDist < minDist) { minDist = wDist; closestWep = dw; }
+                        });
+                        if (closestWep) {
+                            let targetAngle = Math.atan2(closestWep.y - this.y, closestWep.x - this.x);
+                            this.angle = targetAngle; this.state = 'move';
+                            this.x += Math.cos(targetAngle) * this.speed * 1.5 * dt; this.y += Math.sin(targetAngle) * this.speed * 1.5 * dt;
+                        } else {
+                            let targetAngle = Math.atan2(dy, dx) + Math.PI;
+                            this.angle = targetAngle; this.state = 'move';
+                            this.x += Math.cos(targetAngle) * this.speed * dt; this.y += Math.sin(targetAngle) * this.speed * dt;
+                        }
+                    } else if (this.isShip) {
                         let targetAngle = Math.atan2(dy, dx);
                         if (dist < 150 && this.timer < this.attackInterval - 1.0) targetAngle += (Math.PI / 2) * this.strafeDir;
                         let diff = targetAngle - this.angle; while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
@@ -953,7 +979,7 @@
                     }
 
                     this.timer += dt;
-                    if (this.timer > this.attackInterval && dist < (this.isShip ? 200 : (this.type === 'beast' ? 140 : 90))) {
+                    if (this.weapons !== 0 && this.timer > this.attackInterval && dist < (this.isShip ? 200 : (this.type === 'beast' ? 140 : 90))) {
                         if (!this.isShip && this.type !== 'beast' && (game.player.state === 'defend' || Math.random() < 0.5) && Math.random() < this.feintRate) {
                             this.isFeint = true;
                         } else this.isFeint = false;
@@ -1033,15 +1059,17 @@
                 } else {
                     ctx.fillStyle = (this.state === 'hit') ? '#fff' : this.color; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
 
-                    ctx.save(); let swingE = 0; let weaponReachE = 45;
-                    if (this.state === 'attack') {
-                        swingE = Math.sin(this.stateTime * Math.PI / 0.1) * Math.PI / 2 - Math.PI / 4; if (this.stateTime > 0.1) swingE = Math.PI / 4;
-                        if (this.stateTime < 0.1) { ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.beginPath(); ctx.arc(0, 0, this.radius + weaponReachE, -Math.PI / 4, swingE); ctx.lineTo(0, 0); ctx.fill(); }
-                    } else { swingE = -Math.PI / 8; }
-                    ctx.rotate(swingE);
-                    ctx.fillStyle = '#9ca3af'; ctx.beginPath(); ctx.moveTo(this.radius, -4); ctx.lineTo(this.radius + weaponReachE - 8, -3); ctx.lineTo(this.radius + weaponReachE, 0); ctx.lineTo(this.radius + weaponReachE - 8, 3); ctx.lineTo(this.radius, 4); ctx.fill();
-                    ctx.fillStyle = '#4b5563'; ctx.fillRect(this.radius - 3, -8, 6, 16); ctx.fillRect(this.radius - 10, -3, 7, 6);
-                    ctx.restore();
+                    if (this.weapons > 0 || this.isShip) {
+                        ctx.save(); let swingE = 0; let weaponReachE = 45;
+                        if (this.state === 'attack') {
+                            swingE = Math.sin(this.stateTime * Math.PI / 0.1) * Math.PI / 2 - Math.PI / 4; if (this.stateTime > 0.1) swingE = Math.PI / 4;
+                            if (this.stateTime < 0.1) { ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.beginPath(); ctx.arc(0, 0, this.radius + weaponReachE, -Math.PI / 4, swingE); ctx.lineTo(0, 0); ctx.fill(); }
+                        } else { swingE = -Math.PI / 8; }
+                        ctx.rotate(swingE);
+                        ctx.fillStyle = '#9ca3af'; ctx.beginPath(); ctx.moveTo(this.radius, -4); ctx.lineTo(this.radius + weaponReachE - 8, -3); ctx.lineTo(this.radius + weaponReachE, 0); ctx.lineTo(this.radius + weaponReachE - 8, 3); ctx.lineTo(this.radius, 4); ctx.fill();
+                        ctx.fillStyle = '#4b5563'; ctx.fillRect(this.radius - 3, -8, 6, 16); ctx.fillRect(this.radius - 10, -3, 7, 6);
+                        ctx.restore();
+                    }
                 }
                 ctx.restore();
             }
@@ -1093,6 +1121,46 @@
             }
         }
 
+        class DroppedWeapon {
+            constructor(x, y, vx, vy) {
+                this.x = x; this.y = y; this.z = 20;
+                this.vx = vx; this.vy = vy; this.vz = 200;
+                this.active = true;
+                this.angle = Math.random() * Math.PI * 2;
+                this.spin = (Math.random() - 0.5) * 15;
+            }
+            update(dt) {
+                if (!this.active) return false;
+                this.x += this.vx * dt; this.y += this.vy * dt;
+                this.z += this.vz * dt;
+                this.vz -= 600 * dt;
+                this.angle += this.spin * dt;
+                if (this.z <= 0) {
+                    this.z = 0; this.vz *= -0.4;
+                    this.vx *= 0.6; this.vy *= 0.6; this.spin *= 0.6;
+                    if (Math.abs(this.vz) < 20) { this.vz = 0; this.z = 0; }
+                }
+                
+                // 観客席（半径500）を超えないようにバウンドさせる
+                const dist = Math.hypot(this.x, this.y);
+                if (dist > 470) {
+                    const angle = Math.atan2(this.y, this.x);
+                    this.x = Math.cos(angle) * 470;
+                    this.y = Math.sin(angle) * 470;
+                    this.vx *= -0.6; this.vy *= -0.6;
+                }
+                
+                return this.active;
+            }
+            draw(ctx) {
+                ctx.save(); ctx.translate(this.x, this.y - this.z); ctx.rotate(this.angle);
+                ctx.fillStyle = '#e5e7eb'; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(30, -2); ctx.lineTo(35, 0); ctx.lineTo(30, 2); ctx.lineTo(0, 3); ctx.fill();
+                ctx.fillStyle = '#b45309'; ctx.fillRect(-2, -6, 4, 12); ctx.fillRect(-8, -2, 6, 4);
+                ctx.restore();
+                ctx.save(); ctx.translate(this.x, this.y); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, 15, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+            }
+        }
+
         class Gift {
             constructor(x, y) { this.x = x; this.y = y - 300; this.targetY = y; this.radius = 15; }
             update(dt) {
@@ -1111,7 +1179,7 @@
         // ==========================================
         const game = {
             state: 'menu', lastTime: 0, camera: new Camera(), player: new Player(), enemy: null,
-            attacks: [], particles: [], texts: [], gifts: [], bloodstains: [], hazards: [],
+            attacks: [], particles: [], texts: [], gifts: [], bloodstains: [], hazards: [], droppedWeapons: [],
             voltage: 0, gold: 0, hitStop: 0, gimmick: null, matchData: null,
             combo: 0, comboTimer: 0, demand: null, demandCooldown: 5,
             patron: 'noble',
@@ -1198,7 +1266,7 @@
                 this.player.state = 'idle';
 
                 this.voltage = 0; this.combo = 0; this.demandCooldown = 5; this.demand = null;
-                this.attacks = []; this.particles = []; this.texts = []; this.gifts = []; this.bloodstains = []; this.hazards = [];
+                this.attacks = []; this.particles = []; this.texts = []; this.gifts = []; this.bloodstains = []; this.hazards = []; this.droppedWeapons = [];
 
                 if (isShipMode) {
                     this.player.isShip = true; this.player.radius = 35; this.player.angle = -Math.PI / 2;
@@ -1207,6 +1275,8 @@
                     this.player.isShip = false; this.player.radius = 20;
                     this.enemy.isShip = false; this.enemy.radius = 22;
                 }
+                this.player.weapons = isShipMode ? -1 : (this.player.style === 'dimachaerus' ? 2 : 1);
+                this.enemy.weapons = isShipMode || this.matchData.type === 'beast' ? -1 : 1;
 
                 document.getElementById('ui-e-name').innerText = this.matchData.name;
                 document.getElementById('demand-ui').style.opacity = 0; document.getElementById('combo-ui').style.opacity = 0;
@@ -1242,50 +1312,69 @@
             },
 
             handleHit(attacker, target, rawDmg, angle, isCrit = false) {
-                // --- プレイヤーのパリィ・ガード判定 ---
-                if (target === this.player && target.state === 'defend') {
+                // --- ガード判定 ---
+                if (target.state === 'defend') {
                     let angleDiff = Math.abs(angle - target.angle + Math.PI); if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
                     if (angleDiff < Math.PI / 2) {
-                        if (target.stateTime < target.parryWindow) {
+                        if (target.stateTime < (target.parryWindow || 0.15)) {
+                            // パリィ (Perfect)
                             playSound('parry'); this.camera.shake(10, 0.2); this.hitStop = 0.1; this.addText("PARRY!", target.x, target.y - 40, '#3b82f6');
-                            for (let i = 0; i < 10; i++) this.particles.push(new Particle(target.x, target.y, '#fcd34d', 2));
-                            attacker.state = 'hit'; attacker.stateTime = 0; attacker.hp -= target.atk * this.getPassionMultiplier() * 1.5;
-                            this.player.stamina = Math.min(this.player.maxStamina, this.player.stamina + 20);
-                            let bonus = this.patron === 'noble' ? 40 : 20; this.addVoltage(bonus); this.checkDemand('parry'); this.updateUI(); return;
-                        } else {
-                            playSound('hit'); rawDmg = Math.max(1, rawDmg - target.def * 2); this.addVoltage(2);
-                            for (let i = 0; i < 5; i++) this.particles.push(new Particle(target.x, target.y, '#9ca3af', 2));
-                            this.addText("GUARD", target.x, target.y - 40, '#9ca3af');
-                            target.hp -= rawDmg;
-                            target.x += Math.cos(angle) * 10; target.y += Math.sin(angle) * 10;
-
-                            if (!attacker.isShip && attacker.type !== 'beast') {
-                                attacker.state = 'hit'; attacker.stateTime = -0.2;
-                                attacker.x -= Math.cos(angle) * 30; attacker.y -= Math.sin(angle) * 30;
-                                attacker.timer = -1.0;
+                            
+                            // 視覚的な反撃エフェクト (Visual counter slash)とスイングモーション
+                            let counterAngle = Math.atan2(target.y - attacker.y, target.x - attacker.x) + Math.PI;
+                            // 防御側に一瞬攻撃モーションをとらせる
+                            target.state = 'attack'; target.stateTime = 0.1;
+                            target.angle = counterAngle; // 敵の方向を向く
+                            
+                            for (let i = 0; i < 20; i++) {
+                                let p = new Particle(target.x, target.y, '#fcd34d', 2);
+                                p.vx = Math.cos(counterAngle + (Math.random()-0.5)) * 400; p.vy = Math.sin(counterAngle + (Math.random()-0.5)) * 400;
+                                this.particles.push(p);
                             }
+                            
+                            attacker.state = 'hit'; attacker.stateTime = -0.5; // 長いスタン
+                            attacker.hp -= (target.atk || 15) * this.getPassionMultiplier() * 1.5;
+                            attacker.x += Math.cos(counterAngle) * 20; attacker.y += Math.sin(counterAngle) * 20;
+
+                            // 武器を落とさせる
+                            if (attacker.weapons > 0) {
+                                attacker.weapons--;
+                                this.droppedWeapons.push(new DroppedWeapon(attacker.x, attacker.y, Math.cos(counterAngle)*600, Math.sin(counterAngle)*600));
+                            }
+                            
+                            if (target === this.player) {
+                                this.player.stamina = Math.min(this.player.maxStamina, this.player.stamina + 20);
+                                let bonus = this.patron === 'noble' ? 40 : 20; this.addVoltage(bonus); this.checkDemand('parry');
+                            }
+                            
+                            // アタッカーの死亡判定
+                            if (attacker.hp <= 0) { attacker.hp = 0; attacker.state = 'dead'; setTimeout(() => this.endBattle(attacker === this.enemy), 2000); }
+                            
+                            this.updateUI(); return;
+                        } else if (target.stateTime < 0.6) {
+                            // ふらつき (Stagger)
+                            playSound('hit'); 
+                            for (let i = 0; i < 5; i++) this.particles.push(new Particle(target.x, target.y, '#9ca3af', 2));
+                            this.addText("STAGGER", target.x, target.y - 40, '#9ca3af');
+                            target.state = 'hit'; target.stateTime = 0.1;
+                            target.x += Math.cos(angle) * 15; target.y += Math.sin(angle) * 15;
+                            if (target === this.player) this.addVoltage(2);
+                            this.updateUI(); return;
+                        } else {
+                            // ガードブレイク (Weapon Drop)
+                            playSound('hit'); this.camera.shake(8, 0.2);
+                            this.addText("GUARD BREAK!", target.x, target.y - 40, '#ef4444');
+                            for (let i = 0; i < 15; i++) this.particles.push(new Particle(target.x, target.y, '#9ca3af', 2));
+                            target.state = 'hit'; target.stateTime = -0.5;
+                            target.x += Math.cos(angle) * 30; target.y += Math.sin(angle) * 30;
+                            
+                            if (target.weapons > 0) {
+                                target.weapons--;
+                                this.droppedWeapons.push(new DroppedWeapon(target.x, target.y, Math.cos(angle)*600, Math.sin(angle)*600));
+                            }
+                            if (target === this.player) this.addVoltage(5);
                             this.updateUI(); return;
                         }
-                    }
-                }
-
-                // --- 敵のガード判定 ---
-                if (target === this.enemy && target.state === 'defend') {
-                    let angleDiff = Math.abs(angle - target.angle + Math.PI); if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-                    if (angleDiff < Math.PI / 2) {
-                        playSound('hit'); rawDmg = Math.max(1, rawDmg * 0.2);
-                        for (let i = 0; i < 5; i++) this.particles.push(new Particle(target.x, target.y, '#9ca3af', 2));
-                        this.addText("GUARDED", target.x, target.y - 40, '#9ca3af');
-                        target.x += Math.cos(angle) * 10; target.y += Math.sin(angle) * 10;
-                        target.hp -= rawDmg; target.timer = target.attackInterval;
-
-                        if (!attacker.isShip) {
-                            attacker.state = 'hit'; attacker.stateTime = 0;
-                            attacker.x -= Math.cos(angle) * 30; attacker.y -= Math.sin(angle) * 30;
-                            this.addText("RECOIL!", attacker.x, attacker.y - 40, '#ef4444');
-                            this.camera.shake(5, 0.15); this.combo = 0; document.getElementById('combo-ui').style.opacity = 0;
-                        }
-                        this.updateUI(); return;
                     }
                 }
 
@@ -1422,6 +1511,19 @@
 
                     this.attacks = this.attacks.filter(a => a.update(dt, [this.player, this.enemy]));
                     this.particles = this.particles.filter(p => p.update(dt));
+                    this.droppedWeapons.forEach(dw => {
+                        if (!dw.active || dw.vz !== 0 || dw.z > 0) return;
+                        const maxWepP = this.player.style === 'dimachaerus' ? 2 : 1;
+                        if (this.player.weapons < maxWepP && Math.hypot(this.player.x - dw.x, this.player.y - dw.y) < this.player.radius + 20) {
+                            this.player.weapons++; dw.active = false; playSound('swish'); game.addText("PICK UP!", this.player.x, this.player.y - 30, '#4ade80');
+                        }
+                        const maxWepE = this.enemy && this.enemy.style === 'dimachaerus' ? 2 : 1;
+                        if (this.enemy && this.enemy.weapons >= 0 && this.enemy.weapons < maxWepE && Math.hypot(this.enemy.x - dw.x, this.enemy.y - dw.y) < this.enemy.radius + 20) {
+                            this.enemy.weapons++; dw.active = false; playSound('swish'); game.addText("PICK UP!", this.enemy.x, this.enemy.y - 30, '#4ade80');
+                            this.enemy.timer = 0; // reset attack timer
+                        }
+                    });
+                    this.droppedWeapons = this.droppedWeapons.filter(dw => dw.update(dt));
                     this.texts = this.texts.filter(t => t.update(dt));
                     this.gifts = this.gifts.filter(g => g.update(dt));
                     this.hazards = this.hazards.filter(h => h.update(dt));
@@ -1444,6 +1546,7 @@
                     ctx.beginPath(); ctx.arc(0, 0, 500, 0, Math.PI * 2); ctx.fillStyle = '#dcb37b'; ctx.fill();
                     ctx.lineWidth = 10; ctx.strokeStyle = '#8c6b42'; ctx.stroke();
                     this.bloodstains.forEach(b => b.draw(ctx));
+                    this.droppedWeapons.forEach(dw => dw.draw(ctx));
                 }
                 
                 // Audience Seat Rendering

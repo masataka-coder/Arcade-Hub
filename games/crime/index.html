@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRIME SCENE - 証拠隠滅プロトコル</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: #050505;
+            color: #e5e7eb;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-image: radial-gradient(circle at 50% 50%, #1a0505 0%, #050505 100%);
+        }
+
+        .tech-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* 緊迫感のあるグリッチ・パルスエフェクト */
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(220, 38, 38, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+            }
+        }
+
+        .timer-danger {
+            animation: pulse-red 1s infinite;
+            color: #ef4444;
+        }
+
+        /* スキャンライン */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1));
+            background-size: 100% 4px;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .action-log::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .action-log::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div class="scanlines"></div>
+
+    <!-- メインゲームUI -->
+    <div id="game-ui" class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
+
+        <!-- 左パネル：状況・タイマー -->
+        <div class="col-span-1 flex flex-col gap-4">
+            <div class="bg-black border border-red-900/50 rounded-xl p-6 shadow-[0_0_30px_rgba(220,38,38,0.1)]">
+                <h2 class="text-red-500 font-bold tracking-widest text-sm mb-1">POLICE ETA</h2>
+                <div class="text-5xl font-bold tech-font tracking-tighter" id="timer">01:30</div>
+                <div class="w-full bg-gray-900 h-1 mt-4 rounded overflow-hidden">
+                    <div id="time-bar" class="bg-red-600 h-full w-full transition-all duration-1000 ease-linear"></div>
+                </div>
+            </div>
+
+            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-5 flex-1 flex flex-col">
+                <h2 class="text-gray-400 font-bold text-xs tracking-widest mb-3 border-b border-gray-800 pb-2">ACTION
+                    LOG</h2>
+                <div id="action-log"
+                    class="action-log flex-1 overflow-y-auto space-y-2 text-sm tech-font text-gray-300">
+                    <div class="text-red-400">> 殺人事件発生。</div>
+                    <div>> 警察の到着まで残り90秒。</div>
+                    <div>> 証拠を隠滅せよ。</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右パネル：現場の探索とアクション -->
+        <div class="col-span-1 lg:col-span-2 flex flex-col gap-4">
+            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-6 h-[500px] flex flex-col">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
+                    <h2 class="text-xl font-bold text-white tracking-wide">現場: 管理人室</h2>
+                    <span
+                        class="text-xs font-bold px-2 py-1 bg-red-900/50 text-red-400 rounded border border-red-800/50">SUSPICION
+                        LEVEL: <span id="suspicion-ui">???</span>%</span>
+                </div>
+
+                <div id="locations" class="grid grid-cols-2 gap-3 mb-4">
+                    <!-- ロケーションボタン -->
+                    <button onclick="selectLocation('floor')"
+                        class="p-4 bg-black border border-gray-700 hover:border-red-500 rounded text-left transition-colors group">
+                        <div class="text-gray-500 text-xs mb-1 group-hover:text-red-400">AREA 01</div>
+                        <div class="font-bold text-lg text-gray-200">床面</div>
+                    </button>
+                    <button onclick="selectLocation('desk')"
+                        class="p-4 bg-black border border-gray-700 hover:border-red-500 rounded text-left transition-colors group">
+                        <div class="text-gray-500 text-xs mb-1 group-hover:text-red-400">AREA 02</div>
+                        <div class="font-bold text-lg text-gray-200">デスク周り</div>
+                    </button>
+                    <button onclick="selectLocation('body')"
+                        class="p-4 bg-black border border-gray-700 hover:border-red-500 rounded text-left transition-colors group">
+                        <div class="text-gray-500 text-xs mb-1 group-hover:text-red-400">AREA 03</div>
+                        <div class="font-bold text-lg text-gray-200">死体</div>
+                    </button>
+                    <button onclick="selectLocation('door')"
+                        class="p-4 bg-black border border-gray-700 hover:border-red-500 rounded text-left transition-colors group">
+                        <div class="text-gray-500 text-xs mb-1 group-hover:text-red-400">AREA 04</div>
+                        <div class="font-bold text-lg text-gray-200">監視カメラ</div>
+                    </button>
+                </div>
+
+                <!-- アクションエリア（動的生成） -->
+                <div id="action-panel"
+                    class="flex-1 bg-black/50 border border-gray-800 rounded-lg p-4 overflow-y-auto hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 id="panel-title" class="font-bold text-white text-lg"></h3>
+                        <button onclick="backToLocations()" class="text-gray-500 hover:text-white text-sm">◀ 戻る</button>
+                    </div>
+                    <div id="items-list" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <button onclick="finishEarly()"
+                class="w-full bg-red-900/30 hover:bg-red-700 text-red-500 hover:text-white border border-red-800 font-bold py-4 rounded-xl transition-all tracking-widest">
+                [ 隠滅完了 - 警察を迎え入れる ]
+            </button>
+        </div>
+    </div>
+
+    <!-- 結果モーダル -->
+    <div id="result-modal" class="fixed inset-0 bg-black/95 z-50 hidden flex flex-col items-center justify-center p-4">
+        <div
+            class="max-w-2xl w-full bg-gray-900 border border-gray-700 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
+            <div class="absolute top-0 left-0 w-full h-2 bg-blue-600" id="result-border"></div>
+
+            <h1 class="text-3xl font-bold mb-2 tech-font tracking-wider" id="result-title">POLICE REPORT</h1>
+            <p class="text-gray-400 text-sm mb-6 border-b border-gray-800 pb-4">担当刑事の捜査記録</p>
+
+            <div id="detective-log" class="space-y-3 mb-8 text-gray-300 min-h-[150px]">
+                <!-- 結果テキスト -->
+            </div>
+
+            <div class="bg-black p-4 rounded-lg border border-gray-800 mb-8 flex justify-between items-center">
+                <span class="text-gray-400 font-bold">最終被疑度 (SUSPICION)</span>
+                <span id="final-score" class="text-3xl font-bold tech-font"></span>
+            </div>
+
+            <button onclick="location.reload()"
+                class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors border border-gray-600">
+                RESTART SIMULATION
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ゲームステート
+        let time = 90;
+        let suspicion = 100; // 初期状態は真っ黒
+        let isGameOver = false;
+        const totalTime = 90;
+
+        // アイテムとアクション定義
+        const sceneData = {
+            floor: {
+                name: "床面",
+                items: [
+                    {
+                        id: 'blood', name: "大量の血痕", desc: "決定的な証拠。一目で殺人だとバレる。", state: 'raw',
+                        actions: [
+                            { label: "モップで徹底的に拭く", time: 25, susChange: -30, msg: "血痕を完全に拭き取った。", state: 'clean' },
+                            { label: "ラグマットで隠す", time: 5, susChange: -10, msg: "ラグで隠した。めくられたら終わりだ。", state: 'hidden', risk: true }
+                        ]
+                    },
+                    {
+                        id: 'weapon', name: "血の付いた包丁", desc: "凶器。指紋がべったり付いている。", state: 'raw',
+                        actions: [
+                            { label: "指紋を拭き取り元の棚へ", time: 15, susChange: -25, msg: "凶器を洗浄し、キッチンに戻した。", state: 'clean' },
+                            { label: "窓の外のゴミ捨て場に投げる", time: 5, susChange: -15, msg: "窓から投げ捨てた。見つからないことを祈る。", state: 'thrown', risk: true }
+                        ]
+                    }
+                ]
+            },
+            desk: {
+                name: "デスク周り",
+                items: [
+                    {
+                        id: 'pc', name: "被害者のPC", desc: "画面には「お前を殺す」というあなたからの脅迫メールが開かれている。", state: 'raw',
+                        actions: [
+                            { label: "メール履歴を完全に削除", time: 20, susChange: -20, msg: "PCを操作し、不利な通信記録を消去した。", state: 'clean' },
+                            { label: "PCを物理的に破壊する", time: 10, susChange: -5, msg: "PCをハンマーで粉砕した。逆に怪しまれるか？", state: 'destroyed' }
+                        ]
+                    }
+                ]
+            },
+            body: {
+                name: "死体",
+                items: [
+                    {
+                        id: 'corpse', name: "被害者の遺体", desc: "仰向けで倒れている。隠すのは不可能だ。", state: 'raw',
+                        actions: [
+                            { label: "ロープを持たせ自殺に偽装", time: 30, susChange: -40, msg: "首吊り自殺に見せかける工作を行った。", state: 'fake_suicide' },
+                            { label: "強盗の仕業に見せかけ部屋を荒らす", time: 20, susChange: -20, msg: "部屋の金品を散乱させ、物取りの犯行に偽装した。", state: 'fake_robbery' }
+                        ]
+                    }
+                ]
+            },
+            door: {
+                name: "監視カメラ",
+                items: [
+                    {
+                        id: 'camera', name: "防犯カメラの録画サーバー", desc: "あなたが部屋に入る様子がバッチリ録画されている。", state: 'raw',
+                        actions: [
+                            { label: "録画データを改ざん・ループ化", time: 25, susChange: -30, msg: "高度な操作で映像を数時間前のループに差し替えた。", state: 'hacked' },
+                            { label: "サーバーの電源を引っこ抜く", time: 5, susChange: -10, msg: "強引に電源を落とした。不自然なログが残る。", state: 'broken', risk: true }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // UI更新
+        function updateUI() {
+            const mins = Math.floor(time / 60).toString().padStart(2, '0');
+            const secs = (time % 60).toString().padStart(2, '0');
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = `${mins}:${secs}`;
+
+            document.getElementById('time-bar').style.width = `${(time / totalTime) * 100}%`;
+
+            if (time <= 30) {
+                timerEl.classList.add('timer-danger');
+                document.getElementById('time-bar').classList.replace('bg-red-600', 'bg-red-500');
+            }
+        }
+
+        function logAction(msg, type = 'normal') {
+            const log = document.getElementById('action-log');
+            const color = type === 'warning' ? 'text-yellow-400' : 'text-gray-300';
+            log.innerHTML += `<div class="${color}">> ${msg}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // ロケーションの選択
+        function selectLocation(locId) {
+            document.getElementById('locations').classList.add('hidden');
+            const panel = document.getElementById('action-panel');
+            panel.classList.remove('hidden');
+
+            const data = sceneData[locId];
+            document.getElementById('panel-title').innerText = data.name;
+
+            const list = document.getElementById('items-list');
+            list.innerHTML = '';
+
+            data.items.forEach((item, i) => {
+                if (item.state !== 'raw') {
+                    list.innerHTML += `
+                        <div class="bg-gray-800/50 border border-green-900/50 p-4 rounded text-gray-500">
+                            <h4 class="font-bold line-through">${item.name}</h4>
+                            <p class="text-xs text-green-500 mt-1">[ 処理済み ]</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let actionsHtml = item.actions.map((act, actIdx) => `
+                    <button onclick="performAction('${locId}', ${i}, ${actIdx})" class="w-full text-left p-3 mt-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-red-500 rounded text-sm transition-colors flex justify-between items-center group">
+                        <span>${act.label}</span>
+                        <span class="text-gray-500 group-hover:text-red-400 tech-font">-${act.time}s</span>
+                    </button>
+                `).join('');
+
+                list.innerHTML += `
+                    <div class="bg-black border border-gray-700 p-4 rounded">
+                        <h4 class="font-bold text-red-400">${item.name}</h4>
+                        <p class="text-xs text-gray-400 mt-1 mb-3">${item.desc}</p>
+                        ${actionsHtml}
+                    </div>
+                `;
+            });
+        }
+
+        function backToLocations() {
+            document.getElementById('action-panel').classList.add('hidden');
+            document.getElementById('locations').classList.remove('hidden');
+        }
+
+        // アクション実行
+        window.performAction = function (locId, itemIdx, actIdx) {
+            if (isGameOver) return;
+
+            const action = sceneData[locId].items[itemIdx].actions[actIdx];
+
+            if (time < action.time) {
+                logAction(`時間不足: [${action.label}] を実行するには ${action.time}秒 必要だ。`, 'warning');
+                return;
+            }
+
+            time -= action.time;
+            suspicion = Math.max(0, suspicion + action.susChange);
+            sceneData[locId].items[itemIdx].state = action.state;
+
+            logAction(action.msg);
+            updateUI();
+
+            // UIを再描画
+            selectLocation(locId);
+        };
+
+        window.finishEarly = function () {
+            if (confirm("本当に隠滅作業を終了し、警察を迎えますか？")) {
+                endGame();
+            }
+        }
+
+        // 探偵/警察の評価ロジック
+        function endGame() {
+            isGameOver = true;
+            document.getElementById('game-ui').classList.add('opacity-10', 'pointer-events-none');
+            const modal = document.getElementById('result-modal');
+            modal.classList.remove('hidden');
+
+            const logEl = document.getElementById('detective-log');
+            let finalSus = suspicion;
+            let logs = [];
+
+            logs.push("「通報を受けて駆けつけました。……ひどい有様だ。」");
+
+            // リスク行動のランダム発覚判定
+            let riskCaught = false;
+
+            if (sceneData.floor.items[0].state === 'hidden') {
+                if (Math.random() > 0.5) {
+                    logs.push("「ん？ このラグマットの下……血痕を隠したな！？」");
+                    finalSus += 50;
+                    riskCaught = true;
+                } else {
+                    logs.push("（床の血痕には気付いていないようだ……）");
+                }
+            }
+
+            if (sceneData.floor.items[1].state === 'thrown') {
+                if (Math.random() > 0.3) {
+                    logs.push("「窓の下のゴミ捨て場に血の付いた包丁が落ちていた。指紋もべったりだ。」");
+                    finalSus += 80;
+                    riskCaught = true;
+                }
+            }
+
+            if (sceneData.desk.items[0].state === 'destroyed') {
+                logs.push("「なぜ被害者のPCが粉々に破壊されているんだ？ 明らかに不自然だ。」");
+                finalSus += 20;
+            }
+
+            if (sceneData.door.items[0].state === 'broken') {
+                logs.push("「防犯カメラの電源が人為的に抜かれている。何らかの工作を疑わざるを得ない。」");
+                finalSus += 15;
+            }
+
+            // 何もしてないものへのツッコミ
+            if (sceneData.body.items[0].state === 'raw') logs.push("「遺体がそのまま放置されている。争った形跡もあるな……」");
+            if (sceneData.floor.items[0].state === 'raw') logs.push("「床に大量の血痕がある。隠す気すらなかったようだな。」");
+
+            // 結果判定
+            setTimeout(() => {
+                logs.forEach((t, i) => {
+                    setTimeout(() => {
+                        logEl.innerHTML += `<p class="mb-2">▶ ${t}</p>`;
+                    }, i * 800);
+                });
+
+                setTimeout(() => {
+                    document.getElementById('final-score').innerText = `${Math.min(100, finalSus)}%`;
+
+                    const titleEl = document.getElementById('result-title');
+                    const borderEl = document.getElementById('result-border');
+
+                    if (finalSus >= 50 || riskCaught) {
+                        titleEl.innerText = "ARRESTED - 逮捕";
+                        titleEl.classList.add('text-red-500');
+                        borderEl.classList.replace('bg-blue-600', 'bg-red-600');
+                        logEl.innerHTML += `<p class="text-red-500 font-bold mt-4">「署まで同行願おう。言い逃れはできないぞ。」</p>`;
+                    } else {
+                        titleEl.innerText = "CLEARED - 証拠不十分";
+                        titleEl.classList.add('text-green-500');
+                        borderEl.classList.replace('bg-blue-600', 'bg-green-600');
+                        logEl.innerHTML += `<p class="text-green-400 font-bold mt-4">「……異常はないようですね。ご協力感謝します。」</p>`;
+                    }
+                }, logs.length * 800 + 500);
+            }, 500);
+        }
+
+        // ゲームループ
+        const timerInterval = setInterval(() => {
+            if (isGameOver) {
+                clearInterval(timerInterval);
+                return;
+            }
+            if (time > 0) {
+                time--;
+                updateUI();
+            } else {
+                endGame();
+            }
+        }, 1000);
+
+        updateUI();
+    </script>
+</body>
+
+</html>

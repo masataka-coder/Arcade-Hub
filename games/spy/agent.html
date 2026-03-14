@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL B: 潜入デバイス</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* 押したときのエフェクト */
+        .btn-press:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        /* スキャンライン縦 */
+        .scanline {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 255, 255, 0.3);
+            position: absolute;
+            animation: scan 3s linear infinite;
+            filter: blur(4px);
+            z-index: 10;
+        }
+
+        @keyframes scan {
+            0% {
+                top: -10%;
+            }
+
+            100% {
+                top: 110%;
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-950 text-cyan-500 font-mono h-screen flex items-center justify-center overflow-hidden relative selection:bg-cyan-900 selection:text-white">
+
+    <!-- モバイル風のデバイス枠 -->
+    <div
+        class="w-full max-w-sm h-[80vh] border-4 border-gray-800 rounded-[2rem] bg-gray-900 relative flex flex-col shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden">
+
+        <div class="scanline"></div>
+
+        <!-- デバイスのトップバー -->
+        <div class="h-8 bg-gray-800 flex justify-center items-center px-4">
+            <div class="w-16 h-1 bg-gray-700 rounded-full"></div>
+        </div>
+
+        <!-- 画面ヘッダー -->
+        <div class="p-4 border-b border-cyan-900 flex justify-between items-center bg-gray-900/80 z-20">
+            <span class="text-xs font-bold tracking-widest">AGENT_LINK_v2</span>
+            <span id="conn-status" class="text-xs text-yellow-500 animate-pulse">WAITING HOST...</span>
+        </div>
+
+        <!-- メイン画面 -->
+        <div class="flex-1 flex flex-col items-center justify-center p-6 relative z-20">
+
+            <div id="mission-status" class="text-center mb-8 h-16">
+                <h2 class="text-xl font-bold tracking-widest mb-1 text-gray-500">MISSION STATUS</h2>
+                <p id="status-msg" class="text-sm text-gray-600">Please start protocol on Monitor (TAB A)</p>
+            </div>
+
+            <!-- プログレスメーター -->
+            <div class="w-full mb-12">
+                <div class="flex justify-between text-xs mb-2 text-cyan-700">
+                    <span>START</span>
+                    <span>TARGET</span>
+                </div>
+                <div class="h-4 w-full bg-gray-800 border border-cyan-900 rounded overflow-hidden flex">
+                    <!-- 進捗バー。JSで幅を変える -->
+                    <div id="progress-bar"
+                        class="h-full bg-cyan-600 w-0 transition-all duration-300 shadow-[0_0_10px_rgba(0,255,255,0.5)]">
+                    </div>
+                </div>
+                <div class="text-center text-xs mt-2 text-cyan-600" id="progress-text">0 / 5 STEPS</div>
+            </div>
+
+            <!-- メインアクションボタン -->
+            <!-- 注：あえてカメラがどっちを向いているかはこの画面には表示しません。モニターを見させるためです。 -->
+            <button id="btn-move" disabled
+                class="w-48 h-48 rounded-full border-4 border-cyan-900 bg-gray-800 text-cyan-700 font-bold text-3xl tracking-widest shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-200 flex items-center justify-center btn-press disabled:opacity-50 disabled:cursor-not-allowed">
+                MOVE
+            </button>
+            <p class="text-[10px] text-center mt-4 text-gray-500 max-w-[80%]">
+                WARNING: Do not move when camera is facing your sector. Check Monitor (TAB A).
+            </p>
+
+        </div>
+
+        <!-- デバイスのボトム -->
+        <div class="h-12 bg-gray-800 flex justify-center items-center">
+            <div class="w-12 h-12 rounded-full border border-gray-700 flex items-center justify-center">
+                <div class="w-4 h-4 bg-gray-900 rounded-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- プレイヤー操作を司るクライアント側 ---
+
+        const STATE_KEY = 'spy_game_host_state';
+        const ACTION_KEY = 'spy_game_agent_action';
+
+        const btnMove = document.getElementById('btn-move');
+        const connStatus = document.getElementById('conn-status');
+        const statusMsg = document.getElementById('status-msg');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        let isGameOver = false;
+
+        // モニター（タブA）から状態を受信する
+        window.addEventListener('storage', (e) => {
+            if (e.key === STATE_KEY && e.newValue) {
+                const hostData = JSON.parse(e.newValue);
+                updateUI(hostData);
+            }
+        });
+
+        // ページ読み込み時にも一度状態をチェック（途中から開いた場合用）
+        const initialData = localStorage.getItem(STATE_KEY);
+        if (initialData) {
+            updateUI(JSON.parse(initialData));
+        }
+
+        // 状態に応じたUIの更新
+        function updateUI(data) {
+            const { state, progress, max } = data;
+
+            // プログレスバーの更新
+            if (max > 0) {
+                const percent = (progress / max) * 100;
+                progressBar.style.width = `${percent}%`;
+                progressText.innerText = `${progress} / ${max} STEPS`;
+            }
+
+            if (state === 'STANDBY') {
+                connStatus.innerText = 'HOST CONNECTED';
+                connStatus.className = 'text-xs text-green-500';
+                statusMsg.innerText = 'Waiting for Monitor to start protocol...';
+                statusMsg.className = 'text-sm text-gray-500';
+                btnMove.disabled = true;
+                btnMove.className = 'w-48 h-48 rounded-full border-4 border-gray-700 bg-gray-800 text-gray-600 font-bold text-3xl tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center';
+                isGameOver = false;
+                progressBar.style.width = '0%';
+                progressBar.className = 'h-full bg-cyan-600 w-0 transition-all duration-300 shadow-[0_0_10px_rgba(0,255,255,0.5)]';
+            }
+            else if (state === 'SAFE' || state === 'DANGER') {
+                // ゲーム中
+                connStatus.innerText = 'SYNC: ACTIVE';
+                connStatus.className = 'text-xs text-cyan-400 font-bold';
+                statusMsg.innerText = 'INFILTRATION IN PROGRESS.\nWATCH THE MONITOR!';
+                statusMsg.className = 'text-sm text-cyan-400';
+
+                // ボタンを有効化 (青く光らせる)
+                btnMove.disabled = false;
+                btnMove.className = 'w-48 h-48 rounded-full border-4 border-cyan-500 bg-gray-900 text-cyan-400 font-bold text-4xl tracking-widest shadow-[0_0_20px_rgba(0,255,255,0.4)] hover:bg-cyan-900 hover:text-white transition-all duration-200 flex items-center justify-center btn-press cursor-pointer';
+                isGameOver = false;
+
+                // ※あえて DANGER か SAFE かによってこの画面の色は変えません。
+                // プレイヤーに強制的に「タブAのモニター」を見させるためです。
+                // ただし、通信している感（チラつき）だけ少し入れます。
+                document.body.style.opacity = (Math.random() * 0.1 + 0.9);
+            }
+            else if (state === 'GAMEOVER') {
+                connStatus.innerText = 'CONNECTION LOST';
+                connStatus.className = 'text-xs text-red-600 font-bold animate-blink';
+                statusMsg.innerHTML = '<span class="text-red-500 font-bold text-lg">MISSION FAILED</span><br><span class="text-xs">Agent captured.</span>';
+
+                btnMove.disabled = true;
+                btnMove.innerText = 'LOCKED';
+                btnMove.className = 'w-48 h-48 rounded-full border-4 border-red-800 bg-red-950 text-red-800 font-bold text-3xl tracking-widest disabled:opacity-100 flex items-center justify-center';
+                progressBar.className = 'h-full bg-red-600 w-full transition-all duration-300';
+                isGameOver = true;
+            }
+            else if (state === 'CLEAR') {
+                connStatus.innerText = 'DATA UPLOADED';
+                connStatus.className = 'text-xs text-blue-400 font-bold';
+                statusMsg.innerHTML = '<span class="text-blue-400 font-bold text-lg">MISSION CLEAR</span><br><span class="text-xs">Return to base.</span>';
+
+                btnMove.disabled = true;
+                btnMove.innerText = 'SUCCESS';
+                btnMove.className = 'w-48 h-48 rounded-full border-4 border-blue-500 bg-blue-900/50 text-blue-300 font-bold text-2xl tracking-widest disabled:opacity-100 shadow-[0_0_30px_rgba(0,100,255,0.6)] flex items-center justify-center';
+                progressBar.className = 'h-full bg-blue-400 w-full transition-all duration-300 shadow-[0_0_10px_rgba(0,100,255,0.8)]';
+                isGameOver = true;
+            }
+        }
+
+        // アクション送信処理
+        btnMove.addEventListener('mousedown', () => {
+            if (btnMove.disabled || isGameOver) return;
+
+            // 押した瞬間にクリック音やフィードバックの演出（今回は視覚のみ）
+
+            // ローカルストレージにアクションを書き込む
+            // 毎回タイムスタンプを入れることで、必ずストレージの内容が変化しイベントが発火する
+            const actionData = {
+                action: 'MOVE',
+                ts: Date.now()
+            };
+            localStorage.setItem(ACTION_KEY, JSON.stringify(actionData));
+
+            // 少しだけボタンを無効化して連打を防ぐ
+            btnMove.disabled = true;
+            btnMove.style.opacity = '0.7';
+            setTimeout(() => {
+                if (!isGameOver) {
+                    btnMove.disabled = false;
+                    btnMove.style.opacity = '1';
+                }
+            }, 500);
+        });
+
+        // タッチデバイス向け
+        btnMove.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // マウスイベントとの重複を防ぐ
+            btnMove.dispatchEvent(new Event('mousedown'));
+        });
+
+    </script>
+</body>
+
+</html>
