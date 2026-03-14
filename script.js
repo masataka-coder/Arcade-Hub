@@ -22,7 +22,13 @@ const translations = {
         tag_favorites: "★ お気に入り",
         tag_funny: "バカゲー",
         clear_cache_title: "キャッシュを削除して再読み込み",
-        coming_soon: "近日登場"
+        coming_soon: "近日登場",
+        select_device_title: "機種を選択してください",
+        select_device_desc: "ゲーム体験を最適化するために、お使いの端末を選択してください。",
+        device_pc: "PC",
+        device_mobile: "モバイル",
+        device_tablet: "タブレット",
+        change_device_title: "機種を変更"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -47,13 +53,20 @@ const translations = {
         tag_favorites: "★ Favorites",
         tag_funny: "Funny",
         clear_cache_title: "Clear Cache & Reload",
-        coming_soon: "Coming Soon"
+        coming_soon: "Coming Soon",
+        select_device_title: "Select Your Device",
+        select_device_desc: "Choose your device to optimize your gaming experience.",
+        device_pc: "PC",
+        device_mobile: "Mobile",
+        device_tablet: "Tablet",
+        change_device_title: "Change Device"
     }
 };
 
 let activeFilter = 'all';
 const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration', 'funny'];
 let currentFeaturedGameId = null;
+let currentDevice = localStorage.getItem('arcade_hub_device') || null;
 
 function getFavorites() {
     try {
@@ -92,6 +105,11 @@ function applyTranslations() {
         clearBtn.title = dict.clear_cache_title;
     }
 
+    const deviceBtn = document.getElementById('btn-device-select');
+    if (deviceBtn) {
+        deviceBtn.title = dict.change_device_title;
+    }
+
     renderFilters();
     renderGames(); // Build game grid dynamically
 
@@ -125,9 +143,13 @@ function renderGames() {
     const grid = document.getElementById('game-grid');
     if (!grid) return;
 
-    const listGames = ALL_GAMES.filter(game => game[lang]);
+    let filteredGames = ALL_GAMES.filter(game => game[lang]);
 
-    let filteredGames = listGames;
+    // Filter by device
+    if (currentDevice) {
+        filteredGames = filteredGames.filter(game => game.devices && game.devices.includes(currentDevice));
+    }
+
     const favorites = getFavorites();
 
     if (activeFilter === 'favorites') {
@@ -340,6 +362,21 @@ function setLanguage(lang) {
     applyTranslations();
 }
 
+function showDeviceSelection() {
+    const modal = document.getElementById('device-modal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function selectDevice(device) {
+    currentDevice = device;
+    localStorage.setItem('arcade_hub_device', device);
+    const modal = document.getElementById('device-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    renderGames();
+}
+
 async function clearCacheAndReload() {
     try {
         // Clear all Service Worker caches
@@ -366,6 +403,12 @@ async function clearCacheAndReload() {
 // Basic interactions for the portal page
 document.addEventListener('DOMContentLoaded', () => {
     applyTranslations();
+    
+    // Check if device is already selected
+    if (!currentDevice) {
+        showDeviceSelection();
+    }
+    
     // Dynamic cards are handled within applyTranslations -> renderGames
 
     // Modal logic

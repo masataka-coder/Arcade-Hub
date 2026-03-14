@@ -807,3 +807,85 @@ footer p {
 .toast-close-btn:hover {
     color: white;
 }
+
+/* Device Selection */
+#device-modal .modal-content {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.device-selection-content {
+    max-width: 500px;
+    text-align: center;
+    padding: 2.5rem;
+}
+
+.device-selection-content h2 {
+    font-size: 1.75rem;
+    font-weight: 900;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.device-selection-content p {
+    color: #94a3b8;
+    margin-bottom: 2rem;
+}
+
+.device-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.device-card-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.25rem;
+    padding: 1.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: #fff;
+}
+
+.device-card-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-blue);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.device-icon {
+    font-size: 2.5rem;
+}
+
+.device-card-btn span {
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+/* For mobile responsive modal */
+@media (max-width: 480px) {
+    .device-selection-content {
+        padding: 1.5rem;
+    }
+    
+    .device-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .device-card-btn {
+        flex-direction: row;
+        padding: 1rem 1.5rem;
+        justify-content: center;
+    }
+}

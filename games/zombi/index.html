@@ -232,7 +232,7 @@
                 {
                     id: 'mutant', name: 'ミュータント投下', desc: '高耐久・壁破壊特化の巨大ゾンビを1体投下',
                     icon: 'fa-disease', cost: 400, color: 'text-red-500', cooldown: 30000, lastUsed: 0, type: 'target',
-                    execute: (x, y) => { Game.spawnMutant(x, y); }
+                    execute: (x, y) => { for (let i = 0; i < 50; i++) { Game.spawnMutant(x, y); } }
                 }
             ],
 
@@ -586,7 +586,7 @@
             createExplosion(x, y, radius, damage) {
                 for (let i = 0; i < 30; i++) this.particles.push(new Particle(x, y, '#ef4444', Math.random() * 8 + 2, 500));
                 for (let i = 0; i < 20; i++) this.particles.push(new Particle(x, y, '#f97316', Math.random() * 5 + 2, 400));
-                
+
                 let hitCount = 0;
                 for (let z of this.zombies) {
                     if (hitCount >= 50) break;
@@ -595,17 +595,17 @@
                         hitCount++;
                     }
                 }
-                
+
                 for (let m of this.mutants) {
                     if (hitCount >= 50) break;
                     if (m.pos.dist(new Vec2(x, y)) < radius) {
-                        m.hp -= damage; 
+                        m.hp -= damage;
                         hitCount++;
                     }
                 }
 
                 this.createFloatingText('BOOM', x, y, '#ef4444', 30);
-                
+
                 for (let obs of this.obstacles) {
                     if (new Vec2(obs.x + obs.w / 2, obs.y + obs.h / 2).dist(new Vec2(x, y)) < radius + Math.max(obs.w, obs.h) / 2) {
                         obs.takeDamage(damage * 0.2);
@@ -814,7 +814,7 @@
                         for (let j = this.mutants.length - 1; j >= 0; j--) {
                             let m = this.mutants[j];
                             if (b.pos.dist(m.pos) < b.radius + m.r + 2) {
-                                if (!b.isMissile) m.hp -= b.damage; 
+                                if (!b.isMissile) m.hp -= b.damage;
                                 hitZombie = true;
                                 for (let k = 0; k < 6; k++) this.particles.push(new Particle(b.pos.x, b.pos.y, '#166534', Math.random() * 4 + 1));
                                 break;
@@ -824,7 +824,7 @@
                             for (let j = this.zombies.length - 1; j >= 0; j--) {
                                 let z = this.zombies[j];
                                 if (b.pos.dist(z.pos) < b.radius + z.r + 2) {
-                                    if (!b.isMissile) z.hp -= b.damage; 
+                                    if (!b.isMissile) z.hp -= b.damage;
                                     hitZombie = true;
                                     for (let k = 0; k < 5; k++) this.particles.push(new Particle(b.pos.x, b.pos.y, '#22c55e', Math.random() * 3 + 1));
                                     break;

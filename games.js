@@ -14,7 +14,8 @@ const ALL_GAMES = [
         movie: "assets/movies/block.mp4",
         movie_cg: "assets/movies/block-cg.mp4",
         link: "games/block/index.html",
-        tags: ["action", "puzzle"]
+        tags: ["action", "puzzle"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "tank",
@@ -31,7 +32,8 @@ const ALL_GAMES = [
         movie: "assets/movies/tank.mp4",
         movie_cg: "assets/movies/tank-cg.mp4",
         link: "games/tank/index.html",
-        tags: ["action", "strategy"]
+        tags: ["action", "strategy"],
+        devices: ["pc", "tablet"]
     },
     {
         id: "tower",
@@ -48,7 +50,8 @@ const ALL_GAMES = [
         movie: "assets/movies/tower.mp4",
         movie_cg: "assets/movies/tower-cg.mp4",
         link: "games/tower/index.html",
-        tags: ["strategy"]
+        tags: ["strategy"],
+        devices: ["pc", "tablet"]
     },
     {
         id: "neon",
@@ -65,7 +68,8 @@ const ALL_GAMES = [
         movie: "assets/movies/neon.mp4",
         movie_cg: "assets/movies/neon-cg.mp4",
         link: "games/neon/index.html",
-        tags: ["action", "shooter"]
+        tags: ["action", "shooter"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "cafe",
@@ -78,7 +82,8 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/cafe-cg.mp4",
         link: "games/cafe/index.html",
-        tags: ["simulation", "casual"]
+        tags: ["simulation", "casual"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "village",
@@ -91,7 +96,8 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/village-cg.mp4",
         link: "games/village/index.html",
-        tags: ["strategy", "simulation"]
+        tags: ["strategy", "simulation"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "golf",
@@ -108,7 +114,8 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/golf-cg.mp4",
         link: "games/golf/index.html",
-        tags: ["casual", "puzzle"]
+        tags: ["casual", "puzzle"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "lost",
@@ -125,7 +132,8 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: "assets/movies/lost-cg.mp4",
         link: "games/lost/index.html",
-        tags: ["casual", "exploration"]
+        tags: ["casual", "exploration"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "color",
@@ -142,7 +150,8 @@ const ALL_GAMES = [
         movie: "assets/movies/color.mp4",
         movie_cg: "assets/movies/color-cg.mp4",
         link: "games/color/index.html",
-        tags: ["puzzle", "casual"]
+        tags: ["puzzle", "casual"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "sushi",
@@ -155,7 +164,8 @@ const ALL_GAMES = [
         movie: "assets/movies/sushi.mp4",
         movie_cg: "assets/movies/sushi-cg.mp4",
         link: "games/sushi/index.html",
-        tags: ["simulation", "casual"]
+        tags: ["simulation", "casual"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "funny",
@@ -168,7 +178,8 @@ const ALL_GAMES = [
         movie: null,
         movie_cg: null,
         link: "games/funny/index.html",
-        tags: ["funny", "casual"]
+        tags: ["funny", "casual"],
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "zombi",
@@ -186,7 +197,8 @@ const ALL_GAMES = [
         movie_cg: null,
         link: "games/zombi/index.html",
         tags: ["action", "shooter"],
-        comingSoon: true
+        comingSoon: true,
+        devices: ["pc", "mobile", "tablet"]
     },
     {
         id: "quit",
@@ -199,6 +211,7 @@ const ALL_GAMES = [
         movie: "assets/movies/quit.mp4",
         movie_cg: null,
         link: "games/quit/index.html",
-        tags: ["puzzle", "casual", "funny"]
+        tags: ["puzzle", "casual", "funny"],
+        devices: ["pc"]
     }
 ];
