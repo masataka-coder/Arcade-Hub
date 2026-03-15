@@ -268,8 +268,8 @@
         </div>
 
         <div class="absolute top-10 w-full text-center text-white/50 text-xs pointer-events-none drop-shadow-md">
-            PC: [WASD]移動 / [J]攻撃(要スタミナ) / [K]防御 / [L]挑発<br>
-            スマホ: 左画面ドラッグで移動 / 右ボタンでアクション
+            1P: [WASD]移動 / [J]攻撃 / [K]防御 / [L]挑発<br>
+            2P: [矢印]移動 / [テンキー1]攻撃 / [テンキー2]防御 / [テンキー3]挑発
         </div>
     </div>
 
@@ -300,6 +300,8 @@
                 LUDUS</button>
             <button id="btn-continue" onclick="continueGame()"
                 class="hidden px-8 py-4 bg-blue-800 text-white font-bold rounded border border-blue-500 hover:bg-blue-700 text-xl cinzel">CONTINUE</button>
+            <button onclick="startLocalMulti()"
+                class="px-8 py-4 bg-green-800 text-white font-bold rounded border border-green-500 hover:bg-green-700 text-xl cinzel">⚔️ 2P LOCAL</button>
         </div>
         <button onclick="initAudio()" id="btn-audio"
             class="mt-8 text-gray-400 text-sm border-b border-gray-400 pb-1">サウンド: OFF (タップでON)</button>
@@ -502,6 +504,7 @@
         window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
         const input = { x: 0, y: 0, attack: false, defend: false, taunt: false, keys: {} };
+        const input2 = { x: 0, y: 0, attack: false, defend: false, taunt: false, keys: {} };
 
         window.addEventListener('keydown', e => {
             input.keys[e.key.toLowerCase()] = true;
@@ -509,11 +512,21 @@
             if (e.key.toLowerCase() === 'k') input.defend = true;
             if (e.key.toLowerCase() === 'l') input.taunt = true;
             updateKeyMovement();
+            // 2P keys
+            input2.keys[e.key] = true;
+            if (e.key === 'Numpad1' || e.key === '1' && e.location === 3) input2.attack = true;
+            if (e.key === 'Numpad2' || e.key === '2' && e.location === 3) input2.defend = true;
+            if (e.key === 'Numpad3' || e.key === '3' && e.location === 3) input2.taunt = true;
+            updateKeyMovement2();
         });
         window.addEventListener('keyup', e => {
             input.keys[e.key.toLowerCase()] = false;
             if (e.key.toLowerCase() === 'k') input.defend = false;
             updateKeyMovement();
+            // 2P keys
+            input2.keys[e.key] = false;
+            if (e.key === 'Numpad2' || e.key === '2' && e.location === 3) input2.defend = false;
+            updateKeyMovement2();
         });
         function updateKeyMovement() {
             input.x = 0; input.y = 0;
@@ -521,6 +534,14 @@
             if (input.keys['w']) input.y -= 1; if (input.keys['s']) input.y += 1;
             if (input.x !== 0 || input.y !== 0) {
                 const len = Math.hypot(input.x, input.y); input.x /= len; input.y /= len;
+            }
+        }
+        function updateKeyMovement2() {
+            input2.x = 0; input2.y = 0;
+            if (input2.keys['ArrowLeft']) input2.x -= 1; if (input2.keys['ArrowRight']) input2.x += 1;
+            if (input2.keys['ArrowUp']) input2.y -= 1; if (input2.keys['ArrowDown']) input2.y += 1;
+            if (input2.x !== 0 || input2.y !== 0) {
+                const len = Math.hypot(input2.x, input2.y); input2.x /= len; input2.y /= len;
             }
         }
 
@@ -667,7 +688,7 @@
                 this.stamina = 100; this.maxStamina = 100;
                 this.attackStep = 0;
             }
-            update(dt) {
+            update(dt, inp = input) {
                 super.update(dt);
                 if (this.state === 'dead') return;
 
@@ -675,14 +696,14 @@
                 let friction = 0.95;
 
                 if (this.state === 'idle' || this.state === 'move') {
-                    if (input.attack) {
+                    if (inp.attack) {
                         if (this.weapons === 0) {
                             game.addText("NO WEAPON!", this.x, this.y - 30, '#ef4444');
                             playSound('swish');
-                            input.attack = false;
+                            inp.attack = false;
                         } else if (this.stamina >= 25) {
                             this.stamina -= 25;
-                            this.state = 'attack'; this.stateTime = 0; input.attack = false;
+                            this.state = 'attack'; this.stateTime = 0; inp.attack = false;
                             this.attackStep = 0;
 
                             // 二刀流以外は初撃の判定をここで生成
@@ -703,25 +724,27 @@
                                 }
                             }
                         } else {
-                            game.addText("息切れ!", this.x, this.y - 30, '#94a3b8'); input.attack = false;
+                            game.addText("息切れ!", this.x, this.y - 30, '#94a3b8'); inp.attack = false;
                         }
-                    } else if (input.defend && this.stamina > 0) {
+                    } else if (inp.defend && this.stamina > 0 && (this.style === 'murmillo' || this.weapons > 0)) {
                         this.state = 'defend'; this.stateTime = 0;
-                    } else if (input.taunt && this.stamina >= 10) {
+                    } else if (inp.defend && this.stamina > 0 && this.style !== 'murmillo' && this.weapons <= 0) {
+                        game.addText("NO SHIELD!", this.x, this.y - 30, '#ef4444'); inp.defend = false;
+                    } else if (inp.taunt && this.stamina >= 10) {
                         this.stamina -= 10;
-                        this.state = 'taunt'; this.stateTime = 0; input.taunt = false;
+                        this.state = 'taunt'; this.stateTime = 0; inp.taunt = false;
                         game.addText("COME ON!!", this.x, this.y - 30, '#4ade80');
                     } else {
-                        if (input.x !== 0 || input.y !== 0) {
+                        if (inp.x !== 0 || inp.y !== 0) {
                             this.state = 'move';
                             if (this.isShip) {
-                                let targetAngle = Math.atan2(input.y, input.x); let diff = targetAngle - this.angle;
+                                let targetAngle = Math.atan2(inp.y, inp.x); let diff = targetAngle - this.angle;
                                 while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
                                 this.angle += diff * 3.0 * dt;
                                 this.vx = Math.cos(this.angle) * this.speed * this.speedMult; this.vy = Math.sin(this.angle) * this.speed * this.speedMult;
                             } else {
-                                this.vx = input.x * this.speed * this.speedMult; this.vy = input.y * this.speed * this.speedMult;
-                                this.angle = Math.atan2(input.y, input.x);
+                                this.vx = inp.x * this.speed * this.speedMult; this.vy = inp.y * this.speed * this.speedMult;
+                                this.angle = Math.atan2(inp.y, inp.x);
                             }
                         } else {
                             this.state = 'idle';
@@ -731,7 +754,7 @@
                 }
 
                 if (this.state === 'defend') {
-                    if (!input.defend) this.state = 'idle';
+                    if (!inp.defend) this.state = 'idle';
                     else {
                         this.stamina -= 15 * dt;
                         if (this.stamina <= 0) {
@@ -1178,7 +1201,7 @@
         // Main Game Object
         // ==========================================
         const game = {
-            state: 'menu', lastTime: 0, camera: new Camera(), player: new Player(), enemy: null,
+            state: 'menu', lastTime: 0, camera: new Camera(), player: new Player(), enemy: null, p2: null, localMulti: false,
             attacks: [], particles: [], texts: [], gifts: [], bloodstains: [], hazards: [], droppedWeapons: [],
             voltage: 0, gold: 0, hitStop: 0, gimmick: null, matchData: null,
             combo: 0, comboTimer: 0, demand: null, demandCooldown: 5,
@@ -1256,30 +1279,48 @@
                 }
             },
 
-            startBattle() {
-                this.gimmick = this.matchData.gimmick || null;
+            startBattle(isLocalMulti = false) {
+                this.localMulti = isLocalMulti;
+                this.gimmick = (this.matchData && !isLocalMulti) ? (this.matchData.gimmick || null) : null;
                 const isShipMode = (this.gimmick === 'naumachia');
 
-                this.enemy = new Enemy(isShipMode ? 150 : 0, -150, this.matchData);
-                this.player.x = isShipMode ? -150 : 0; this.player.y = 150;
+                this.player.x = isShipMode ? -150 : -100; this.player.y = 0;
                 this.player.stamina = this.player.maxStamina;
-                this.player.state = 'idle';
+                this.player.state = 'idle'; this.player.hp = this.player.maxHp;
+                this.player.isShip = false; this.player.radius = 20;
+                this.player.weapons = this.player.style === 'dimachaerus' ? 2 : 1;
+
+                if (isLocalMulti) {
+                    // 2Pモード: p2はthraexスタイルで相手側に配置
+                    this.p2 = new Player();
+                    this.p2.x = 100; this.p2.y = 0;
+                    this.p2.color = '#dc2626'; // 赤色で区別
+                    this.p2.style = 'thraex'; this.p2.maxHp = 100; this.p2.atk = 12; this.p2.speed = 180; this.p2.parryWindow = 0.3;
+                    this.p2.hp = this.p2.maxHp; this.p2.stamina = this.p2.maxStamina;
+                    this.p2.state = 'idle'; this.p2.radius = 20;
+                    this.p2.weapons = this.p2.style === 'dimachaerus' ? 2 : 1;
+                    this.p2.angle = Math.PI; // 左向き
+                    this.enemy = null;
+                    document.getElementById('ui-e-name').innerText = '2P';
+                } else {
+                    this.p2 = null;
+                    this.enemy = new Enemy(isShipMode ? 150 : 0, -150, this.matchData);
+                    if (isShipMode) {
+                        this.player.isShip = true; this.player.radius = 35; this.player.angle = -Math.PI / 2;
+                        this.enemy.isShip = true; this.enemy.radius = 35; this.enemy.angle = Math.PI / 2;
+                        this.player.x = -150; this.player.y = 0;
+                    }
+                    this.player.weapons = isShipMode ? -1 : (this.player.style === 'dimachaerus' ? 2 : 1);
+                    this.enemy.weapons = isShipMode || this.matchData.type === 'beast' ? -1 : 1;
+                    document.getElementById('ui-e-name').innerText = this.matchData.name;
+                }
 
                 this.voltage = 0; this.combo = 0; this.demandCooldown = 5; this.demand = null;
                 this.attacks = []; this.particles = []; this.texts = []; this.gifts = []; this.bloodstains = []; this.hazards = []; this.droppedWeapons = [];
 
-                if (isShipMode) {
-                    this.player.isShip = true; this.player.radius = 35; this.player.angle = -Math.PI / 2;
-                    this.enemy.isShip = true; this.enemy.radius = 35; this.enemy.angle = Math.PI / 2;
-                } else {
-                    this.player.isShip = false; this.player.radius = 20;
-                    this.enemy.isShip = false; this.enemy.radius = 22;
-                }
-                this.player.weapons = isShipMode ? -1 : (this.player.style === 'dimachaerus' ? 2 : 1);
-                this.enemy.weapons = isShipMode || this.matchData.type === 'beast' ? -1 : 1;
-
-                document.getElementById('ui-e-name').innerText = this.matchData.name;
                 document.getElementById('demand-ui').style.opacity = 0; document.getElementById('combo-ui').style.opacity = 0;
+                // 2P用HPバー表示切替
+                document.getElementById('ui-e-hp').style.width = '100%';
 
                 this.state = 'battle'; changeScreen('');
                 document.getElementById('hud').classList.add('active');
@@ -1287,8 +1328,8 @@
 
                 this.initAudience();
 
-                if (this.matchData.isNemesis) this.addText("REVENGE!!", 0, -100, '#ef4444');
-                else this.addText("FIGHT!!", 0, 0, '#ef4444');
+                if (!isLocalMulti && this.matchData && this.matchData.isNemesis) this.addText("REVENGE!!", 0, -100, '#ef4444');
+                else this.addText(isLocalMulti ? "PLAYER 2 READY!" : "FIGHT!!", 0, 0, '#ef4444');
                 playSound('cheer');
 
                 this.updateUI(); canvas.focus();
@@ -1320,11 +1361,7 @@
                             // パリィ (Perfect)
                             playSound('parry'); this.camera.shake(10, 0.2); this.hitStop = 0.1; this.addText("PARRY!", target.x, target.y - 40, '#3b82f6');
                             
-                            // 視覚的な反撃エフェクト (Visual counter slash)とスイングモーション
                             let counterAngle = Math.atan2(target.y - attacker.y, target.x - attacker.x) + Math.PI;
-                            // 防御側に一瞬攻撃モーションをとらせる
-                            target.state = 'attack'; target.stateTime = 0.1;
-                            target.angle = counterAngle; // 敵の方向を向く
                             
                             for (let i = 0; i < 20; i++) {
                                 let p = new Particle(target.x, target.y, '#fcd34d', 2);
@@ -1332,23 +1369,30 @@
                                 this.particles.push(p);
                             }
                             
-                            attacker.state = 'hit'; attacker.stateTime = -0.5; // 長いスタン
-                            attacker.hp -= (target.atk || 15) * this.getPassionMultiplier() * 1.5;
-                            attacker.x += Math.cos(counterAngle) * 20; attacker.y += Math.sin(counterAngle) * 20;
+                            // 武器がある場合のみ反撃
+                            if (target.weapons > 0 || target.isShip) {
+                                // 防御側に一瞬攻撃モーションをとらせる
+                                target.state = 'attack'; target.stateTime = 0.1;
+                                target.angle = counterAngle;
+                                
+                                attacker.state = 'hit'; attacker.stateTime = -0.5; // 長いスタン
+                                attacker.hp -= (target.atk || 15) * this.getPassionMultiplier() * 1.5;
+                                attacker.x += Math.cos(counterAngle) * 20; attacker.y += Math.sin(counterAngle) * 20;
 
-                            // 武器を落とさせる
-                            if (attacker.weapons > 0) {
-                                attacker.weapons--;
-                                this.droppedWeapons.push(new DroppedWeapon(attacker.x, attacker.y, Math.cos(counterAngle)*600, Math.sin(counterAngle)*600));
+                                // 武器を落とさせる
+                                if (attacker.weapons > 0) {
+                                    attacker.weapons--;
+                                    this.droppedWeapons.push(new DroppedWeapon(attacker.x, attacker.y, Math.cos(counterAngle)*600, Math.sin(counterAngle)*600));
+                                }
+                                
+                                // アタッカーの死亡判定
+                                if (attacker.hp <= 0) { attacker.hp = 0; attacker.state = 'dead'; setTimeout(() => this.endBattle(attacker === this.enemy), 2000); }
                             }
                             
                             if (target === this.player) {
                                 this.player.stamina = Math.min(this.player.maxStamina, this.player.stamina + 20);
                                 let bonus = this.patron === 'noble' ? 40 : 20; this.addVoltage(bonus); this.checkDemand('parry');
                             }
-                            
-                            // アタッカーの死亡判定
-                            if (attacker.hp <= 0) { attacker.hp = 0; attacker.state = 'dead'; setTimeout(() => this.endBattle(attacker === this.enemy), 2000); }
                             
                             this.updateUI(); return;
                         } else if (target.stateTime < 0.6) {
@@ -1432,7 +1476,11 @@
                 if (this.player.stamina < 25) document.getElementById('ui-p-stamina').classList.replace('bg-blue-400', 'bg-red-400');
                 else document.getElementById('ui-p-stamina').classList.replace('bg-red-400', 'bg-blue-400');
 
-                if (this.enemy) document.getElementById('ui-e-hp').style.width = Math.max(0, this.enemy.hp / this.enemy.maxHp) * 100 + '%';
+                if (this.localMulti && this.p2) {
+                    document.getElementById('ui-e-hp').style.width = Math.max(0, this.p2.hp / this.p2.maxHp) * 100 + '%';
+                } else if (this.enemy) {
+                    document.getElementById('ui-e-hp').style.width = Math.max(0, this.enemy.hp / this.enemy.maxHp) * 100 + '%';
+                }
                 document.getElementById('ui-voltage').innerText = Math.floor(this.voltage) + '%';
                 document.getElementById('ui-voltage-bar').style.width = this.voltage + '%';
 
@@ -1445,6 +1493,15 @@
             endBattle(isWin) {
                 this.state = 'menu';
                 document.getElementById('hud').classList.remove('active'); document.getElementById('controls').classList.remove('active');
+
+                // 2Pモードの場合は、勝者が新屋に表示されるだけ
+                if (this.localMulti) {
+                    const winner = isWin ? '1P' : '2P';
+                    document.getElementById('end-title').innerText = `${winner} WINS!`;
+                    document.getElementById('end-title').className = 'text-5xl text-yellow-500 mb-4 cinzel font-black';
+                    document.getElementById('end-desc').innerText = `${winner === '1P' ? 'PLAYER 1' : 'PLAYER 2'} が勝利！`;
+                    changeScreen('screen-end'); playSound('cheer'); return;
+                }
 
                 if (isWin) this.fans += Math.floor(this.voltage / 20) + 1;
                 else this.haters += 3;
@@ -1497,19 +1554,26 @@
                         }
                     }
 
-                    this.player.update(dt); if (this.enemy) this.enemy.update(dt);
+                    this.player.update(dt);
+                    if (this.localMulti && this.p2) {
+                        this.p2.update(dt, input2);
+                    } else if (this.enemy) {
+                        this.enemy.update(dt);
+                    }
 
-                    if (this.enemy && this.enemy.state !== 'dead' && this.player.state !== 'dead') {
-                        const dx = this.enemy.x - this.player.x; const dy = this.enemy.y - this.player.y; const dist = Math.hypot(dx, dy);
-                        const pRad = this.player.isShip ? 45 : this.player.radius; const eRad = this.enemy.isShip ? 45 : this.enemy.radius;
+                    // 衝突判定
+                    const opponent = this.localMulti ? this.p2 : this.enemy;
+                    if (opponent && opponent.state !== 'dead' && this.player.state !== 'dead') {
+                        const dx = opponent.x - this.player.x; const dy = opponent.y - this.player.y; const dist = Math.hypot(dx, dy);
+                        const pRad = this.player.isShip ? 45 : this.player.radius; const eRad = opponent.isShip ? 45 : opponent.radius;
                         const minDist = pRad + eRad;
                         if (dist > 0.01 && dist < minDist) {
                             const overlap = minDist - dist; const pushX = (dx / dist) * overlap * 0.5; const pushY = (dy / dist) * overlap * 0.5;
-                            this.player.x -= pushX; this.player.y -= pushY; this.enemy.x += pushX; this.enemy.y += pushY;
+                            this.player.x -= pushX; this.player.y -= pushY; opponent.x += pushX; opponent.y += pushY;
                         }
                     }
 
-                    this.attacks = this.attacks.filter(a => a.update(dt, [this.player, this.enemy]));
+                    this.attacks = this.attacks.filter(a => a.update(dt, [this.player, this.localMulti ? this.p2 : this.enemy]));
                     this.particles = this.particles.filter(p => p.update(dt));
                     this.droppedWeapons.forEach(dw => {
                         if (!dw.active || dw.vz !== 0 || dw.z > 0) return;
@@ -1517,10 +1581,17 @@
                         if (this.player.weapons < maxWepP && Math.hypot(this.player.x - dw.x, this.player.y - dw.y) < this.player.radius + 20) {
                             this.player.weapons++; dw.active = false; playSound('swish'); game.addText("PICK UP!", this.player.x, this.player.y - 30, '#4ade80');
                         }
-                        const maxWepE = this.enemy && this.enemy.style === 'dimachaerus' ? 2 : 1;
-                        if (this.enemy && this.enemy.weapons >= 0 && this.enemy.weapons < maxWepE && Math.hypot(this.enemy.x - dw.x, this.enemy.y - dw.y) < this.enemy.radius + 20) {
-                            this.enemy.weapons++; dw.active = false; playSound('swish'); game.addText("PICK UP!", this.enemy.x, this.enemy.y - 30, '#4ade80');
-                            this.enemy.timer = 0; // reset attack timer
+                        if (this.localMulti && this.p2) {
+                            const maxWepP2 = this.p2.style === 'dimachaerus' ? 2 : 1;
+                            if (this.p2.weapons < maxWepP2 && Math.hypot(this.p2.x - dw.x, this.p2.y - dw.y) < this.p2.radius + 20) {
+                                this.p2.weapons++; dw.active = false; playSound('swish'); game.addText("2P PICK UP!", this.p2.x, this.p2.y - 30, '#f87171');
+                            }
+                        } else {
+                            const maxWepE = this.enemy && this.enemy.style === 'dimachaerus' ? 2 : 1;
+                            if (this.enemy && this.enemy.weapons >= 0 && this.enemy.weapons < maxWepE && Math.hypot(this.enemy.x - dw.x, this.enemy.y - dw.y) < this.enemy.radius + 20) {
+                                this.enemy.weapons++; dw.active = false; playSound('swish'); game.addText("PICK UP!", this.enemy.x, this.enemy.y - 30, '#4ade80');
+                                this.enemy.timer = 0;
+                            }
                         }
                     });
                     this.droppedWeapons = this.droppedWeapons.filter(dw => dw.update(dt));
@@ -1617,7 +1688,8 @@
 
                     const entities = [];
                     if (this.player.state !== 'dead') entities.push(this.player);
-                    if (this.enemy && this.enemy.state !== 'dead') entities.push(this.enemy);
+                    if (this.localMulti && this.p2 && this.p2.state !== 'dead') entities.push(this.p2);
+                    else if (this.enemy && this.enemy.state !== 'dead') entities.push(this.enemy);
                     entities.sort((a, b) => a.y - b.y);
 
                     this.gifts.forEach(g => g.draw(ctx));
@@ -1794,6 +1866,16 @@
                 const btn = document.getElementById('btn-continue');
                 if(btn) btn.classList.add('hidden');
             }
+        }
+
+        function startLocalMulti() {
+            playSound('swing');
+            // 1P\u306f\u30e0\u30eb\u30df\u30c3\u30ed\u30c7\u30d5\u30a9\u30eb\u30c8\u3001\u30b9\u30bf\u30a4\u30eb\u9078\u629e\u753b\u9762\u3078
+            game.player.style = 'murmillo'; game.player.maxHp = 120; game.player.atk = 15; game.player.speed = 150; game.player.parryWindow = 0.4;
+            game.player.hp = game.player.maxHp;
+            // matchData\u3092\u30c0\u30df\u30fc\u3067\u8a2d\u5b9a\uff082P\u30e2\u30fc\u30c9\u3067\u306f\u4f7f\u308f\u306a\u3044\uff09
+            game.matchData = { name: '2P', type: 'human', hp: 100, atk: 15, speed: 150, interval: 2.0, evade: 0, guard: 0, feintRate: 0, gimmick: null };
+            game.startBattle(true);
         }
 
         function continueGame() {
