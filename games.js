@@ -213,5 +213,24 @@ const ALL_GAMES = [
         link: "games/quit/index.html",
         tags: ["puzzle", "casual", "funny"],
         devices: ["pc"]
+    },
+    {
+        id: "core",
+        ja: {
+            title: "コア・ガーディアン",
+            description: "コアを守り抜け。迫りくる敵を撃破し、コアの耐久力を維持せよ。"
+        },
+        en: {
+            title: "CORE GUARDIAN",
+            description: "Protect the core. Destroy incoming enemies and maintain the core's durability."
+        },
+        copyright: "&copy; 2026 Takahide Kohata",
+        image: "assets/thumbnails/core.png",
+        movie: null,
+        movie_cg: "assets/movies/core-cg.mp4",
+        link: "games/core/index.html",
+        tags: ["action", "shooter"],
+        comingSoon: true,
+        devices: ["pc", "mobile", "tablet"]
     }
 ];

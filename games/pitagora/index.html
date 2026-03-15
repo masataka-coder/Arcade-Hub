@@ -5,19 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ピタゴラ装置メーカー (Rube Goldberg Machine Builder)</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
             overflow: hidden;
             background-color: #f3f4f6;
+            font-family: 'Outfit', sans-serif, 'Meiryo', 'MS PGothic';
         }
 
         canvas {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-radius: 8px;
+            border-radius: 12px;
             background-color: #ffffff;
         }
 
@@ -38,6 +42,50 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes blob {
+            0% {
+                transform: translate(0px, 0px) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+
+            100% {
+                transform: translate(0px, 0px) scale(1);
+            }
+        }
+
+        .animate-blob {
+            animation: blob 7s infinite alternate;
+        }
+
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
     </style>
 </head>
 
@@ -45,13 +93,20 @@
 
     <!-- 左サイドバー：UIコントロール -->
     <aside class="w-80 bg-white shadow-xl flex flex-col z-10 relative">
-        <div class="p-4 bg-blue-600 text-white">
-            <h1 class="text-xl font-bold"><i class="fa-solid fa-cogs mr-2"></i>ピタゴラメーカー</h1>
-            <p class="text-xs mt-1 opacity-80">パーツを並べてゴールを目指そう</p>
+        <div class="p-4 bg-blue-600 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold"><i class="fa-solid fa-cogs mr-2"></i>ピタゴラメーカー</h1>
+                <p class="text-xs mt-1 opacity-80">パーツを並べてゴールを目指そう</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="goToTitle()" title="タイトルへ戻る" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition shadow-inner">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
+                </button>
+            </div>
         </div>
 
         <!-- プレイコントロール -->
-        <div class="p-4 border-b border-gray-100">
+        <div class="p-4 border-b border-gray-100 space-y-2">
             <button id="btn-play" onclick="startGame()"
                 class="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition shadow flex justify-center items-center gap-2">
                 <i class="fa-solid fa-play"></i> テスト実行 (Play)
@@ -60,6 +115,17 @@
                 class="hidden w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition shadow flex justify-center items-center gap-2">
                 <i class="fa-solid fa-stop"></i> 停止・編集へ戻る
             </button>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="showSaveSlots('save')"
+                    class="py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition text-xs flex justify-center items-center gap-2 border border-gray-200">
+                    <i class="fa-solid fa-save"></i> セーブ
+                </button>
+                <button onclick="showSaveSlots('load')"
+                    class="py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition text-xs flex justify-center items-center gap-2 border border-gray-200">
+                    <i class="fa-solid fa-folder-open"></i> ロード
+                </button>
+            </div>
         </div>
 
         <!-- パーツ追加パネル -->
@@ -122,6 +188,32 @@
                     </div>
                     <span class="text-xs font-medium">扇風機(右)</span>
                 </button>
+                <!-- 加速床 -->
+                <button onclick="addAccelerator()"
+                    class="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded flex flex-col items-center gap-2 transition">
+                    <div class="w-10 h-2 rounded shadow-[0_0_8px_rgba(34,197,94,0.6)]" style="background-color: #22C55E;"></div>
+                    <span class="text-xs font-medium">加速パネル</span>
+                </button>
+                <!-- シーソー -->
+                <button onclick="addSeesaw()"
+                    class="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded flex flex-col items-center gap-2 transition">
+                    <div class="relative w-10 h-1 bg-gray-600 flex items-center justify-center">
+                        <div class="w-2 h-2 rounded-full bg-red-500 border border-white"></div>
+                    </div>
+                    <span class="text-xs font-medium">シーソー</span>
+                </button>
+                <!-- ワープ(青) -->
+                <button onclick="addPortalIn()"
+                    class="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded flex flex-col items-center gap-2 transition">
+                    <div class="w-6 h-8 rounded-full border-2 border-blue-400 bg-blue-500/20 shadow-[0_0_8px_rgba(96,165,250,0.6)]"></div>
+                    <span class="text-xs font-medium">ワープ入口</span>
+                </button>
+                <!-- ワープ(橙) -->
+                <button onclick="addPortalOut()"
+                    class="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded flex flex-col items-center gap-2 transition">
+                    <div class="w-6 h-8 rounded-full border-2 border-orange-400 bg-orange-500/20 shadow-[0_0_8px_rgba(251,146,60,0.6)]"></div>
+                    <span class="text-xs font-medium">ワープ出口</span>
+                </button>
             </div>
 
             <!-- 操作説明 -->
@@ -178,6 +270,78 @@
         </div>
     </main>
 
+    <!-- タイトル画面 -->
+    <div id="title-screen"
+        class="absolute inset-0 z-50 overflow-hidden flex flex-col items-center justify-center bg-slate-900">
+        <!-- 背景の装飾用カラーボケ -->
+        <div
+            class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob">
+        </div>
+        <div
+            class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/30 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000">
+        </div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000">
+        </div>
+
+        <div class="relative z-10 text-center px-4">
+            <div
+                class="inline-block p-4 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 mb-8 shadow-2xl animate-float">
+                <i class="fa-solid fa-cogs text-7xl text-blue-400 drop-shadow-lg"></i>
+            </div>
+            <h1 class="text-6xl md:text-8xl font-black text-white mb-4 tracking-tighter drop-shadow-2xl">
+                PITAGORA<span class="text-blue-500 italic block mt-2 text-4xl md:text-5xl">MAKER</span>
+            </h1>
+            <p class="text-blue-200/80 text-lg md:text-xl font-medium mb-12 tracking-widest uppercase">Rube Goldberg
+                Machine Builder</p>
+
+            <div class="flex flex-col md:flex-row gap-6 justify-center max-w-2xl mx-auto">
+                <button onclick="startNewGame()" 
+                    class="group relative px-10 py-5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 shadow-[0_20px_50px_rgba(37,99,235,0.3)] overflow-hidden">
+                    <span class="relative z-10 flex items-center justify-center gap-3 text-xl">
+                        <i class="fa-solid fa-plus-circle"></i> はじめから作る
+                    </span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </button>
+                <button onclick="showSaveSlots('load', true)" 
+                    class="px-10 py-5 bg-white/10 backdrop-blur-md text-white font-black rounded-2xl border-2 border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 shadow-2xl flex items-center justify-center gap-3 text-xl">
+                    <i class="fa-solid fa-folder-open"></i> つづきを遊ぶ
+                </button>
+                <button onclick="goToHome()" 
+                    class="px-8 py-5 bg-slate-800 text-white/70 font-bold rounded-2xl border border-white/10 hover:bg-slate-700 hover:text-white transition-all duration-300 flex items-center justify-center gap-3 text-lg">
+                    <i class="fa-solid fa-home"></i> トップへ
+                </button>
+            </div>
+        </div>
+
+        <div class="absolute bottom-8 text-white/30 text-xs font-bold tracking-widest uppercase">
+            Designed for Arcade Hub &copy; 2024
+        </div>
+    </div>
+
+    <!-- セーブスロットモーダル -->
+    <div id="save-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="hideSaveSlots()"></div>
+        <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden glass-card">
+            <div class="px-8 py-6 bg-blue-600 text-white flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-black" id="save-modal-title">セーブ・ロード</h2>
+                    <p class="text-xs opacity-70 mt-1 uppercase tracking-widest">Select a storage slot</p>
+                </div>
+                <button onclick="hideSaveSlots()"
+                    class="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-8 space-y-4" id="slot-list">
+                <!-- Slots will be injected here -->
+            </div>
+            <div class="p-6 bg-gray-50 border-t border-gray-100 text-center">
+                <p class="text-xs text-gray-400 font-medium">セーブデータはブラウザ（Local Storage）に保存されます</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Matter.js モジュール
         const { Engine, Render, Runner, World, Bodies, Body, Mouse, MouseConstraint, Events, Composite, Constraint } = Matter;
@@ -201,7 +365,10 @@
             wall: '#4B5563',     // グレー
             ironBall: '#374151', // ダークグレー
             rotator: '#F97316',  // オレンジ
-            fan: '#67E8F9'       // 水色
+            fan: '#67E8F9',      // 水色
+            accelerator: '#22C55E', // 緑
+            portalIn: '#60A5FA',  // 青
+            portalOut: '#FB923C'  // オレンジ
         };
 
         const CANVAS_WIDTH = 800;
@@ -231,10 +398,7 @@
             const rightWall = Bodies.rectangle(CANVAS_WIDTH + 25, CANVAS_HEIGHT / 2, 50, CANVAS_HEIGHT, { isStatic: true, label: 'wall', render: { fillStyle: COLORS.wall } });
             World.add(engine.world, [ground, leftWall, rightWall]);
 
-            // --- 初期配置（最低限のパーツ） ---
-            addBall(100, 150);
-            addPlatform(100, 200);
-            addGoal(700, 500);
+            // --- 初期配置は個別関数で行う ---
 
             // --- マウス操作の設定 ---
             const mouse = Mouse.create(render.canvas);
@@ -274,27 +438,61 @@
                     Body.setAngularVelocity(draggingBody, 0);
                 }
 
-                // 扇風機（Fan）の風力処理
+                // 扇風機（Fan）と加速パネル（Accelerator）の物理処理
                 if (isPlaying) {
                     const bodies = Composite.allBodies(engine.world);
                     const fans = bodies.filter(b => b.label === 'fan');
+                    const accelerators = bodies.filter(b => b.label === 'accelerator');
 
                     bodies.forEach(body => {
-                        // 動かない物体やセンサーは風の影響を受けない
                         if (body.isStatic || body.isSensor) return;
 
+                        // 扇風機
                         fans.forEach(fan => {
-                            // 扇風機のエリア内にボディがあるか判定
                             if (Matter.Bounds.overlaps(body.bounds, fan.bounds)) {
-                                // 右斜め上方向へ力を加える（質量に比例させて均等に飛ばす）
                                 Body.applyForce(body, body.position, {
                                     x: 0.001 * body.mass,
                                     y: -0.0005 * body.mass
                                 });
                             }
                         });
+
+                        // 加速パネル
+                        accelerators.forEach(acc => {
+                            if (Matter.Bounds.overlaps(body.bounds, acc.bounds)) {
+                                const angle = acc.angle;
+                                const forceMagnitude = 0.005 * body.mass;
+                                Body.applyForce(body, body.position, {
+                                    x: Math.cos(angle) * forceMagnitude,
+                                    y: Math.sin(angle) * forceMagnitude
+                                });
+                            }
+                        });
                     });
                 }
+            });
+
+            // --- イベント: ワープ処理 ---
+            Events.on(engine, 'collisionStart', (event) => {
+                event.pairs.forEach((pair) => {
+                    const { bodyA, bodyB } = pair;
+                    
+                    if (!isPlaying) return;
+
+                    // ポータルワープ判定
+                    const isPortalIn = (bodyA.label === 'portalIn' || bodyB.label === 'portalIn');
+                    if (isPortalIn) {
+                        const object = bodyA.label === 'portalIn' ? bodyB : bodyA;
+                        if (!object.isStatic && !object.isSensor) {
+                            const portalsOut = Composite.allBodies(engine.world).filter(b => b.label === 'portalOut');
+                            if (portalsOut.length > 0) {
+                                // 最も近い出口にワープ
+                                const target = portalsOut[0];
+                                Body.setPosition(object, { x: target.position.x, y: target.position.y });
+                            }
+                        }
+                    }
+                });
             });
 
             // --- イベント: 衝突判定（ゴールとトランポリン） ---
@@ -357,6 +555,162 @@
             Render.run(render);
             runner = Runner.create();
             Runner.run(runner, engine);
+
+            // 背景に何か動いている感を出したい場合はここで初期実行
+            // 今回はタイトル画面の奥で Matter.js が動いている状態にする
+            resetToDefault();
+        }
+
+        // --- セーブ・ロード・タイトル処理 ---
+
+        function startNewGame() {
+            resetToDefault();
+            document.getElementById('title-screen').classList.add('hidden');
+        }
+
+        function goToHome() {
+            if (confirm('トップページに戻りますか？保存されていない変更は失われます。')) {
+                window.location.href = '../../index.html';
+            }
+        }
+
+        function goToTitle() {
+            if (isPlaying) stopGame();
+            document.getElementById('title-screen').classList.remove('hidden');
+        }
+
+        function resetToDefault() {
+            // 全てのパーツを削除（壁以外）
+            const currentBodies = Composite.allBodies(engine.world);
+            currentBodies.forEach(b => {
+                if (b.label !== 'wall') World.remove(engine.world, b);
+            });
+
+            addBall(100, 150);
+            addPlatform(100, 200);
+            addGoal(700, 500);
+
+            selectedBody = null;
+            updateUI();
+        }
+
+        function serializeWorld() {
+            return Composite.allBodies(engine.world)
+                .filter(b => b.label !== 'wall')
+                .map(b => ({
+                    label: b.label,
+                    x: b.position.x,
+                    y: b.position.y,
+                    angle: b.angle
+                }));
+        }
+
+        function deserializeWorld(data) {
+            if (!data) return;
+
+            // 既存のパーツを削除
+            const currentBodies = Composite.allBodies(engine.world);
+            currentBodies.forEach(b => {
+                if (b.label !== 'wall') World.remove(engine.world, b);
+            });
+
+            // 再生成
+            data.forEach(item => {
+                let body;
+                switch (item.label) {
+                    case 'ball': body = addBall(item.x, item.y); break;
+                    case 'goal': body = addGoal(item.x, item.y); break;
+                    case 'platform': body = addPlatform(item.x, item.y); break;
+                    case 'domino': body = addDomino(item.x, item.y); break;
+                    case 'bouncer': body = addBouncer(item.x, item.y); break;
+                    case 'ironBall': body = addIronBall(item.x, item.y); break;
+                    case 'rotator': body = addRotator(item.x, item.y); break;
+                    case 'fan': body = addFan(item.x, item.y); break;
+                    case 'accelerator': body = addAccelerator(item.x, item.y); break;
+                    case 'portalIn': body = addPortalIn(item.x, item.y); break;
+                    case 'portalOut': body = addPortalOut(item.x, item.y); break;
+                    case 'seesaw': body = addSeesaw(item.x, item.y); break;
+                }
+                if (body) Body.setAngle(body, item.angle);
+            });
+
+            selectedBody = null;
+            updateUI();
+        }
+
+        function showSaveSlots(mode, fromTitle = false) {
+            const modal = document.getElementById('save-modal');
+            const title = document.getElementById('save-modal-title');
+            const list = document.getElementById('slot-list');
+
+            modal.classList.remove('hidden');
+            title.innerText = mode === 'save' ? 'セーブするスロットを選択' : 'ロードするスロットを選択';
+
+            list.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const saveData = localStorage.getItem(`pitagora_save_${i}`);
+                const slotInfo = saveData ? JSON.parse(saveData) : null;
+
+                const slotBtn = document.createElement('div');
+                slotBtn.className = 'flex items-center justify-between p-4 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-2xl transition group cursor-pointer';
+
+                const timeStr = slotInfo ? new Date(slotInfo.timestamp).toLocaleString() : '空のスロット';
+                const partsCount = slotInfo ? slotInfo.data.length : 0;
+
+                slotBtn.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                            ${i}
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">${timeStr}</div>
+                            <div class="text-xs text-gray-500">${slotInfo ? partsCount + ' 個のパーツ' : 'データなし'}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        ${mode === 'save' ? `
+                            <button onclick="saveToSlot(${i}); event.stopPropagation();" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">保存</button>
+                        ` : `
+                            ${slotInfo ? `<button onclick="loadFromSlot(${i}, ${fromTitle}); event.stopPropagation();" class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition">読込</button>` : '<span class="text-xs text-gray-300 font-bold px-4">---</span>'}
+                        `}
+                    </div>
+                `;
+
+                if (mode === 'load' && slotInfo) {
+                    slotBtn.onclick = () => loadFromSlot(i, fromTitle);
+                } else if (mode === 'save') {
+                    slotBtn.onclick = () => saveToSlot(i);
+                }
+
+                list.appendChild(slotBtn);
+            }
+        }
+
+        function hideSaveSlots() {
+            document.getElementById('save-modal').classList.add('hidden');
+        }
+
+        function saveToSlot(index) {
+            const data = serializeWorld();
+            const saveData = {
+                timestamp: Date.now(),
+                data: data
+            };
+            localStorage.setItem(`pitagora_save_${index}`, JSON.stringify(saveData));
+            hideSaveSlots();
+            alert(`スロット ${index} に保存しました`);
+        }
+
+        function loadFromSlot(index, fromTitle) {
+            const saveData = localStorage.getItem(`pitagora_save_${index}`);
+            if (saveData) {
+                const parsed = JSON.parse(saveData);
+                deserializeWorld(parsed.data);
+                hideSaveSlots();
+                if (fromTitle) {
+                    document.getElementById('title-screen').classList.add('hidden');
+                }
+            }
         }
 
         // --- ゲーム進行コントロール ---
@@ -376,22 +730,22 @@
             }));
 
             // 動くパーツの重力を有効化
-            const dynamicLabels = ['ball', 'ironBall', 'domino', 'rotator'];
+            const dynamicLabels = ['ball', 'ironBall', 'domino', 'rotator', 'seesaw'];
             Composite.allBodies(engine.world).forEach(b => {
                 if (dynamicLabels.includes(b.label)) {
                     Body.setStatic(b, false);
                 }
                 // ゴールや扇風機はプレイ中だけセンサー(すり抜ける)にする
-                if (b.label === 'goal' || b.label === 'fan') {
+                if (b.label === 'goal' || b.label === 'fan' || b.label === 'accelerator' || b.label === 'portalIn' || b.label === 'portalOut') {
                     b.isSensor = true;
                 }
 
-                // 回転板（Rotator）に動的なピン留めを追加
-                if (b.label === 'rotator') {
+                // 回転板（Rotator）やシーソーに動的なピン留めを追加
+                if (b.label === 'rotator' || b.label === 'seesaw') {
                     const constraint = Constraint.create({
-                        pointA: { x: b.position.x, y: b.position.y }, // 初期位置の空間に固定
+                        pointA: { x: b.position.x, y: b.position.y },
                         bodyB: b,
-                        pointB: { x: 0, y: 0 }, // オブジェクトの中心
+                        pointB: { x: 0, y: 0 },
                         stiffness: 1,
                         length: 0,
                         render: { visible: false }
@@ -430,7 +784,7 @@
                     }
                 }
                 // センサーを解除して、編集時につかめるようにする
-                if (b.label === 'goal' || b.label === 'fan') {
+                if (b.label === 'goal' || b.label === 'fan' || b.label === 'accelerator' || b.label === 'portalIn' || b.label === 'portalOut') {
                     b.isSensor = false;
                 }
             });
@@ -446,6 +800,7 @@
             const body = Bodies.circle(x, y, 15, { isStatic: true, label: 'ball', render: { fillStyle: COLORS.ball } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addGoal(x = spawnX, y = spawnY) {
@@ -454,6 +809,7 @@
             const body = Bodies.rectangle(x, y, 80, 80, { isStatic: true, isSensor: false, label: 'goal', render: { fillStyle: COLORS.goal, opacity: 0.5, strokeStyle: COLORS.goal, lineWidth: 2 } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addPlatform(x = spawnX, y = spawnY) {
@@ -461,6 +817,7 @@
             const body = Bodies.rectangle(x, y, 120, 16, { isStatic: true, label: 'platform', render: { fillStyle: COLORS.platform } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addDomino(x = spawnX, y = spawnY) {
@@ -469,6 +826,7 @@
             const body = Bodies.rectangle(x, y, 10, 60, { isStatic: true, label: 'domino', friction: 0.3, density: 0.002, render: { fillStyle: COLORS.domino } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addBouncer(x = spawnX, y = spawnY) {
@@ -476,6 +834,7 @@
             const body = Bodies.rectangle(x, y, 80, 20, { isStatic: true, label: 'bouncer', render: { fillStyle: COLORS.bouncer } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addIronBall(x = spawnX, y = spawnY) {
@@ -484,6 +843,7 @@
             const body = Bodies.circle(x, y, 18, { isStatic: true, label: 'ironBall', density: 0.05, render: { fillStyle: COLORS.ironBall } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addRotator(x = spawnX, y = spawnY) {
@@ -492,6 +852,7 @@
             const body = Bodies.rectangle(x, y, 140, 12, { isStatic: true, label: 'rotator', render: { fillStyle: COLORS.rotator } });
             World.add(engine.world, body);
             select(body);
+            return body;
         }
 
         function addFan(x = spawnX, y = spawnY) {
@@ -500,6 +861,39 @@
             const body = Bodies.rectangle(x, y, 150, 60, { isStatic: true, isSensor: false, label: 'fan', render: { fillStyle: COLORS.fan, opacity: 0.3, strokeStyle: '#06B6D4', lineWidth: 1 } });
             World.add(engine.world, body);
             select(body);
+            return body;
+        }
+
+        function addAccelerator(x = spawnX, y = spawnY) {
+            if (isPlaying) return;
+            const body = Bodies.rectangle(x, y, 100, 12, { isStatic: true, isSensor: false, label: 'accelerator', render: { fillStyle: COLORS.accelerator, opacity: 0.8 } });
+            World.add(engine.world, body);
+            select(body);
+            return body;
+        }
+
+        function addSeesaw(x = spawnX, y = spawnY) {
+            if (isPlaying) return;
+            const body = Bodies.rectangle(x, y, 200, 10, { isStatic: true, label: 'seesaw', render: { fillStyle: '#4B5563' } });
+            World.add(engine.world, body);
+            select(body);
+            return body;
+        }
+
+        function addPortalIn(x = spawnX, y = spawnY) {
+            if (isPlaying) return;
+            const body = Bodies.rectangle(x, y, 40, 60, { isStatic: true, isSensor: false, label: 'portalIn', render: { fillStyle: COLORS.portalIn, opacity: 0.4, strokeStyle: COLORS.portalIn, lineWidth: 3 } });
+            World.add(engine.world, body);
+            select(body);
+            return body;
+        }
+
+        function addPortalOut(x = spawnX, y = spawnY) {
+            if (isPlaying) return;
+            const body = Bodies.rectangle(x, y, 40, 60, { isStatic: true, isSensor: false, label: 'portalOut', render: { fillStyle: COLORS.portalOut, opacity: 0.4, strokeStyle: COLORS.portalOut, lineWidth: 3 } });
+            World.add(engine.world, body);
+            select(body);
+            return body;
         }
 
         function select(body) {
@@ -548,7 +942,9 @@
                     const names = {
                         'ball': 'ボール', 'goal': 'ゴール', 'platform': '木の板',
                         'domino': 'ドミノ', 'bouncer': 'トランポリン',
-                        'ironBall': '鉄球', 'rotator': '回転板', 'fan': '扇風機(右)'
+                        'ironBall': '鉄球', 'rotator': '回転板', 'fan': '扇風機(右)',
+                        'accelerator': '加速パネル', 'seesaw': 'シーソー',
+                        'portalIn': 'ワープ入口', 'portalOut': 'ワープ出口'
                     };
                     selectedName.innerText = names[selectedBody.label] || 'オブジェクト';
                 } else {
