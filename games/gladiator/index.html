@@ -390,6 +390,61 @@
             ARENA</button>
     </div>
 
+    <!-- 2Pローカルマルチ設定画面 -->
+    <div id="screen-multi-setup" class="screen p-4 text-gray-200 overflow-y-auto">
+        <h2 class="text-3xl text-green-400 mb-4 cinzel border-b border-green-500 pb-2">2P LOCAL SETUP</h2>
+        <div class="flex gap-4 w-full max-w-lg mb-4">
+            <!-- 1P -->
+            <div class="flex-1">
+                <h3 class="text-yellow-400 text-sm font-bold mb-2 cinzel">1P STYLE (WASD+JKL)</h3>
+                <div class="space-y-2" id="p1-style-btns">
+                    <button onclick="setMultiStyle(1,'murmillo')" class="multi-style-btn w-full text-left bg-gray-800 border border-gray-600 p-2 rounded text-xs hover:border-blue-500 transition">
+                        🛡️ ムルミッロ<br><span class="text-gray-400">HP高・パリィ長・盾持ち</span>
+                    </button>
+                    <button onclick="setMultiStyle(1,'dimachaerus')" class="multi-style-btn w-full text-left bg-gray-800 border border-gray-600 p-2 rounded text-xs hover:border-red-500 transition">
+                        ⚔️ ディマカエルス<br><span class="text-gray-400">二刀・攻撃力高・速い</span>
+                    </button>
+                    <button onclick="setMultiStyle(1,'thraex')" class="multi-style-btn w-full text-left bg-gray-800 border border-gray-600 p-2 rounded text-xs hover:border-green-500 transition">
+                        🗡️ トラクス<br><span class="text-gray-400">バランス型・クリティカル</span>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">選択中: <span id="p1-style-label" class="text-yellow-300 font-bold">ムルミッロ</span></p>
+            </div>
+            <!-- 2P -->
+            <div class="flex-1">
+                <h3 class="text-red-400 text-sm font-bold mb-2 cinzel">2P STYLE (矢印+テンキー)</h3>
+                <div class="space-y-2" id="p2-style-btns">
+                    <button onclick="setMultiStyle(2,'murmillo')" class="multi-style-btn w-full text-left bg-gray-800 border border-gray-600 p-2 rounded text-xs hover:border-blue-500 transition">
+                        🛡️ ムルミッロ<br><span class="text-gray-400">HP高・パリィ長・盾持ち</span>
+                    </button>
+                    <button onclick="setMultiStyle(2,'dimachaerus')" class="multi-style-btn w-full text-left bg-gray-800 border border-gray-600 p-2 rounded text-xs hover:border-red-500 transition">
+                        ⚔️ ディマカエルス<br><span class="text-gray-400">二刀・攻撃力高・速い</span>
+                    </button>
+                    <button onclick="setMultiStyle(2,'thraex')" class="multi-style-btn w-full text-left bg-gray-800 border border-gray-600 p-2 rounded text-xs hover:border-green-500 transition">
+                        🗡️ トラクス<br><span class="text-gray-400">バランス型・クリティカル</span>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">選択中: <span id="p2-style-label" class="text-red-300 font-bold">トラクス</span></p>
+            </div>
+        </div>
+        <!-- モード選択 -->
+        <div class="w-full max-w-lg mb-4">
+            <h3 class="text-yellow-500 text-sm font-bold mb-2 cinzel">BATTLE MODE</h3>
+            <div class="flex gap-2">
+                <button onclick="setMultiMode('duel')" id="mode-duel"
+                    class="flex-1 bg-red-900 border-2 border-red-500 p-3 rounded text-center font-bold text-sm transition">
+                    ⚔️ 決闘<br><span class="text-xs font-normal text-gray-300">砂のアリーナ</span>
+                </button>
+                <button onclick="setMultiMode('naumachia')" id="mode-naumachia"
+                    class="flex-1 bg-blue-900 border border-gray-600 p-3 rounded text-center font-bold text-sm transition hover:border-blue-500">
+                    🚢 ナウマキア<br><span class="text-xs font-normal text-gray-300">海戦モード</span>
+                </button>
+            </div>
+        </div>
+        <button onclick="launchLocalMulti()"
+            class="w-full max-w-lg py-4 bg-green-800 text-white font-bold rounded border border-green-500 hover:bg-green-700 text-xl cinzel">FIGHT!</button>
+    </div>
+
     <!-- 処刑 -->
     <div id="screen-exec" class="screen p-6 text-center">
         <h2 class="text-4xl text-red-600 mb-4 cinzel font-bold">VICTORY</h2>
@@ -903,7 +958,7 @@
                 }
 
                 ctx.rotate(-this.angle);
-                if (this.state === 'defend' && (this.weapons > 0 || this.isShip)) { ctx.fillStyle = 'rgba(59, 130, 246, 0.5)'; ctx.beginPath(); ctx.arc(0, 0, this.radius + 15, 0, Math.PI * 2); ctx.fill(); }
+                if (this.state === 'defend' && (this.weapons > 0 || this.isShip || this.style === 'murmillo')) { ctx.fillStyle = 'rgba(59, 130, 246, 0.5)'; ctx.beginPath(); ctx.arc(0, 0, this.radius + 15, 0, Math.PI * 2); ctx.fill(); }
                 else if (this.state === 'taunt') { ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🗯️', 15, -20); }
                 ctx.restore();
             }
@@ -1279,40 +1334,56 @@
                 }
             },
 
-            startBattle(isLocalMulti = false) {
+            startBattle(isLocalMulti = false, p2Style = 'thraex') {
                 this.localMulti = isLocalMulti;
-                this.gimmick = (this.matchData && !isLocalMulti) ? (this.matchData.gimmick || null) : null;
+                // localMulti\u6642\u306fgimmick\u306fmatchData\u304b\u3089\u53d6\u5f97
+                this.gimmick = this.matchData ? (this.matchData.gimmick || null) : null;
                 const isShipMode = (this.gimmick === 'naumachia');
 
                 this.player.x = isShipMode ? -150 : -100; this.player.y = 0;
                 this.player.stamina = this.player.maxStamina;
                 this.player.state = 'idle'; this.player.hp = this.player.maxHp;
-                this.player.isShip = false; this.player.radius = 20;
-                this.player.weapons = this.player.style === 'dimachaerus' ? 2 : 1;
+                this.player.isShip = isShipMode; this.player.radius = isShipMode ? 35 : 20;
+                if (isShipMode) this.player.angle = 0; // \u53f3\u5411\u304d
+                this.player.weapons = isShipMode ? -1 : (this.player.style === 'dimachaerus' ? 2 : 1);
 
                 if (isLocalMulti) {
-                    // 2Pモード: p2はthraexスタイルで相手側に配置
+                    // 2P\u30e2\u30fc\u30c9: p2\u306f\u9078\u629e\u3055\u308c\u305f\u30b9\u30bf\u30a4\u30eb\u3067\u76f8\u624b\u5074\u306b\u914d\u7f6e
                     this.p2 = new Player();
-                    this.p2.x = 100; this.p2.y = 0;
-                    this.p2.color = '#dc2626'; // 赤色で区別
-                    this.p2.style = 'thraex'; this.p2.maxHp = 100; this.p2.atk = 12; this.p2.speed = 180; this.p2.parryWindow = 0.3;
+                    this.p2.x = isShipMode ? 150 : 100; this.p2.y = 0;
+                    this.p2.color = '#dc2626'; // \u8d64\u8272\u3067\u533a\u5225
+                    // \u30b9\u30bf\u30a4\u30eb\u9069\u7528 (\u30ca\u30a6\u30de\u30ad\u30a2\u6642\u306f\u30b9\u30bf\u30a4\u30eb\u7121\u8996\u3067\u8239\u30e2\u30fc\u30c9)
+                    if (isShipMode) {
+                        this.p2.style = 'murmillo'; this.p2.maxHp = 200; this.p2.atk = 15; this.p2.speed = 150; this.p2.parryWindow = 0.4;
+                        this.p2.isShip = true; this.p2.radius = 35; this.p2.angle = Math.PI; // \u5de6\u5411\u304d
+                        this.p2.weapons = -1;
+                    } else {
+                        if (p2Style === 'murmillo') { this.p2.style = 'murmillo'; this.p2.maxHp = 120; this.p2.atk = 15; this.p2.speed = 150; this.p2.parryWindow = 0.4; }
+                        else if (p2Style === 'dimachaerus') { this.p2.style = 'dimachaerus'; this.p2.maxHp = 80; this.p2.atk = 20; this.p2.speed = 250; this.p2.parryWindow = 0.2; }
+                        else { this.p2.style = 'thraex'; this.p2.maxHp = 100; this.p2.atk = 12; this.p2.speed = 180; this.p2.parryWindow = 0.3; }
+                        this.p2.isShip = false; this.p2.radius = 20;
+                        this.p2.weapons = this.p2.style === 'dimachaerus' ? 2 : 1;
+                        this.p2.angle = Math.PI; // \u5de6\u5411\u304d
+                    }
                     this.p2.hp = this.p2.maxHp; this.p2.stamina = this.p2.maxStamina;
-                    this.p2.state = 'idle'; this.p2.radius = 20;
-                    this.p2.weapons = this.p2.style === 'dimachaerus' ? 2 : 1;
-                    this.p2.angle = Math.PI; // 左向き
+                    this.p2.state = 'idle';
                     this.enemy = null;
                     document.getElementById('ui-e-name').innerText = '2P';
+                    // \u30d1\u30c3\u30b7\u30e7\u30f3UI\u3092\u975e\u8868\u793a
+                    document.querySelector('#hud > div:first-child').style.display = 'none';
                 } else {
                     this.p2 = null;
                     this.enemy = new Enemy(isShipMode ? 150 : 0, -150, this.matchData);
                     if (isShipMode) {
-                        this.player.isShip = true; this.player.radius = 35; this.player.angle = -Math.PI / 2;
                         this.enemy.isShip = true; this.enemy.radius = 35; this.enemy.angle = Math.PI / 2;
-                        this.player.x = -150; this.player.y = 0;
+                    } else {
+                        this.enemy.isShip = false; this.enemy.radius = 22;
                     }
                     this.player.weapons = isShipMode ? -1 : (this.player.style === 'dimachaerus' ? 2 : 1);
                     this.enemy.weapons = isShipMode || this.matchData.type === 'beast' ? -1 : 1;
                     document.getElementById('ui-e-name').innerText = this.matchData.name;
+                    // \u30d1\u30c3\u30b7\u30e7\u30f3UI\u3092\u8868\u793a
+                    document.querySelector('#hud > div:first-child').style.display = '';
                 }
 
                 this.voltage = 0; this.combo = 0; this.demandCooldown = 5; this.demand = null;
@@ -1438,22 +1509,35 @@
                 else { this.addText(Math.floor(rawDmg), target.x, target.y - 20, '#fff'); }
 
                 if (attacker === this.player) {
-                    this.camera.shake(3, 0.1); this.hitStop = 0.05; this.addVoltage(5);
-                    this.combo++; this.comboTimer = 2.0;
-                    const comboUI = document.getElementById('combo-ui'); document.getElementById('combo-count').innerText = this.combo;
-                    comboUI.style.opacity = 1; comboUI.classList.remove('anim-pop'); void comboUI.offsetWidth; comboUI.classList.add('anim-pop');
-                    if (this.combo >= 3) { if (this.patron === 'plebs' && this.combo === 3) this.addVoltage(20); this.checkDemand('combo'); }
+                    if (!this.localMulti) {
+                        this.camera.shake(3, 0.1); this.hitStop = 0.05; this.addVoltage(5);
+                        this.combo++; this.comboTimer = 2.0;
+                        const comboUI = document.getElementById('combo-ui'); document.getElementById('combo-count').innerText = this.combo;
+                        comboUI.style.opacity = 1; comboUI.classList.remove('anim-pop'); void comboUI.offsetWidth; comboUI.classList.add('anim-pop');
+                        if (this.combo >= 3) { if (this.patron === 'plebs' && this.combo === 3) this.addVoltage(20); this.checkDemand('combo'); }
+                    } else {
+                        this.camera.shake(3, 0.1); this.hitStop = 0.05;
+                    }
                 } else {
-                    this.camera.shake(8, 0.2); const flash = document.getElementById('damage-flash'); flash.style.opacity = 0.5; setTimeout(() => flash.style.opacity = 0, 100);
-                    this.combo = 0; document.getElementById('combo-ui').style.opacity = 0;
-                    if (target.state === 'taunt') { this.addText("PUNISHED!", target.x, target.y - 40, '#ef4444'); this.addVoltage(-20); } else { this.addVoltage(-5); }
+                    this.camera.shake(8, 0.2);
+                    if (!this.localMulti) {
+                        const flash = document.getElementById('damage-flash'); flash.style.opacity = 0.5; setTimeout(() => flash.style.opacity = 0, 100);
+                        this.combo = 0; document.getElementById('combo-ui').style.opacity = 0;
+                        if (target.state === 'taunt') { this.addText("PUNISHED!", target.x, target.y - 40, '#ef4444'); this.addVoltage(-20); } else { this.addVoltage(-5); }
+                    }
                 }
 
-                if (target.hp <= 0) { target.hp = 0; target.state = 'dead'; setTimeout(() => this.endBattle(target === this.enemy), 2000); }
+                if (target.hp <= 0) {
+                    target.hp = 0; target.state = 'dead';
+                    // localMulti: enemyがnullなのでplayerが死亡したかどうかで判定
+                    const p1Won = this.localMulti ? (target === this.p2) : (target === this.enemy);
+                    setTimeout(() => this.endBattle(p1Won), 2000);
+                }
                 this.updateUI();
             },
 
             addVoltage(val) {
+                if (this.localMulti) return; // 2Pモードはパッションなし
                 if (this.voltage >= 100 && val > 0) return;
                 this.voltage = Math.min(100, Math.max(0, this.voltage + val));
                 if (this.voltage >= 100) { this.gifts.push(new Gift(Math.random() * 200 - 100, Math.random() * 200 - 100)); this.addText("CROWD GIFT!", 0, -100, '#facc15'); playSound('cheer'); }
@@ -1525,7 +1609,8 @@
 
             update(dt) {
                 if (this.hitStop > 0) { this.hitStop -= dt; return; }
-                this.camera.update(dt, this.player);
+                // localMulti時はカメラ追従なし
+                if (!this.localMulti) this.camera.update(dt, this.player);
 
                 if (this.state === 'battle') {
                     if (this.combo > 0) { this.comboTimer -= dt; if (this.comboTimer <= 0) { this.combo = 0; document.getElementById('combo-ui').style.opacity = 0; } }
@@ -1606,7 +1691,15 @@
 
             draw() {
                 ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.save(); this.camera.apply(ctx);
+                ctx.save();
+                if (this.localMulti) {
+                    // 2P\u30e2\u30fc\u30c9: \u30b3\u30ed\u30c3\u30bb\u30aa\u5168\u4f53\u3092\u6620\u3059\u56fa\u5b9a\u30ab\u30e1\u30e9
+                    const scale = Math.min(canvas.width, canvas.height) / 1400;
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.scale(scale, scale);
+                } else {
+                    this.camera.apply(ctx);
+                }
 
                 if (this.gimmick === 'naumachia') {
                     ctx.beginPath(); ctx.arc(0, 0, 500, 0, Math.PI * 2); ctx.fillStyle = '#1e3a8a'; ctx.fill();
@@ -1868,14 +1961,50 @@
             }
         }
 
+        // 2Pローカルマルチ設定
+        const multiSetup = { p1Style: 'murmillo', p2Style: 'thraex', mode: 'duel' };
+
         function startLocalMulti() {
             playSound('swing');
-            // 1P\u306f\u30e0\u30eb\u30df\u30c3\u30ed\u30c7\u30d5\u30a9\u30eb\u30c8\u3001\u30b9\u30bf\u30a4\u30eb\u9078\u629e\u753b\u9762\u3078
-            game.player.style = 'murmillo'; game.player.maxHp = 120; game.player.atk = 15; game.player.speed = 150; game.player.parryWindow = 0.4;
-            game.player.hp = game.player.maxHp;
-            // matchData\u3092\u30c0\u30df\u30fc\u3067\u8a2d\u5b9a\uff082P\u30e2\u30fc\u30c9\u3067\u306f\u4f7f\u308f\u306a\u3044\uff09
-            game.matchData = { name: '2P', type: 'human', hp: 100, atk: 15, speed: 150, interval: 2.0, evade: 0, guard: 0, feintRate: 0, gimmick: null };
-            game.startBattle(true);
+            // 設定画面へ遷移、初期値をリセット
+            multiSetup.p1Style = 'murmillo'; multiSetup.p2Style = 'thraex'; multiSetup.mode = 'duel';
+            document.getElementById('p1-style-label').innerText = 'ムルミッロ';
+            document.getElementById('p2-style-label').innerText = 'トラクス';
+            setMultiMode('duel');
+            changeScreen('screen-multi-setup');
+        }
+
+        function applyStyle(player, style) {
+            if (style === 'murmillo') { player.style = 'murmillo'; player.maxHp = 120; player.atk = 15; player.speed = 150; player.parryWindow = 0.4; }
+            else if (style === 'dimachaerus') { player.style = 'dimachaerus'; player.maxHp = 80; player.atk = 20; player.speed = 250; player.parryWindow = 0.2; }
+            else { player.style = 'thraex'; player.maxHp = 100; player.atk = 12; player.speed = 180; player.parryWindow = 0.3; }
+            player.hp = player.maxHp;
+        }
+
+        function setMultiStyle(player, style) {
+            const labels = { murmillo: 'ムルミッロ', dimachaerus: 'ディマカエルス', thraex: 'トラクス' };
+            if (player === 1) { multiSetup.p1Style = style; document.getElementById('p1-style-label').innerText = labels[style]; }
+            else { multiSetup.p2Style = style; document.getElementById('p2-style-label').innerText = labels[style]; }
+            playSound('swish');
+        }
+
+        function setMultiMode(mode) {
+            multiSetup.mode = mode;
+            document.getElementById('mode-duel').className =
+                `flex-1 p-3 rounded text-center font-bold text-sm transition ${mode==='duel' ? 'bg-red-900 border-2 border-red-500' : 'bg-gray-800 border border-gray-600 hover:border-red-500'}`;
+            document.getElementById('mode-naumachia').className =
+                `flex-1 p-3 rounded text-center font-bold text-sm transition ${mode==='naumachia' ? 'bg-blue-900 border-2 border-blue-500' : 'bg-gray-800 border border-gray-600 hover:border-blue-500'}`;
+            playSound('swish');
+        }
+
+        function launchLocalMulti() {
+            playSound('swing');
+            const isNaumachia = multiSetup.mode === 'naumachia';
+            // 1Pスタイル適用
+            applyStyle(game.player, isNaumachia ? 'murmillo' : multiSetup.p1Style);
+            // matchDataダミー
+            game.matchData = { name: '2P', type: isNaumachia ? 'ship' : 'human', hp: 100, atk: 15, speed: 150, interval: 2.0, evade: 0, guard: 0, feintRate: 0, gimmick: isNaumachia ? 'naumachia' : null };
+            game.startBattle(true, multiSetup.p2Style);
         }
 
         function continueGame() {
