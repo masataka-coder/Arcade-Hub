@@ -159,13 +159,16 @@ header p {
     line-height: 1.6;
 }
 
-/* Filter Bar */
+/* Filter & Sort Bar */
 .filter-container {
     max-width: 1300px;
     margin: 0 auto 32px auto;
     padding: 0 24px;
     display: flex;
+    flex-wrap: wrap; /* スマホなどで折り返すようにする */
     justify-content: center;
+    align-items: center;
+    gap: 16px;
 }
 
 .filter-bar {
@@ -202,6 +205,39 @@ header p {
     background: var(--accent-blue);
     color: #fff;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Sort Select */
+.sort-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+}
+
+#sort-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+#sort-select {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+}
+
+#sort-select option {
+    color: var(--text-primary);
 }
 
 /* Game Grid */

@@ -28,7 +28,13 @@ const translations = {
         device_pc: "PC",
         device_mobile: "モバイル",
         device_tablet: "タブレット",
-        change_device_title: "機種を変更"
+        change_device_title: "機種を変更",
+        sort_label: "並び順: ",
+        sort_default_desc: "登録順 (新着)",
+        sort_default_asc: "登録順 (古い)",
+        sort_name_asc: "名前順 (昇順)",
+        sort_name_desc: "名前順 (降順)",
+        sort_random: "ランダム"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -46,8 +52,6 @@ const translations = {
         tag_strategy: "Strategy",
         tag_simulation: "Simulation",
         tag_shooter: "Shooter",
-        tag_simulation: "Simulation",
-        tag_shooter: "Shooter",
         tag_casual: "Casual",
         tag_exploration: "Exploration",
         tag_favorites: "★ Favorites",
@@ -59,11 +63,18 @@ const translations = {
         device_pc: "PC",
         device_mobile: "Mobile",
         device_tablet: "Tablet",
-        change_device_title: "Change Device"
+        change_device_title: "Change Device",
+        sort_label: "Sort: ",
+        sort_default_desc: "Date (Newest)",
+        sort_default_asc: "Date (Oldest)",
+        sort_name_asc: "Name (A-Z)",
+        sort_name_desc: "Name (Z-A)",
+        sort_random: "Random"
     }
 };
 
 let activeFilter = 'all';
+let activeSort = 'default_desc'; // 'default_desc', 'default_asc', 'name_asc', 'name_desc', 'random'
 const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration', 'funny'];
 let currentFeaturedGameId = null;
 let currentDevice = localStorage.getItem('arcade_hub_device') || null;
@@ -110,6 +121,20 @@ function applyTranslations() {
         deviceBtn.title = dict.change_device_title;
     }
 
+    // Translation for sort select label mapping
+    const sortLabel = document.getElementById('sort-label');
+    if (sortLabel) {
+        sortLabel.innerText = dict.sort_label || 'Sort: ';
+    }
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.options[0].text = dict.sort_default_desc || 'Date (Newest)';
+        sortSelect.options[1].text = dict.sort_default_asc || 'Date (Oldest)';
+        sortSelect.options[2].text = dict.sort_name_asc || 'Name (A-Z)';
+        sortSelect.options[3].text = dict.sort_name_desc || 'Name (Z-A)';
+        sortSelect.options[4].text = dict.sort_random || 'Random';
+    }
+
     renderFilters();
     renderGames(); // Build game grid dynamically
 
@@ -134,6 +159,12 @@ function setFilter(tag) {
     activeFilter = tag;
     currentFeaturedGameId = null;
     renderFilters();
+    renderGames();
+}
+
+function handleSortChange(event) {
+    activeSort = event.target.value;
+    currentFeaturedGameId = null;
     renderGames();
 }
 
@@ -162,6 +193,29 @@ function renderGames() {
         grid.innerHTML = `<p style="text-align: center; grid-column: 1/-1; color: var(--text-secondary); padding: 40px;">${lang === 'ja' ? '該当するゲームがありません。' : 'No games found.'}</p>`;
         return;
     }
+
+    // Sort Logic
+    if (activeSort === 'name_asc') {
+        filteredGames.sort((a, b) => {
+            const titleA = (a[lang] || a['ja']).title.toLowerCase();
+            const titleB = (b[lang] || b['ja']).title.toLowerCase();
+            return titleA.localeCompare(titleB);
+        });
+    } else if (activeSort === 'name_desc') {
+        filteredGames.sort((a, b) => {
+            const titleA = (a[lang] || a['ja']).title.toLowerCase();
+            const titleB = (b[lang] || b['ja']).title.toLowerCase();
+            return titleB.localeCompare(titleA);
+        });
+    } else if (activeSort === 'default_desc') {
+        filteredGames.reverse();
+    } else if (activeSort === 'random') {
+        // Fisher-Yates shuffle
+        for (let i = filteredGames.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [filteredGames[i], filteredGames[j]] = [filteredGames[j], filteredGames[i]];
+        }
+    } // activeSort === 'default_asc' relies on original ALL_GAMES order (oldest first)
 
     if (!currentFeaturedGameId || !filteredGames.some(g => g.id === currentFeaturedGameId)) {
         const randomIndex = Math.floor(Math.random() * filteredGames.length);
