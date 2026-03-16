@@ -12,7 +12,7 @@ const ALL_GAMES = [
         copyright: "&copy; 2026 Takahide Kohata",
         image: null,
         movie: null,
-        movie_cg: null,
+        movie_cg: "assets/movies/dogeza-cg.mp4",
         link: "dogeza/index.html"
     }
 ];
