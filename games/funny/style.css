@@ -2,17 +2,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap');
 
 :root {
-    --bg-light: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.6);
+    --bg-light: #fdfeff;
+    --card-bg: rgba(255, 255, 255, 0.85);
     --accent-blue: #3b82f6;
     --accent-purple: #8b5cf6;
     --accent-pink: #ec4899;
     --accent-gold: #f59e0b;
     --accent-green: #10b981;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --soft-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --glass-border: rgba(255, 255, 255, 1);
+    --soft-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -25,16 +25,15 @@
 body {
     background-color: var(--bg-light);
     color: var(--text-primary);
-    font-family: 'Mochiy Pop One', cursive; /* FUNNY FONT */
+    font-family: 'Outfit', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
     background:
-        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.15), transparent 40%),
-        radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.15), transparent 40%),
-        radial-gradient(circle at 50% 100%, rgba(245, 158, 11, 0.15), transparent 40%),
-        #0f172a;
+        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05), transparent 40%),
+        radial-gradient(circle at 100% 0%, rgba(236, 72, 153, 0.05), transparent 40%),
+        radial-gradient(circle at 50% 100%, rgba(245, 158, 11, 0.05), transparent 40%),
+        #fdfeff;
     background-attachment: fixed;
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='24' font-size='24'>🤪</text></svg>"), auto;
 }
 
 /* Custom Scrollbar */
@@ -72,13 +71,13 @@ body {
 .blob {
     position: absolute;
     border-radius: 50%;
-    animation: move 8s infinite alternate ease-in-out;
+    animation: move 30s infinite alternate ease-in-out;
 }
 
 .blob-1 {
     width: 60vw;
     height: 60vw;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.2), transparent 70%);
+    background: radial-gradient(circle, #dbeafe, transparent 70%);
     top: -20vw;
     right: -10vw;
 }
@@ -87,17 +86,17 @@ body {
     display: block;
     width: 50vw;
     height: 50vw;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.2), transparent 70%);
+    background: radial-gradient(circle, #fae8ff, transparent 70%);
     bottom: -15vw;
     left: -10vw;
-    animation-delay: -3s;
+    animation-delay: -10s;
 }
 
 .blob-3 {
     position: absolute;
     width: 40vw;
     height: 40vw;
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 70%);
+    background: radial-gradient(circle, #fef3c7, transparent 70%);
     top: 30vh;
     left: 10vw;
     animation-delay: -5s;
@@ -106,21 +105,14 @@ body {
 @keyframes move {
     0% {
         transform: translate(0, 0) scale(1) rotate(0deg);
-        filter: hue-rotate(0deg);
     }
-    25% {
-        transform: translate(20vw, -10vh) scale(1.5) rotate(90deg);
-    }
+
     50% {
-        transform: translate(-15vw, 20vh) scale(0.8) rotate(180deg);
-        filter: hue-rotate(180deg);
+        transform: translate(10%, 15%) scale(1.2) rotate(180deg);
     }
-    75% {
-        transform: translate(10vw, 30vh) scale(1.8) rotate(270deg);
-    }
+
     100% {
-        transform: translate(-20vw, -10vh) scale(1.2) rotate(360deg);
-        filter: hue-rotate(360deg);
+        transform: translate(-5%, -10%) scale(0.9) rotate(360deg);
     }
 }
 
@@ -140,28 +132,15 @@ header {
 }
 
 header h1 {
-    font-family: 'Dela Gothic One', cursive;
     font-size: clamp(3rem, 10vw, 4.5rem);
     font-weight: 900;
-    letter-spacing: 0.05em;
+    letter-spacing: -0.04em;
     margin-bottom: 16px;
-    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+    background: linear-gradient(135deg, #1e293b 40%, var(--accent-blue), var(--accent-purple));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    line-height: 1.2;
-    animation: rainbow 3s infinite linear, bounce 0.6s infinite alternate cubic-bezier(0.5, 0.05, 1, 0.5);
-    transform-origin: bottom;
-}
-
-@keyframes rainbow {
-    0% { filter: hue-rotate(0deg); }
-    100% { filter: hue-rotate(360deg); }
-}
-
-@keyframes bounce {
-    0% { transform: scaleY(1) translateY(0); }
-    100% { transform: scaleY(0.9) translateY(-20px); }
+    line-height: 1;
 }
 
 .title-underline {
@@ -194,10 +173,10 @@ header p {
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
-    background: rgba(30, 41, 59, 0.5);
+    background: rgba(255, 255, 255, 0.5);
     padding: 8px;
     border-radius: 100px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     backdrop-filter: blur(8px);
 }
 
@@ -215,7 +194,7 @@ header p {
 }
 
 .filter-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
 
@@ -277,13 +256,8 @@ header p {
 }
 
 .game-card:hover {
-    transform: translateY(-15px) rotate(4deg) scale(1.05);
-    box-shadow: 0 40px 60px -20px rgba(0, 0, 0, 0.5);
-    z-index: 100;
-}
-
-a, button, .game-card, .close-btn, .filter-btn {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='24' font-size='24'>👆</text></svg>"), pointer !important;
+    transform: translateY(-10px);
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.15);
 }
 
 .game-card:hover::before {
@@ -383,7 +357,7 @@ a, button, .game-card, .close-btn, .filter-btn {
 
 .favorite-btn.active {
     color: var(--accent-pink);
-    background: rgba(30, 41, 59, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
 }
 
@@ -409,7 +383,7 @@ a, button, .game-card, .close-btn, .filter-btn {
 }
 
 .game-tag {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.04);
     color: var(--text-secondary);
     padding: 4px 10px;
     border-radius: 6px;
@@ -417,11 +391,11 @@ a, button, .game-card, .close-btn, .filter-btn {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .card-content h2 {
-    font-family: 'Mochiy Pop One', cursive;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.6rem;
     font-weight: 700;
     margin-bottom: 12px;
@@ -445,44 +419,29 @@ a, button, .game-card, .close-btn, .filter-btn {
 }
 
 .play-badge {
-    background: rgba(255, 255, 255, 0.05);
+    background: #f1f5f9;
     padding: 10px 20px;
     border-radius: 8px;
     font-weight: 700;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
     color: var(--text-secondary);
 }
 
 .game-card:hover .play-badge {
-    background: var(--accent-pink);
+    background: var(--accent-blue);
     color: #fff;
-    border-color: var(--accent-pink);
-    animation: shake 0.4s infinite;
-}
-
-@keyframes shake {
-  0% { transform: translate(1px, 1px) rotate(0deg); }
-  10% { transform: translate(-1px, -2px) rotate(-3deg); }
-  20% { transform: translate(-3px, 0px) rotate(3deg); }
-  30% { transform: translate(3px, 2px) rotate(0deg); }
-  40% { transform: translate(1px, -1px) rotate(3deg); }
-  50% { transform: translate(-1px, 2px) rotate(-3deg); }
-  60% { transform: translate(-3px, 1px) rotate(0deg); }
-  70% { transform: translate(3px, 1px) rotate(-3deg); }
-  80% { transform: translate(-1px, -1px) rotate(3deg); }
-  90% { transform: translate(1px, 2px) rotate(0deg); }
-  100% { transform: translate(1px, -2px) rotate(-3deg); }
+    border-color: var(--accent-blue);
 }
 
 .game-card[data-game="cafe"]:hover .play-badge,
 .game-card[data-game="neon"]:hover .play-badge {
-    background: #0f172a;
-    color: #f8fafc;
-    border-color: #0f172a;
+    background: #fff;
+    color: #000;
+    border-color: #fff;
     box-shadow: none;
 }
 
@@ -505,8 +464,8 @@ a, button, .game-card, .close-btn, .filter-btn {
 }
 
 .control-btn {
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     color: var(--text-secondary);
     width: 44px;
     height: 44px;
@@ -526,18 +485,18 @@ a, button, .game-card, .close-btn, .filter-btn {
 
 .control-btn:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transform: rotate(30deg);
 }
 
 .lang-toggle {
     display: flex;
     gap: 2px;
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(255, 255, 255, 0.5);
     padding: 4px;
     border-radius: 100px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     backdrop-filter: blur(8px);
 }
 
@@ -560,9 +519,9 @@ a, button, .game-card, .close-btn, .filter-btn {
 }
 
 .lang-toggle button.active {
-    background: rgba(255, 255, 255, 0.1);
+    background: #fff;
     color: var(--accent-blue);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* Footer */
@@ -627,15 +586,15 @@ footer p {
 }
 
 .modal-content {
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 24px;
     width: 90%;
     max-width: 900px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
     transform: scale(0.9);
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -648,7 +607,7 @@ footer p {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
     border: none;
     color: var(--text-primary);
     font-size: 2rem;
@@ -776,12 +735,12 @@ footer p {
     transform: translateX(-50%);
     z-index: 3000;
     min-width: 320px;
-    background: rgba(30, 41, 59, 0.95);
+    background: #fff;
     backdrop-filter: blur(16px);
     border: 1px solid var(--accent-blue);
     border-radius: 16px;
     padding: 1rem 1.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
