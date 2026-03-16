@@ -40,6 +40,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
             </button>
+            <button onclick="showDeviceSelection()" id="btn-device-select" class="control-btn" title="Select Device">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                </svg>
+            </button>
             <div class="lang-toggle">
                 <button onclick="setLanguage('ja')" id="lang-ja" class="active">JP</button>
                 <button onclick="setLanguage('en')" id="lang-en">EN</button>
@@ -90,6 +95,28 @@
                         </a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Selection Modal -->
+    <div id="device-modal" class="modal-overlay hidden">
+        <div class="modal-content device-selection-content">
+            <h2 data-i18n="select_device_title">Select Your Device</h2>
+            <p data-i18n="select_device_desc">Choose your device to optimize your gaming experience.</p>
+            <div class="device-options">
+                <button class="device-card-btn" onclick="selectDevice('pc')">
+                    <div class="device-icon">💻</div>
+                    <span data-i18n="device_pc">PC</span>
+                </button>
+                <button class="device-card-btn" onclick="selectDevice('mobile')">
+                    <div class="device-icon">📱</div>
+                    <span data-i18n="device_mobile">Mobile</span>
+                </button>
+                <button class="device-card-btn" onclick="selectDevice('tablet')">
+                    <div class="device-icon">平板</div>
+                    <span data-i18n="device_tablet">Tablet</span>
+                </button>
             </div>
         </div>
     </div>

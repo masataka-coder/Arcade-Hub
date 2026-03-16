@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>窓際サラリーマン：居眠りスナイパー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+        body {
+            font-family: 'DotGothic16', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .excel-table td {
+            border: 1px solid #d1d5db;
+            padding: 4px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .tab-active {
+            filter: grayscale(0%) brightness(100%);
+            border: 4px solid #4ade80;
+        }
+
+        .tab-inactive {
+            filter: grayscale(80%) brightness(50%);
+            border: 4px solid #475569;
+        }
+
+        .boss-shadow {
+            transition: transform 0.5s ease-in-out;
+        }
+
+        @keyframes snore {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 1;
+            }
+        }
+
+        .snore-text {
+            animation: snore 1s infinite;
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col items-center justify-center p-4 crt">
+
+    <!-- Game Header / UI -->
+    <div id="game-container"
+        class="relative w-full max-w-5xl bg-gray-800 rounded-xl overflow-hidden shadow-2xl border-8 border-gray-700">
+
+        <!-- Status Bar -->
+        <div class="flex justify-between items-center bg-gray-900 p-4 border-b-4 border-gray-700">
+            <div class="flex space-x-6">
+                <div class="w-48">
+                    <div class="flex justify-between text-xs mb-1"><span>真面目ゲージ (仕事量)</span><span
+                            id="work-val">0%</span></div>
+                    <div class="w-full bg-gray-700 h-4 rounded-full overflow-hidden">
+                        <div id="work-bar" class="bg-blue-500 h-full transition-all duration-300" style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+                <div class="w-48">
+                    <div class="flex justify-between text-xs mb-1"><span>精神回復ゲージ (眠気)</span><span
+                            id="sanity-val">100%</span></div>
+                    <div class="w-full bg-gray-700 h-4 rounded-full overflow-hidden">
+                        <div id="sanity-bar" class="bg-green-500 h-full transition-all duration-300"
+                            style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-xl font-bold italic text-yellow-400" id="game-status">勤務中...</div>
+            <div class="text-right">
+                <div class="text-xs">残業代：<span id="score">0</span>円</div>
+                <div class="text-xs text-gray-400">Ctrl + Tab (またはSpace) で切替</div>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="flex h-[500px] relative">
+
+            <!-- Side A: Work (Excel) -->
+            <div id="tab-work" class="w-1/2 bg-white flex flex-col tab-active transition-all relative overflow-hidden">
+                <div class="bg-green-700 text-white p-1 text-xs px-2 flex justify-between">
+                    <span>Microsoft Excel - 2024_売上予測_確定_最終_コピー(2).xlsx</span>
+                    <span>×</span>
+                </div>
+                <div class="flex-1 overflow-auto p-2">
+                    <table class="excel-table w-full">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="w-8"></th>
+                                <th class="border">A</th>
+                                <th class="border">B</th>
+                                <th class="border">C</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excel-body">
+                            <!-- Rows generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Work Overlay -->
+                <div id="working-effect"
+                    class="absolute inset-0 bg-blue-500 opacity-0 pointer-events-none transition-opacity duration-100">
+                </div>
+            </div>
+
+            <!-- Side B: Play (Relax) -->
+            <div id="tab-play" class="w-1/2 bg-black flex flex-col tab-inactive transition-all relative">
+                <div class="bg-red-600 text-white p-1 text-xs px-2 flex justify-between">
+                    <span>YouTube - 【4K】子猫がひたすら寝る動画 10時間</span>
+                    <span>×</span>
+                </div>
+                <div
+                    class="flex-1 flex items-center justify-center flex-col overflow-hidden bg-gradient-to-b from-gray-900 to-black">
+                    <!-- Relaxing Animation -->
+                    <div class="text-6xl mb-4" id="player-emoji">🏢</div>
+                    <div class="text-green-400 text-sm animate-pulse">精神を回復中... ( ˘ω˘ )</div>
+
+                    <!-- ZZZ effects -->
+                    <div id="snore-container"
+                        class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                        <span class="text-6xl font-bold text-white snore-text">Zzz...!!!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boss Shadow / Alert -->
+            <div id="boss-alert"
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 transition-opacity duration-200">
+                <span class="text-8xl text-red-600 font-bold">！</span>
+            </div>
+
+            <div id="boss-character" class="absolute -right-32 bottom-10 text-8xl pointer-events-none z-40 boss-shadow">
+                👨‍💼
+            </div>
+        </div>
+
+        <!-- Overlays -->
+        <div id="overlay"
+            class="absolute inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-50 hidden">
+            <h2 id="overlay-title" class="text-6xl font-bold text-red-600 mb-4 text-center">解雇通知書</h2>
+            <p id="overlay-msg" class="text-xl mb-8 text-center px-10">業務中に白目を剥いて爆睡していたため、<br>本日付で懲戒解雇といたします。</p>
+            <button onclick="resetGame()"
+                class="px-8 py-3 bg-red-600 hover:bg-red-700 rounded-full font-bold text-xl transition-transform active:scale-95">再就職する</button>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-[60]">
+            <h1 class="text-5xl font-black text-blue-400 mb-2">居眠りスナイパー</h1>
+            <p class="text-gray-400 mb-8">〜窓際サラリーマンの生存戦略〜</p>
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-600 mb-8 max-w-md text-sm leading-relaxed">
+                <ul class="list-disc list-inside space-y-2">
+                    <li><span class="text-blue-400 font-bold">左（仕事）</span>：画面内を連打して真面目ゲージを溜めろ！</li>
+                    <li><span class="text-green-400 font-bold">右（遊び）</span>：精神ゲージを回復しろ。0になると強制居眠りだ！</li>
+                    <li><span class="text-red-400 font-bold">部長</span>：背後に気配を感じたら、即座に<span
+                            class="underline">Spaceキー</span>で仕事画面へ！</li>
+                    <li><span class="text-yellow-400 font-bold">勝利条件</span>：定時までに仕事量を100%にせよ。</li>
+                </ul>
+            </div>
+            <button onclick="startGame()"
+                class="px-10 py-4 bg-blue-600 hover:bg-blue-500 rounded-full font-bold text-2xl animate-bounce">勤務開始</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game State ---
+        let workProgress = 0;
+        let sanity = 100;
+        let score = 0;
+        let activeTab = 'work'; // 'work' or 'play'
+        let bossStatus = 'away'; // 'away', 'walking', 'watching'
+        let isGameOver = false;
+        let isForcedSleep = false;
+        let gameLoopId;
+
+        const elWorkBar = document.getElementById('work-bar');
+        const elWorkVal = document.getElementById('work-val');
+        const elSanityBar = document.getElementById('sanity-bar');
+        const elSanityVal = document.getElementById('sanity-val');
+        const elScore = document.getElementById('score');
+        const elTabWork = document.getElementById('tab-work');
+        const elTabPlay = document.getElementById('tab-play');
+        const elBoss = document.getElementById('boss-character');
+        const elBossAlert = document.getElementById('boss-alert');
+        const elOverlay = document.getElementById('overlay');
+        const elSnore = document.getElementById('snore-container');
+        const elPlayerEmoji = document.getElementById('player-emoji');
+        const elGameStatus = document.getElementById('game-status');
+
+        // --- Init Excel ---
+        const excelBody = document.getElementById('excel-body');
+        for (let i = 1; i <= 20; i++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="bg-gray-100 text-center">${i}</td>
+                <td>${Math.random() > 0.5 ? 'Project_' + (100 + i) : ''}</td>
+                <td>${(Math.random() * 1000).toFixed(0)}</td>
+                <td>${['済', '未', '確認中'][Math.floor(Math.random() * 3)]}</td>
+            `;
+            excelBody.appendChild(tr);
+        }
+
+        // --- Sounds ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playBeep(freq, dur, vol = 0.1) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+
+        // --- Core Functions ---
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            gameLoopId = setInterval(gameLoop, 100);
+            spawnBossRoutine();
+        }
+
+        function toggleTab() {
+            if (isGameOver) return;
+            if (activeTab === 'work') {
+                activeTab = 'play';
+                elTabWork.classList.replace('tab-active', 'tab-inactive');
+                elTabPlay.classList.replace('tab-inactive', 'tab-active');
+                playBeep(440, 0.1);
+            } else {
+                activeTab = 'work';
+                elTabPlay.classList.replace('tab-active', 'tab-inactive');
+                elTabWork.classList.replace('tab-inactive', 'tab-active');
+                playBeep(660, 0.1);
+            }
+        }
+
+        // Key listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || (e.ctrlKey && e.code === 'Tab')) {
+                e.preventDefault();
+                toggleTab();
+            }
+            if (activeTab === 'work' && !isGameOver) {
+                doWork();
+            }
+        });
+
+        // Click on work area
+        elTabWork.addEventListener('mousedown', () => {
+            if (activeTab === 'work' && !isGameOver) {
+                doWork();
+            }
+        });
+
+        function doWork() {
+            if (isForcedSleep) return;
+            workProgress = Math.min(100, workProgress + 0.5);
+            score += 10;
+            document.getElementById('working-effect').style.opacity = '0.3';
+            setTimeout(() => { document.getElementById('working-effect').style.opacity = '0'; }, 50);
+            playBeep(800 + Math.random() * 200, 0.05, 0.02);
+        }
+
+        function gameLoop() {
+            if (isGameOver) return;
+
+            // Sanity depletion
+            if (activeTab === 'work') {
+                sanity = Math.max(0, sanity - 0.5);
+            } else {
+                sanity = Math.min(100, sanity + 1.5);
+            }
+
+            // Forced sleep check
+            if (sanity <= 0 && !isForcedSleep) {
+                triggerForcedSleep();
+            }
+
+            if (isForcedSleep) {
+                sanity = Math.min(100, sanity + 2); // Sleep recovers sanity faster
+                if (sanity >= 100) {
+                    endForcedSleep();
+                }
+            }
+
+            updateUI();
+            checkDetection();
+
+            // Win condition
+            if (workProgress >= 100) {
+                win();
+            }
+        }
+
+        function triggerForcedSleep() {
+            isForcedSleep = true;
+            activeTab = 'play';
+            elTabWork.classList.replace('tab-active', 'tab-inactive');
+            elTabPlay.classList.replace('tab-inactive', 'tab-active');
+            elSnore.classList.remove('hidden');
+            elPlayerEmoji.innerText = '😴';
+            elGameStatus.innerText = '爆睡中！！！';
+            elGameStatus.classList.add('text-red-500');
+            playBeep(100, 0.5, 0.3); // Snore sound
+        }
+
+        function endForcedSleep() {
+            isForcedSleep = false;
+            elSnore.classList.add('hidden');
+            elPlayerEmoji.innerText = '🏢';
+            elGameStatus.innerText = '勤務中...';
+            elGameStatus.classList.remove('text-red-500');
+        }
+
+        function updateUI() {
+            elWorkBar.style.width = workProgress + '%';
+            elWorkVal.innerText = Math.floor(workProgress) + '%';
+            elSanityBar.style.width = sanity + '%';
+            elSanityVal.innerText = Math.floor(sanity) + '%';
+            elScore.innerText = score.toLocaleString();
+
+            if (sanity < 20) {
+                elSanityBar.classList.replace('bg-green-500', 'bg-red-500');
+            } else {
+                elSanityBar.classList.replace('bg-red-500', 'bg-green-500');
+            }
+        }
+
+        // --- Boss Logic ---
+        function spawnBossRoutine() {
+            if (isGameOver) return;
+
+            // Random interval for boss
+            const wait = 3000 + Math.random() * 5000;
+            setTimeout(() => {
+                if (isGameOver) return;
+                startBossPass();
+            }, wait);
+        }
+
+        function startBossPass() {
+            bossStatus = 'walking';
+            // Visual warning: Shake screen
+            document.getElementById('game-container').classList.add('shake');
+            setTimeout(() => document.getElementById('game-container').classList.remove('shake'), 500);
+
+            // Alert icon
+            elBossAlert.style.opacity = '1';
+            playBeep(200, 0.2, 0.1);
+
+            // Boss moves in from right
+            elBoss.style.transform = 'translateX(-600px)';
+
+            setTimeout(() => {
+                if (isGameOver) return;
+                bossStatus = 'watching';
+                elBossAlert.style.opacity = '0';
+
+                // Wait at the center
+                setTimeout(() => {
+                    if (isGameOver) return;
+                    // Move away to left
+                    elBoss.style.transform = 'translateX(-1200px)';
+                    bossStatus = 'away';
+                    setTimeout(() => {
+                        elBoss.style.transition = 'none';
+                        elBoss.style.transform = 'translateX(0)';
+                        setTimeout(() => elBoss.style.transition = 'transform 2s ease-in-out', 50);
+                        spawnBossRoutine();
+                    }, 2000);
+                }, 1500);
+
+            }, 2000);
+        }
+
+        function checkDetection() {
+            if (bossStatus === 'watching' && activeTab === 'play') {
+                gameOver("部長に見つかりました！");
+            }
+        }
+
+        function gameOver(reason) {
+            isGameOver = true;
+            clearInterval(gameLoopId);
+            elOverlay.classList.remove('hidden');
+            document.getElementById('overlay-title').innerText = "解雇通知書";
+            document.getElementById('overlay-msg').innerHTML = `${reason}<br><br>最終スコア: ${score}円`;
+            playBeep(150, 0.8, 0.5);
+        }
+
+        function win() {
+            isGameOver = true;
+            clearInterval(gameLoopId);
+            elOverlay.classList.remove('hidden');
+            document.getElementById('overlay-title').innerText = "定時退社";
+            document.getElementById('overlay-title').classList.replace('text-red-600', 'text-green-500');
+            document.getElementById('overlay-msg').innerHTML = `完璧な「仕事のフリ」でした！<br>あなたは伝説の窓際スナイパーです。<br><br>最終スコア: ${score}円`;
+            playBeep(880, 0.1, 0.2);
+            setTimeout(() => playBeep(1046, 0.1, 0.2), 100);
+        }
+
+        function resetGame() {
+            location.reload();
+        }
+
+    </script>
+</body>
+
+</html>

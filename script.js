@@ -20,7 +20,15 @@ const translations = {
         tag_casual: "カジュアル",
         tag_exploration: "探索",
         tag_favorites: "★ お気に入り",
-        clear_cache_title: "キャッシュを削除して再読み込み"
+        tag_funny: "バカゲー",
+        clear_cache_title: "キャッシュを削除して再読み込み",
+        coming_soon: "近日登場",
+        select_device_title: "機種を選択してください",
+        select_device_desc: "ゲーム体験を最適化するために、お使いの端末を選択してください。",
+        device_pc: "PC",
+        device_mobile: "モバイル",
+        device_tablet: "タブレット",
+        change_device_title: "機種を変更"
     },
     en: {
         portal_title: "Arcade Hub",
@@ -43,13 +51,22 @@ const translations = {
         tag_casual: "Casual",
         tag_exploration: "Exploration",
         tag_favorites: "★ Favorites",
-        clear_cache_title: "Clear Cache & Reload"
+        tag_funny: "Funny",
+        clear_cache_title: "Clear Cache & Reload",
+        coming_soon: "Coming Soon",
+        select_device_title: "Select Your Device",
+        select_device_desc: "Choose your device to optimize your gaming experience.",
+        device_pc: "PC",
+        device_mobile: "Mobile",
+        device_tablet: "Tablet",
+        change_device_title: "Change Device"
     }
 };
 
 let activeFilter = 'all';
-const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration'];
+const AVAILABLE_TAGS = ['all', 'favorites', 'action', 'puzzle', 'strategy', 'simulation', 'shooter', 'casual', 'exploration', 'funny'];
 let currentFeaturedGameId = null;
+let currentDevice = localStorage.getItem('arcade_hub_device') || null;
 
 function getFavorites() {
     try {
@@ -88,6 +105,11 @@ function applyTranslations() {
         clearBtn.title = dict.clear_cache_title;
     }
 
+    const deviceBtn = document.getElementById('btn-device-select');
+    if (deviceBtn) {
+        deviceBtn.title = dict.change_device_title;
+    }
+
     renderFilters();
     renderGames(); // Build game grid dynamically
 
@@ -101,7 +123,7 @@ function renderFilters() {
     const dict = translations[lang] || translations['ja'];
     const filterBar = document.getElementById('filter-bar');
     if (!filterBar) return;
-    
+
     filterBar.innerHTML = AVAILABLE_TAGS.map(tag => {
         const label = dict['tag_' + tag] || tag;
         return `<button class="filter-btn ${activeFilter === tag ? 'active' : ''}" onclick="setFilter('${tag}')">${label}</button>`;
@@ -121,9 +143,13 @@ function renderGames() {
     const grid = document.getElementById('game-grid');
     if (!grid) return;
 
-    const listGames = ALL_GAMES.filter(game => game[lang]);
-    
-    let filteredGames = listGames;
+    let filteredGames = ALL_GAMES.filter(game => game[lang]);
+
+    // Filter by device
+    if (currentDevice) {
+        filteredGames = filteredGames.filter(game => game.devices && game.devices.includes(currentDevice));
+    }
+
     const favorites = getFavorites();
 
     if (activeFilter === 'favorites') {
@@ -150,9 +176,9 @@ function renderGames() {
         const tagsHtml = game.tags ? game.tags.map(t => `<span class="game-tag">${dict['tag_' + t] || t}</span>`).join('') : '';
         const isFav = favorites.includes(game.id);
         const classes = `game-card ${isFeatured ? 'featured' : ''}`;
-        
+
         return `
-            <div class="${classes}" data-game="${game.id}" style="opacity:0; transform:translateY(30px)">
+            <div class="${classes}" data-game="${game.id}" style="opacity:0; transform:translateY(30px); ${game.comingSoon ? 'cursor: not-allowed;' : ''}">
                 <div class="card-img-container">
                     <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${game.id}', event)" title="Toggle Favorite">
                         <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -170,7 +196,7 @@ function renderGames() {
                     ${game.copyright ? `<small style="color: #94a3b8; display: block; margin-top: 8px;">${game.copyright}</small>` : ''}
                 </div>
                 <div class="card-footer">
-                    <span class="play-badge">${dict.view_details}</span>
+                    ${game.comingSoon ? `<span class="play-badge" style="background-color: #475569; color: #94a3b8; cursor: not-allowed; box-shadow: none;">${dict.coming_soon}</span>` : `<span class="play-badge">${dict.view_details}</span>`}
                 </div>
             </div>
         `;
@@ -248,6 +274,8 @@ function renderGames() {
 
         card.addEventListener('click', () => {
             const gameId = card.getAttribute('data-game');
+            const gameData = ALL_GAMES.find(g => g.id === gameId);
+            if (gameData && gameData.comingSoon) return;
             openModal(gameId);
         });
     });
@@ -334,12 +362,27 @@ function setLanguage(lang) {
     applyTranslations();
 }
 
+function showDeviceSelection() {
+    const modal = document.getElementById('device-modal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function selectDevice(device) {
+    currentDevice = device;
+    localStorage.setItem('arcade_hub_device', device);
+    const modal = document.getElementById('device-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    renderGames();
+}
+
 async function clearCacheAndReload() {
     try {
         // Clear all Service Worker caches
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
-        
+
         // Unregister service workers
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -347,7 +390,7 @@ async function clearCacheAndReload() {
                 await registration.unregister();
             }
         }
-        
+
         // Reload
         window.location.reload(true);
     } catch (err) {
@@ -360,6 +403,12 @@ async function clearCacheAndReload() {
 // Basic interactions for the portal page
 document.addEventListener('DOMContentLoaded', () => {
     applyTranslations();
+    
+    // Check if device is already selected
+    if (!currentDevice) {
+        showDeviceSelection();
+    }
+    
     // Dynamic cards are handled within applyTranslations -> renderGames
 
     // Modal logic
@@ -384,8 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show PWA install instruction for iOS
         const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
         const msgSpan = installToast.querySelector('span');
-        msgSpan.innerHTML = lang === 'ja' 
-            ? "アプリとしてインストールするには、ブラウザの[共有]メニューから「ホーム画面に追加」を選択してください。" 
+        msgSpan.innerHTML = lang === 'ja'
+            ? "アプリとしてインストールするには、ブラウザの[共有]メニューから「ホーム画面に追加」を選択してください。"
             : "To install as an app, tap the Share menu and select 'Add to Home Screen'.";
         installBtn.style.display = 'none';
         installToast.classList.remove('hidden');
