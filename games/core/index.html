@@ -287,13 +287,16 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s ease;
             pointer-events: auto;
             z-index: 20;
+            padding: 50px 0;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .screen.active {
@@ -303,7 +306,7 @@
 
         /* メニューのポップな背景 */
         .screen-bg {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -534,11 +537,16 @@
     <div id="fx-overlay"></div>
 
     <div id="ui-layer">
+        <!-- 汎用ボタン -->
+        <button id="sound-btn" class="btn" style="position: absolute; bottom: 20px; right: 20px; width: 60px; height: 60px; padding: 0; font-size: 2rem; border-radius: 50%; z-index: 100; display: flex; align-items: center; justify-content: center; pointer-events: auto;" onclick="toggleSound()">🔊</button>
+
         <!-- トースト通知 -->
         <div id="toast-notification" class="toast"></div>
 
         <!-- ゲーム中HUD -->
         <div id="hud" style="display: none;">
+            <!-- タイトルに戻るボタン -->
+            <button class="btn" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; font-size: 1rem; pointer-events: auto;" onclick="returnToTitle()">TITLE</button>
             <div id="hud-top-left" class="hud retro-panel">
                 <div class="stat-group">
                     <div class="hud-label">Core Integrity</div>
@@ -589,7 +597,11 @@
                 形状は戦略。巨大化は力であり、弱点でもある。
             </div>
 
-            <button class="btn" onclick="startGame()">SYSTEM BOOT</button>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 600px;">
+                <button class="btn" onclick="startGame()">SYSTEM BOOT</button>
+                <button class="btn" onclick="showCollectionScreen()" style="background: var(--col-purple); color: #fff;">COLLECTION</button>
+                <button class="btn" onclick="location.href='../../index.html'" style="background: #e2e8f0;">TOP</button>
+            </div>
 
             <div class="controls-info">
                 <div class="ctrl-item"><span class="key-badge">Mouse</span> 移動</div>
@@ -607,9 +619,13 @@
                 <div class="result-title" id="title-result">称号: 孤独なデブリ</div>
 
                 <!-- 最大形状のスナップショット表示領域 -->
-                <div id="snapshot-container">
-                    <div id="snapshot-label">MAXIMUM ASSEMBLE</div>
-                    <canvas id="snapshot-canvas" width="200" height="200"></canvas>
+                <div id="snapshot-container" style="position: relative; display: inline-flex;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div id="snapshot-label">MAXIMUM ASSEMBLE</div>
+                        <canvas id="snapshot-canvas" width="200" height="200"></canvas>
+                    </div>
+                    <!-- コレクション追加ボタン -->
+                    <button class="btn" onclick="addCurrentToCollection()" style="position: absolute; bottom: -15px; right: -15px; width: 50px; height: 50px; padding: 0; font-size: 1.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--col-yellow); color: var(--text-main); font-family: sans-serif;">＋</button>
                 </div>
 
                 <div class="result-row">
@@ -627,6 +643,16 @@
             </div>
 
             <button class="btn" onclick="showStartScreen()">REBOOT SYSTEM</button>
+        </div>
+
+        <!-- コレクション画面 -->
+        <div id="collection-screen" class="screen">
+            <div class="screen-bg" style="background-color: var(--col-purple);"></div>
+            <h1 style="color: #fff; font-size: 4rem; text-align: center;">COLLECTION</h1>
+            <div style="display:flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 20px; max-width: 1000px; width: 100%;" id="collection-grid">
+                <!-- Javascriptで動的に追加 -->
+            </div>
+            <button class="btn" style="margin-top: 30px;" onclick="showStartScreenFromCollection()">BACK TO TITLE</button>
         </div>
     </div>
 
@@ -658,11 +684,46 @@
 
         // ギミック用
         let laserGrid = { active: false, warningStart: 0, fireStart: 0, line: null, type: 'horizontal' };
+        let currentEvent = null; // 'blackhole', 'scrapstream', または null
+        let eventTimer = 0;
+        let eventDuration = 0;
+        let eventParams = {};
 
         // オーディオ
         const bgm = new Audio('../../assets/musics/core/bgm.mp3');
         bgm.loop = true;
         bgm.volume = 0.4;
+        let isMuted = false;
+
+        function toggleSound() {
+            isMuted = !isMuted;
+            bgm.muted = isMuted;
+            document.getElementById('sound-btn').innerText = isMuted ? '🔇' : '🔊';
+        }
+
+        // --- コレクション機能 ---
+        let currentSnapshotData = null; // リザルト保存用
+        function getCollection() {
+            let col = localStorage.getItem('core_collection');
+            return col ? JSON.parse(col) : [];
+        }
+        function saveCollection(col) {
+            localStorage.setItem('core_collection', JSON.stringify(col));
+        }
+
+        function addCurrentToCollection() {
+            if (!currentSnapshotData) return;
+            const col = getCollection();
+            col.push({
+                date: new Date().toLocaleString(),
+                snapshot: currentSnapshotData,
+                title: document.getElementById('title-result').innerText,
+                partsCount: player.maxPartsReached
+            });
+            saveCollection(col);
+            showToast("コレクションに追加しました！");
+            document.querySelector('#snapshot-container .btn').style.display = 'none'; // 重複追加防止
+        }
 
         // --- パラメータ定義（フラットな色使いに変更） ---
         const PART_TYPES = [
@@ -787,6 +848,8 @@
             gameStats = { time: 0, displayTime: 0, kills: 0, lastTimeMs: Date.now() };
             attachedParts = []; freeParts = []; enemies = []; bullets = []; particles = [];
             laserGrid.active = false;
+            currentEvent = null;
+            eventTimer = 0;
             camera = { x: width / 2, y: height / 2, scale: 1, targetScale: 1 };
             document.getElementById('fx-overlay').className = '';
 
@@ -1049,6 +1112,11 @@
                 if (gameStats.displayTime > 10 && gameStats.displayTime % 45 === 0 && !laserGrid.active) {
                     triggerLaserGrid();
                 }
+
+                // ランダムイベント判定 (60秒ごと、レーザーとかぶらないように少しズラす)
+                if (gameStats.displayTime > 30 && gameStats.displayTime % 60 === 5 && !currentEvent) {
+                    triggerRandomEvent();
+                }
             }
 
             if (player.body) {
@@ -1135,7 +1203,80 @@
                 }
             });
 
-            // 4. 敵のAIとスポーン
+            // 4. イベント実行処理
+            if (currentEvent) {
+                eventTimer++;
+                if (currentEvent === 'blackhole') {
+                    // ブラックホール: 指定位置に引き寄せる
+                    const bhPos = eventParams.pos;
+                    const bhForce = eventParams.force;
+                    
+                    // プレイヤーを吸い寄せる
+                    const pDir = Vector.sub(bhPos, player.body.position);
+                    const pDist = Vector.magnitude(pDir);
+                    if (pDist < 800) {
+                        Body.applyForce(player.body, player.body.position, Vector.mult(Vector.normalise(pDir), bhForce * player.body.mass * 0.5));
+                    }
+
+                    // パーツを吸い寄せる
+                    freeParts.forEach(part => {
+                        const ptDir = Vector.sub(bhPos, part.position);
+                        const ptDist = Vector.magnitude(ptDir);
+                        if (ptDist < 800) {
+                            Body.applyForce(part, part.position, Vector.mult(Vector.normalise(ptDir), bhForce * part.mass * 2.0));
+                        }
+                        // 中心近すぎたら消滅 (吸い込まれた演出)
+                        if (ptDist < 30) {
+                            Composite.remove(engine.world, part);
+                            freeParts = freeParts.filter(p => p !== part);
+                            createExplosion(part.position.x, part.position.y, '#1e293b', 5);
+                        }
+                    });
+
+                    // 敵も吸い寄せる
+                    enemies.forEach(e => {
+                        const enDir = Vector.sub(bhPos, e.body.position);
+                        const enDist = Vector.magnitude(enDir);
+                        if (enDist < 800) {
+                            Body.applyForce(e.body, e.body.position, Vector.mult(Vector.normalise(enDir), bhForce * e.body.mass * 1.5));
+                        }
+                        if (enDist < 30) {
+                            destroyEnemy(e.body);
+                        }
+                    });
+
+                    // ブラックホールのパーティクル演出
+                    if (eventTimer % 3 === 0) {
+                        particles.push({
+                            x: bhPos.x + (Math.random() - 0.5) * 100,
+                            y: bhPos.y + (Math.random() - 0.5) * 100,
+                            vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2,
+                            life: 1.0, color: '#1e293b', size: Math.random() * 6 + 2
+                        });
+                    }
+
+                } else if (currentEvent === 'scrapstream') {
+                    // スクラップ・ストリーム: 特定方向から大量にパーツが流れてくる
+                    if (eventTimer % 5 === 0) {
+                        const spawnX = eventParams.dir.x > 0 ? -100 : (eventParams.dir.x < 0 ? width + 100 : Math.random() * width);
+                        const spawnY = eventParams.dir.y > 0 ? -100 : (eventParams.dir.y < 0 ? height + 100 : Math.random() * height);
+                        
+                        // パーツ生成
+                        const pt = createSpecificPart(spawnX, spawnY);
+                        // 流れの方向への初速
+                        const speed = 8 + Math.random() * 5;
+                        Body.setVelocity(pt, Vector.mult(eventParams.dir, speed));
+                        freeParts.push(pt);
+                        Composite.add(engine.world, pt);
+                    }
+                }
+
+                if (eventTimer >= eventDuration) {
+                    currentEvent = null;
+                }
+            }
+
+            // 5. 敵のAIとスポーン
             const difficulty = 1 + (gameStats.displayTime / 60); // 難易度上昇
             enemies.forEach(e => {
                 const enemy = e.body;
@@ -1161,23 +1302,27 @@
                 }
             });
 
-            if (gameStats.time % Math.max(20, Math.floor(100 - gameStats.displayTime)) === 0 && enemies.length < 15) spawnEnemy();
-            if (gameStats.time % 40 === 0 && freeParts.length < 40) spawnPart();
+            // レベルに応じて出現パーツの基礎上限とスポーン頻度を増加させる
+            const maxPartsLimit = 40 + (player.level * 5); // レベルが上がるごとに上限+5
+            const partSpawnInterval = Math.max(10, 40 - player.level); // レベルが上がるごとにスポーン間隔短縮(最速10F)
 
-            // 5. 弾の更新
+            if (gameStats.time % Math.max(20, Math.floor(100 - gameStats.displayTime)) === 0 && enemies.length < 15) spawnEnemy();
+            if (gameStats.time % partSpawnInterval === 0 && freeParts.length < maxPartsLimit) spawnPart();
+
+            // 6. 弾の更新
             for (let i = bullets.length - 1; i >= 0; i--) {
                 bullets[i].life--;
                 if (bullets[i].life <= 0) destroyBullet(bullets[i].body);
             }
 
-            // 6. パーティクル
+            // 7. パーティクル
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].life -= 0.03;
                 particles[i].x += particles[i].vx; particles[i].y += particles[i].vy;
                 if (particles[i].life <= 0) particles.splice(i, 1);
             }
 
-            // 7. ギミック処理 (レーザーグリッド)
+            // 8. ギミック処理 (レーザーグリッド)
             if (laserGrid.active) {
                 const lNow = Date.now();
                 if (lNow > laserGrid.fireStart && lNow < laserGrid.fireStart + 1000) {
@@ -1223,9 +1368,8 @@
             return { x: -m, y: Math.random() * height };
         }
 
-        function spawnPart() {
-            const pos = getSpawnPos();
-            // 重み付け抽選で種類決定
+        // パーツの生成共通ロジック
+        function createSpecificPart(x, y) {
             const rand = Math.random() * 100;
             let typeObj = PART_TYPES[0];
             let sum = 0;
@@ -1235,9 +1379,15 @@
             }
 
             const size = 15 + Math.random() * 10;
-            const part = Bodies.rectangle(pos.x, pos.y, size, size, { label: 'freePart', frictionAir: 0.02, density: 0.01 });
+            const part = Bodies.rectangle(x, y, size, size, { label: 'freePart', frictionAir: 0.02, density: 0.01 });
             part.partType = typeObj.id;
-            part.typeStyle = typeObj; // 描画用
+            part.typeStyle = typeObj;
+            return part;
+        }
+
+        function spawnPart() {
+            const pos = getSpawnPos();
+            const part = createSpecificPart(pos.x, pos.y);
 
             const dir = Vector.sub({ x: width / 2, y: height / 2 }, pos);
             Body.setVelocity(part, Vector.mult(Vector.normalise(dir), 2 + Math.random() * 2));
@@ -1286,6 +1436,42 @@
             laserGrid.warningStart = Date.now();
             laserGrid.fireStart = laserGrid.warningStart + 3000; // 3秒後に発射
             document.getElementById('fx-overlay').classList.add('fx-warning');
+        }
+
+        function triggerRandomEvent() {
+            const events = ['blackhole', 'scrapstream'];
+            const ev = events[Math.floor(Math.random() * events.length)];
+            currentEvent = ev;
+            eventTimer = 0;
+
+            if (ev === 'blackhole') {
+                showToast("EVENT: BLACK HOLE DETECTED");
+                eventDuration = 600; // 10秒
+                
+                // コアから適度に離れた位置に発生
+                let bx = width/2 + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random()*200);
+                let by = height/2 + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random()*200);
+                // 画面外になりすぎないよう補正
+                bx = Math.max(100, Math.min(width - 100, bx));
+                by = Math.max(100, Math.min(height - 100, by));
+
+                eventParams = {
+                    pos: { x: bx, y: by },
+                    force: 0.0006
+                };
+            } else if (ev === 'scrapstream') {
+                showToast("EVENT: SCRAP STREAM INCOMING");
+                eventDuration = 300; // 5秒
+                
+                // 流れてくる方向を決定
+                const dirs = [
+                    { x: 1, y: 0 }, { x: -1, y: 0 },
+                    { x: 0, y: 1 }, { x: 0, y: -1 }
+                ];
+                eventParams = {
+                    dir: dirs[Math.floor(Math.random() * dirs.length)]
+                };
+            }
         }
 
         function createExplosion(x, y, color, count = 15) {
@@ -1343,6 +1529,26 @@
                     ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 44; ctx.stroke();
                     ctx.lineWidth = 36; ctx.strokeStyle = '#ef4444'; ctx.stroke();
                 }
+            }
+
+            // イベント描画
+            if (currentEvent === 'blackhole') {
+                const bhPos = eventParams.pos;
+                // ブラックホールのコア
+                ctx.beginPath();
+                ctx.arc(bhPos.x, bhPos.y, 25 + Math.sin(Date.now() / 100) * 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#0f172a';
+                ctx.fill();
+                ctx.strokeStyle = '#8b5cf6';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // 事象の地平面（引き込み範囲）
+                ctx.beginPath();
+                ctx.arc(bhPos.x, bhPos.y, 800, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(139, 92, 246, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
             }
 
             // 2. ボディの描画（3D押し出し）
@@ -1597,10 +1803,33 @@
             Runner.stop(runner);
 
             let title = "孤独なデブリ";
-            if (isExplosion) title = "設計限界：アセンブル崩壊";
-            else if (player.maxPartsReached > 50) title = "暴走巨大要塞";
-            else if (player.maxPartsReached > 30) title = "重装甲アセンブル";
-            else if (gameStats.displayTime > 180) title = "歴戦のコア";
+            if (isExplosion) {
+                title = "設計限界：アセンブル崩壊";
+            } else if (player.maxPartsReached === 1 && gameStats.displayTime >= 120) {
+                title = "孤高のミニマリスト";
+            } else if (player.maxPartsReached >= 100) {
+                title = "銀河を覆う星喰い";
+            } else if (player.maxPartsReached >= 80) {
+                title = "神の領域：無双要塞";
+            } else if (player.maxPartsReached >= 60) {
+                title = "暴走巨大要塞";
+            } else if (gameStats.kills >= 100) {
+                title = "殲滅の破壊神";
+            } else if (gameStats.displayTime >= 300) {
+                title = "時を超越せし伝説";
+            } else if (player.maxPartsReached >= 40) {
+                title = "超弩級アセンブル";
+            } else if (gameStats.kills >= 50) {
+                title = "熟練の破壊者";
+            } else if (player.maxPartsReached >= 20) {
+                title = "重装甲機動兵器";
+            } else if (gameStats.displayTime >= 180) {
+                title = "歴戦のコア";
+            } else if (player.level >= 15) {
+                title = "成長する脅威";
+            } else if (player.maxPartsReached >= 10) {
+                title = "寄せ集めのコア";
+            }
 
             document.getElementById('title-result').innerText = `称号: ${title}`;
             document.getElementById('result-time').innerText = document.getElementById('time-val').innerText;
@@ -1609,15 +1838,170 @@
 
             // スナップショットの描画を実行
             drawSnapshot();
+            currentSnapshotData = JSON.parse(JSON.stringify(player.bestSnapshot)); // ディープコピー
+            document.querySelector('#snapshot-container .btn').style.display = 'flex'; // ボタン復活
 
             document.getElementById('hud').style.display = 'none';
             document.getElementById('game-over-screen').classList.add('active');
+        }
+
+        function returnToTitle() {
+            if (currentState !== STATE.PLAYING) return;
+            Runner.stop(runner);
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('start-screen').classList.add('active');
+            currentState = STATE.MENU;
         }
 
         function showStartScreen() {
             document.getElementById('game-over-screen').classList.remove('active');
             document.getElementById('start-screen').classList.add('active');
             currentState = STATE.MENU;
+        }
+
+        function showStartScreenFromCollection() {
+            document.getElementById('collection-screen').classList.remove('active');
+            document.getElementById('start-screen').classList.add('active');
+            currentState = STATE.MENU;
+        }
+
+        function showCollectionScreen() {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('collection-screen').classList.add('active');
+            currentState = STATE.MENU;
+            renderCollection();
+        }
+
+        function renderCollection() {
+            const grid = document.getElementById('collection-grid');
+            grid.innerHTML = '';
+            const col = getCollection();
+            if (col.length === 0) {
+                grid.innerHTML = '<div style="color: #fff; font-size: 1.5rem; font-weight: bold;">NO DATA</div>';
+                return;
+            }
+
+            col.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.style.background = 'var(--panel-bg)';
+                card.style.border = '4px solid var(--panel-border)';
+                card.style.borderRadius = '12px';
+                card.style.padding = '15px';
+                card.style.boxShadow = '6px 6px 0px var(--panel-border)';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.alignItems = 'center';
+
+                const title = document.createElement('div');
+                title.innerText = item.title;
+                title.style.fontWeight = 'bold';
+                title.style.marginBottom = '10px';
+                title.style.color = 'var(--text-main)';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 150;
+                canvas.height = 150;
+                canvas.style.position = 'relative'; // 追加: デフォルトのposition: absoluteを上書き
+                canvas.style.zIndex = 'auto';       // 追加
+                canvas.style.cursor = 'default';    // 追加
+                canvas.style.backgroundColor = 'var(--bg-color)';
+                canvas.style.backgroundImage = 'radial-gradient(#cbd5e1 2px, transparent 2px)';
+                canvas.style.backgroundSize = '15px 15px';
+                canvas.style.border = '2px solid var(--panel-border)';
+                canvas.style.borderRadius = '8px';
+
+                drawSnapshotDataOnCanvas(canvas, item.snapshot);
+
+                const info = document.createElement('div');
+                info.innerText = `${item.date} / Max Parts: ${item.partsCount}`;
+                info.style.fontSize = '0.8rem';
+                info.style.marginTop = '10px';
+                info.style.color = '#64748b';
+                info.style.fontWeight = 'bold';
+
+                const delBtn = document.createElement('button');
+                delBtn.innerText = 'DELETE';
+                delBtn.style.marginTop = '10px';
+                delBtn.className = 'btn';
+                delBtn.style.padding = '8px 16px';
+                delBtn.style.fontSize = '0.9rem';
+                delBtn.style.background = 'var(--col-red)';
+                delBtn.style.color = '#fff';
+                delBtn.onclick = () => {
+                    const newCol = getCollection();
+                    newCol.splice(index, 1);
+                    saveCollection(newCol);
+                    renderCollection();
+                };
+
+                card.appendChild(title);
+                card.appendChild(canvas);
+                card.appendChild(info);
+                card.appendChild(delBtn);
+                grid.appendChild(card);
+            });
+        }
+
+        function drawSnapshotDataOnCanvas(sCanvas, snapshotData) {
+            const sCtx = sCanvas.getContext('2d');
+            const sWidth = sCanvas.width;
+            const sHeight = sCanvas.height;
+            sCtx.clearRect(0, 0, sWidth, sHeight);
+            sCtx.save();
+
+            if (snapshotData && snapshotData.length > 0) {
+                let minX = -20, maxX = 20, minY = -20, maxY = 20;
+                snapshotData.forEach(p => {
+                    p.verts.forEach(v => {
+                        if (v.x < minX) minX = v.x;
+                        if (v.x > maxX) maxX = v.x;
+                        if (v.y < minY) minY = v.y;
+                        if (v.y > maxY) maxY = v.y;
+                    });
+                });
+
+                const w = maxX - minX + 40;
+                const h = maxY - minY + 40;
+                const size = Math.max(w, h);
+                const scale = Math.min((sWidth - 20) / size, 1.5);
+
+                sCtx.translate(sWidth / 2, sHeight / 2);
+                sCtx.scale(scale, scale);
+
+                const offsetX = -(maxX + minX) / 2;
+                const offsetY = -(maxY + minY) / 2;
+                sCtx.translate(offsetX, offsetY);
+
+                sCtx.lineJoin = 'round'; sCtx.lineCap = 'round';
+                sCtx.lineWidth = 3 / scale;
+                sCtx.strokeStyle = '#1e293b';
+
+                snapshotData.forEach(p => {
+                    sCtx.beginPath();
+                    sCtx.moveTo(p.verts[0].x, p.verts[0].y);
+                    for (let i = 1; i < p.verts.length; i++) sCtx.lineTo(p.verts[i].x, p.verts[i].y);
+                    sCtx.closePath();
+                    sCtx.fillStyle = p.color;
+                    sCtx.fill(); sCtx.stroke();
+                    if (p.isSpike) {
+                        sCtx.beginPath(); sCtx.arc(p.cx, p.cy, 4, 0, Math.PI * 2);
+                        sCtx.fillStyle = '#1e293b'; sCtx.fill();
+                    }
+                });
+
+                sCtx.beginPath(); sCtx.arc(0, 0, 20, 0, Math.PI * 2);
+                sCtx.fillStyle = '#ffffff'; sCtx.fill(); sCtx.stroke();
+                sCtx.beginPath(); sCtx.arc(0, 0, 6, 0, Math.PI * 2);
+                sCtx.fillStyle = '#1e293b'; sCtx.fill();
+            } else {
+                sCtx.translate(sWidth / 2, sHeight / 2);
+                sCtx.lineWidth = 3; sCtx.strokeStyle = '#1e293b';
+                sCtx.beginPath(); sCtx.arc(0, 0, 20, 0, Math.PI * 2);
+                sCtx.fillStyle = '#ffffff'; sCtx.fill(); sCtx.stroke();
+                sCtx.beginPath(); sCtx.arc(0, 0, 6, 0, Math.PI * 2);
+                sCtx.fillStyle = '#1e293b'; sCtx.fill();
+            }
+            sCtx.restore();
         }
 
         window.onload = init;
