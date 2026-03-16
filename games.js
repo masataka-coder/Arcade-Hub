@@ -230,7 +230,6 @@ const ALL_GAMES = [
         movie_cg: "assets/movies/core-cg.mp4",
         link: "games/core/index.html",
         tags: ["action", "shooter"],
-        comingSoon: true,
         devices: ["pc", "mobile", "tablet"]
     }
 ];
