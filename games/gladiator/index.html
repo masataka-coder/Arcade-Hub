@@ -221,6 +221,10 @@
 
     <!-- HUD -->
     <div id="hud" class="overlay">
+        <div class="absolute top-4 right-4 flex gap-2 pointer-events-auto z-50">
+            <button onclick="toggleAudio()" class="audio-toggle-btn w-10 h-10 bg-gray-800/80 border border-gray-600 rounded text-xl shadow-lg">🔇</button>
+            <button onclick="goToTitle()" class="w-10 h-10 bg-gray-800/80 border border-gray-600 rounded text-xl shadow-lg text-white font-bold" title="タイトルへ">↩️</button>
+        </div>
         <!-- ボルテージ -->
         <div class="w-full max-w-md mx-auto mb-2">
             <div class="flex justify-between text-xs font-bold mb-1 px-2">
@@ -303,8 +307,9 @@
             <button id="btn-local-multi" onclick="startLocalMulti()"
                 class="px-8 py-4 bg-green-800 text-white font-bold rounded border border-green-500 hover:bg-green-700 text-xl cinzel">⚔️ 2P LOCAL</button>
         </div>
-        <button onclick="initAudio()" id="btn-audio"
-            class="mt-8 text-gray-400 text-sm border-b border-gray-400 pb-1">サウンド: OFF (タップでON)</button>
+        <button onclick="toggleAudio()" id="btn-audio" data-text-btn="true"
+            class="audio-toggle-btn mt-8 text-gray-400 text-sm border-b border-gray-400 pb-1">サウンド: OFF (タップでON)</button>
+        <button id="btn-top-page" onclick="goToTopPage()" class="mt-8 px-6 py-2 bg-gray-900 border border-gray-600 rounded text-gray-300 text-sm hover:bg-gray-800 transition cinzel">トップページへ戻る</button>
     </div>
 
     <!-- スタイル選択 -->
@@ -331,6 +336,10 @@
 
     <!-- キャンプ -->
     <div id="screen-camp" class="screen p-4 text-gray-200">
+        <div class="absolute top-4 right-4 flex gap-2 z-50">
+            <button onclick="toggleAudio()" class="audio-toggle-btn w-10 h-10 bg-gray-800 border border-gray-600 rounded text-xl shadow-lg">🔇</button>
+            <button onclick="goToTitle()" class="w-10 h-10 bg-gray-800 border border-gray-600 rounded text-xl shadow-lg text-white font-bold" title="タイトルへ">↩️</button>
+        </div>
         <h2 class="text-3xl text-yellow-500 mb-4 cinzel">LUDUS (CAMP)</h2>
         <div id="camp-message" class="text-sm font-bold text-center mb-2 min-h-[20px]"></div>
 
@@ -491,13 +500,29 @@
         let audioCtx;
         let isAudioInit = false;
 
-        function initAudio() {
+        function toggleAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            isAudioInit = true;
-            document.getElementById('btn-audio').innerText = "サウンド: ON";
-            document.getElementById('btn-audio').classList.replace('text-gray-400', 'text-green-500');
-            playSound('swish');
+            
+            isAudioInit = !isAudioInit;
+            
+            document.querySelectorAll('.audio-toggle-btn').forEach(btn => {
+                if (btn.hasAttribute('data-text-btn')) {
+                    const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+                    btn.innerText = isAudioInit ? (lang === 'en' ? 'Sound: ON' : 'サウンド: ON') : (lang === 'en' ? 'Sound: OFF (Tap to ON)' : 'サウンド: OFF (タップでON)');
+                    if (isAudioInit) {
+                        btn.classList.remove('text-gray-400');
+                        btn.classList.add('text-green-500');
+                    } else {
+                        btn.classList.remove('text-green-500');
+                        btn.classList.add('text-gray-400');
+                    }
+                } else {
+                    btn.innerText = isAudioInit ? '🔊' : '🔇';
+                }
+            });
+            
+            if (isAudioInit) playSound('swish');
         }
 
         function playSound(type) {
@@ -1968,6 +1993,19 @@
             changeScreen('screen-end');
         }
 
+        function goToTitle() {
+            playSound('swish');
+            game.state = 'menu';
+            document.getElementById('hud').classList.remove('active');
+            document.getElementById('controls').classList.remove('active');
+            changeScreen('screen-title');
+            checkSaveData();
+        }
+
+        function goToTopPage() {
+            window.location.href = '../../index.html';
+        }
+
         function resetGame() { clearSave(); playSound('swish'); changeScreen('screen-title'); checkSaveData(); }
 
         function checkSaveData() {
@@ -2044,6 +2082,7 @@
                 'continue': 'CONTINUE',
                 'audio_off': 'サウンド: OFF (タップでON)',
                 'audio_on': 'サウンド: ON',
+                'return_home': 'トップページへ戻る',
                 'select_style': 'SELECT STYLE',
                 'style_murmillo': '🛡️ ムルミッロ (重装)',
                 'style_murmillo_desc': '移動は遅いが、HPが高くパリィ判定が長い。',
@@ -2087,6 +2126,7 @@
                 'continue': 'CONTINUE',
                 'audio_off': 'Sound: OFF (Tap to ON)',
                 'audio_on': 'Sound: ON',
+                'return_home': 'RETURN TO HOME',
                 'select_style': 'SELECT STYLE',
                 'style_murmillo': '🛡️ Murmillo (Heavy)',
                 'style_murmillo_desc': 'Slow, but high HP and long parry window.',
@@ -2135,8 +2175,13 @@
             const titleBtns = document.querySelectorAll('#screen-title button');
             if(titleBtns[0]) titleBtns[0].innerText = t.enter_ludus;
             if(titleBtns[1] && titleBtns[1].id === 'btn-continue') titleBtns[1].innerText = t.continue;
-            const audioBtn = document.getElementById('btn-audio');
-            if(audioBtn) audioBtn.innerText = isAudioInit ? t.audio_on : t.audio_off;
+            
+            document.querySelectorAll('.audio-toggle-btn[data-text-btn]').forEach(btn => {
+                btn.innerText = isAudioInit ? t.audio_on : t.audio_off;
+            });
+            
+            const topPageBtn = document.getElementById('btn-top-page');
+            if(topPageBtn) topPageBtn.innerText = t.return_home;
             
             // Style
             document.querySelector('#screen-style h2').innerText = t.select_style;
