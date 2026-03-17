@@ -231,5 +231,23 @@ const ALL_GAMES = [
         link: "games/core/index.html",
         tags: ["action", "shooter"],
         devices: ["pc", "mobile", "tablet"]
+    },
+    {
+        id: "gladiator",
+        ja: {
+            title: "グラディエーター",
+            description: "古代ローマのコロッセオで、敵を倒して金を稼げ。"
+        },
+        en: {
+            title: "GLADIATOR",
+            description: "Fight in the Roman Colosseum and earn gold."
+        },
+        copyright: "&copy; 2026 Masanobu Kohata",
+        image: "assets/thumbnails/gladiator.png",
+        movie: null,
+        movie_cg: "assets/movies/gladiator-cg.mp4",
+        link: "games/gladiator/index.html",
+        tags: ["action", "strategy"],
+        devices: ["pc", "mobile", "tablet"]
     }
 ];

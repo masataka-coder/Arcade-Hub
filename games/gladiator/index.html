@@ -545,6 +545,25 @@
             }
         }
 
+        // BGM Playback
+        let bgmAudio = null;
+        function playBGM() {
+            if (!bgmAudio) {
+                bgmAudio = new Audio('../../assets/musics/gladiator.wav');
+                bgmAudio.loop = true;
+                bgmAudio.volume = 0.3;
+            }
+            bgmAudio.play().catch(e => console.log('BGM play prevented', e));
+        }
+
+        function stopBGM() {
+            if (bgmAudio) {
+                bgmAudio.pause();
+                bgmAudio.currentTime = 0;
+            }
+        }
+
+
         // ==========================================
         // Game Engine & Input
         // ==========================================
@@ -2016,6 +2035,177 @@
             }
         }
 
+        // 多言語対応（EN/JA）と各UI要素の辞書
+        const dict = {
+            'ja': {
+                'subtitle': 'Road to Freedom',
+                'desc': '奴隷から這い上がり、10,000Gを貯めて自由を買い取れ。',
+                'enter_ludus': 'ENTER LUDUS',
+                'continue': 'CONTINUE',
+                'audio_off': 'サウンド: OFF (タップでON)',
+                'audio_on': 'サウンド: ON',
+                'select_style': 'SELECT STYLE',
+                'style_murmillo': '🛡️ ムルミッロ (重装)',
+                'style_murmillo_desc': '移動は遅いが、HPが高くパリィ判定が長い。',
+                'style_dimachaerus': '⚔️ ディマカエルス (二刀)',
+                'style_dimachaerus_desc': '盾を持たないが、左右の剣で2連続攻撃ができる。',
+                'style_thraex': '🗡️ トラクス (技巧派)',
+                'style_thraex_desc': 'ステータスのバランスが良い。クリティカルが出やすい。',
+                'camp_title': 'LUDUS (CAMP)',
+                'fans': 'FANS',
+                'haters': 'HATERS',
+                'goal': '/ 10,000 G (自由への道)',
+                'buy_freedom': '💎 10,000 G で自由を買う 💎',
+                'sponsor_title': 'SELECT SPONSOR (パトロン)',
+                'sponsor_noble': '👑 貴族',
+                'sponsor_noble_desc': 'パリィ熱狂',
+                'sponsor_plebs': '⚒️ 平民',
+                'sponsor_plebs_desc': 'コンボ熱狂',
+                'sponsor_emperor': '🦅 皇帝',
+                'sponsor_emperor_desc': '挑発熱狂',
+                'upg_hp': '❤️ HP強化 (+20)',
+                'upg_atk': '⚔️ 武器強化 (+5)',
+                'upg_heal': '❤️ 休息 (全回復)',
+                'enter_arena': 'ENTER ARENA',
+                'exec_victory': 'VICTORY',
+                'exec_desc': '観客は熱狂している！',
+                'exec_kill': '👎 殺害 (報酬UP)',
+                'exec_spare': '👍 助命 (名誉/ファン獲得)',
+                'exec_note': '※助命した敵は、復讐者として後日現れるかもしれません。',
+                'def_title': 'DEFEATED...',
+                'def_judge': '判定中...',
+                'def_heal': '治療費を払い這い上がる (-2000 G)',
+                'def_end': '砂と消える (最初から)',
+                'end_title': 'DEFEAT',
+                'end_desc': '砂の上に倒れ伏した…',
+                'end_btn': 'タイトルへ戻る'
+            },
+            'en': {
+                'subtitle': 'Road to Freedom',
+                'desc': 'Rise from slavery, save up 10,000G and buy your freedom.',
+                'enter_ludus': 'ENTER LUDUS',
+                'continue': 'CONTINUE',
+                'audio_off': 'Sound: OFF (Tap to ON)',
+                'audio_on': 'Sound: ON',
+                'select_style': 'SELECT STYLE',
+                'style_murmillo': '🛡️ Murmillo (Heavy)',
+                'style_murmillo_desc': 'Slow, but high HP and long parry window.',
+                'style_dimachaerus': '⚔️ Dimachaerus (Dual)',
+                'style_dimachaerus_desc': 'No shield, but attacks twice with twin swords.',
+                'style_thraex': '🗡️ Thraex (Tech)',
+                'style_thraex_desc': 'Balanced. High critical rate.',
+                'camp_title': 'LUDUS (CAMP)',
+                'fans': 'FANS',
+                'haters': 'HATERS',
+                'goal': '/ 10,000 G (Path to Freedom)',
+                'buy_freedom': '💎 Buy Freedom for 10,000 G 💎',
+                'sponsor_title': 'SELECT SPONSOR (Patron)',
+                'sponsor_noble': '👑 Noble',
+                'sponsor_noble_desc': 'Loves Parry',
+                'sponsor_plebs': '⚒️ Plebs',
+                'sponsor_plebs_desc': 'Loves Combo',
+                'sponsor_emperor': '🦅 Emperor',
+                'sponsor_emperor_desc': 'Loves Taunt',
+                'upg_hp': '❤️ HP Upgrade (+20)',
+                'upg_atk': '⚔️ ATK Upgrade (+5)',
+                'upg_heal': '❤️ Rest (Full Heal)',
+                'enter_arena': 'ENTER ARENA',
+                'exec_victory': 'VICTORY',
+                'exec_desc': 'The crowd goes wild!',
+                'exec_kill': '👎 Execute (Reward UP)',
+                'exec_spare': '👍 Spare (Fame/Fans UP)',
+                'exec_note': '*Spared enemies may return for revenge.',
+                'def_title': 'DEFEATED...',
+                'def_judge': 'Judging...',
+                'def_heal': 'Pay medical fee & rise (-2000 G)',
+                'def_end': 'Turn to dust (Restart)',
+                'end_title': 'DEFEAT',
+                'end_desc': 'You fell upon the sands...',
+                'end_btn': 'Back to Title'
+            }
+        };
+
+        function applyLanguage() {
+            const lang = localStorage.getItem('arcade_hub_lang') || 'ja';
+            const t = dict[lang];
+            
+            // Title
+            document.querySelector('#screen-title h2').innerText = t.subtitle;
+            document.querySelector('#screen-title p').innerText = t.desc;
+            const titleBtns = document.querySelectorAll('#screen-title button');
+            if(titleBtns[0]) titleBtns[0].innerText = t.enter_ludus;
+            if(titleBtns[1] && titleBtns[1].id === 'btn-continue') titleBtns[1].innerText = t.continue;
+            const audioBtn = document.getElementById('btn-audio');
+            if(audioBtn) audioBtn.innerText = isAudioInit ? t.audio_on : t.audio_off;
+            
+            // Style
+            document.querySelector('#screen-style h2').innerText = t.select_style;
+            const styleBtns = document.querySelectorAll('#screen-style button');
+            if (styleBtns.length >= 3) {
+                styleBtns[0].innerHTML = `<div class="text-xl font-bold text-white mb-1">${t.style_murmillo}</div><p class="text-xs text-gray-400">${t.style_murmillo_desc}</p>`;
+                styleBtns[1].innerHTML = `<div class="text-xl font-bold text-white mb-1">${t.style_dimachaerus}</div><p class="text-xs text-gray-400">${t.style_dimachaerus_desc}</p>`;
+                styleBtns[2].innerHTML = `<div class="text-xl font-bold text-white mb-1">${t.style_thraex}</div><p class="text-xs text-gray-400">${t.style_thraex_desc}</p>`;
+            }
+            
+            // Camp
+            document.querySelector('#screen-camp h2').innerText = t.camp_title;
+            const campSpans = document.querySelectorAll('#screen-camp .text-sm.text-gray-400 span');
+            if (campSpans.length > 1) {
+                campSpans[1].innerHTML = `${t.fans}: <span id="camp-fans" class="text-green-400 font-bold">${game.fans}</span> / ${t.haters}: <span id="camp-haters" class="text-red-400 font-bold">${game.haters}</span>`;
+            }
+            const goalSpan = document.querySelector('#screen-camp .text-gray-500.text-sm');
+            if(goalSpan) goalSpan.innerText = t.goal;
+            const freeBtn = document.getElementById('btn-buy-freedom');
+            if(freeBtn) freeBtn.innerText = t.buy_freedom;
+            
+            const spTitle = document.querySelector('#screen-camp h3');
+            if(spTitle) spTitle.innerText = t.sponsor_title;
+            const pNoble = document.getElementById('patron-noble');
+            if(pNoble) pNoble.innerHTML = `${t.sponsor_noble}<br><span class="text-gray-400 text-[10px]">${t.sponsor_noble_desc}</span>`;
+            const pPlebs = document.getElementById('patron-plebs');
+            if(pPlebs) pPlebs.innerHTML = `${t.sponsor_plebs}<br><span class="text-gray-400 text-[10px]">${t.sponsor_plebs_desc}</span>`;
+            const pEmp = document.getElementById('patron-emperor');
+            if(pEmp) pEmp.innerHTML = `${t.sponsor_emperor}<br><span class="text-gray-400 text-[10px]">${t.sponsor_emperor_desc}</span>`;
+            
+            const upgBtns = document.querySelectorAll('#screen-camp .w-full.bg-gray-700');
+            if(upgBtns.length >= 3) {
+                upgBtns[0].querySelector('span').innerText = t.upg_hp;
+                upgBtns[1].querySelector('span').innerText = t.upg_atk;
+                upgBtns[2].querySelector('span').innerText = t.upg_heal;
+            }
+            
+            const arenaBtn = document.querySelector('#screen-camp > button:last-child');
+            if(arenaBtn && arenaBtn.id !== 'btn-buy-freedom') arenaBtn.innerText = t.enter_arena;
+            
+            // Exec
+            const exTitle = document.querySelector('#screen-exec h2');
+            if(exTitle) exTitle.innerText = t.exec_victory;
+            const exDesc = document.getElementById('exec-desc');
+            if(exDesc) exDesc.innerText = t.exec_desc;
+            const exBtns = document.querySelectorAll('#screen-exec button');
+            if(exBtns.length >= 2) {
+                exBtns[0].innerText = t.exec_kill;
+                exBtns[1].innerText = t.exec_spare;
+            }
+            const exNote = document.querySelector('#screen-exec p.text-xs');
+            if(exNote) exNote.innerText = t.exec_note;
+            
+            // Defeat
+            const dfTitle = document.querySelector('#screen-death-judgment h2');
+            if(dfTitle) dfTitle.innerText = t.def_title;
+            const bHeal = document.getElementById('btn-death-continue');
+            if(bHeal) bHeal.innerText = t.def_heal;
+            const bEnd = document.getElementById('btn-death-end');
+            if(bEnd) bEnd.innerText = t.def_end;
+            
+            const eTitle = document.getElementById('end-title');
+            if(eTitle && eTitle.innerText === 'DEFEAT' || eTitle.innerText === 'GAME OVER') eTitle.innerText = t.end_title;
+            const eDesc = document.getElementById('end-desc');
+            if(eDesc && eDesc.innerText.includes('砂の上に')) eDesc.innerText = t.end_desc;
+            const eBtn = document.querySelector('#screen-end button');
+            if(eBtn) eBtn.innerText = t.end_btn;
+        }
+
         window.onload = () => {
              checkSaveData();
              // トップページ（Arcade Hub）でのデバイス選択情報を確認
@@ -2024,9 +2214,54 @@
                  const btn = document.getElementById('btn-local-multi');
                  if (btn) btn.classList.add('hidden');
              }
+             applyLanguage();
+             
+             // --- TEMPORARY RECORDING SCRIPT ---
+             let mediaRecorder;
+             let recordedChunks = [];
+             
+             window.startRecording = function(filename) {
+                 const stream = canvas.captureStream(30);
+                 mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                 
+                 mediaRecorder.ondataavailable = function(e) {
+                     if (e.data.size > 0) {
+                         recordedChunks.push(e.data);
+                     }
+                 };
+                 
+                 mediaRecorder.onstop = function() {
+                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                     const url = URL.createObjectURL(blob);
+                     const a = document.createElement('a');
+                     a.style.display = 'none';
+                     a.href = url;
+                     a.download = filename;
+                     document.body.appendChild(a);
+                     a.click();
+                     setTimeout(() => {
+                         document.body.removeChild(a);
+                         window.URL.revokeObjectURL(url);
+                     }, 100);
+                     recordedChunks = [];
+                     console.log('Recording saved:', filename);
+                 };
+                 
+                 mediaRecorder.start();
+                 console.log('Recording started...');
+             };
+             
+             window.stopRecording = function() {
+                 if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                     mediaRecorder.stop();
+                 }
+             };
+             // ----------------------------------
         };
 
     </script>
 </body>
 
 </html>
+
+
