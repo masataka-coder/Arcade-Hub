@@ -1,5 +1,23 @@
 const ALL_GAMES = [
     {
+        id: "gravity",
+        ja: {
+            title: "重力反転ラボ",
+            description: "タップで重力を反転させ、障害物を避けて無重力迷宮を駆け抜けろ。集めたエネルギーで機体をアップグレード可能。"
+        },
+        en: {
+            title: "Gravity Shift Lab",
+            description: "Tap to invert gravity and dodge obstacles in an endless runner. Collect energy to upgrade your ship."
+        },
+        copyright: "&copy; 2026 Takahide Kohata",
+        image: "assets/thumbnails/gravity.png",
+        movie: null,
+        movie_cg: null,
+        link: "games/gravity/index.html",
+        tags: ["action", "puzzle", "casual"],
+        devices: ["pc", "mobile", "tablet"]
+    },
+    {
         id: "block",
         ja: {
             title: "ブロック崩し",
